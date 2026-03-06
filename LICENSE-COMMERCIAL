@@ -1,0 +1,13 @@
+DTax Commercial License
+
+Copyright (C) 2026 DTax
+
+The cloud platform components of DTax, including but not limited to:
+  - apps/web/ (Frontend application)
+  - apps/api/ (Backend API server)
+
+are proprietary software. Unauthorized copying, modification, distribution,
+or use of these components is strictly prohibited without a valid commercial
+license from DTax.
+
+For licensing inquiries, please contact: license@getdtax.com

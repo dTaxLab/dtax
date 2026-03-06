@@ -1,0 +1,22 @@
+{
+    "name": "@dtax/cli",
+    "version": "0.1.0",
+    "description": "DTax CLI - Crypto tax calculator command-line tool",
+    "license": "AGPL-3.0",
+    "bin": {
+        "dtax": "./dist/index.js"
+    },
+    "scripts": {
+        "build": "tsup src/index.ts --format cjs --dts",
+        "dev": "tsup src/index.ts --format cjs --watch",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@dtax/tax-engine": "workspace:*",
+        "@dtax/shared-types": "workspace:*"
+    },
+    "devDependencies": {
+        "tsup": "^8.0.0",
+        "typescript": "^5.4.0"
+    }
+}

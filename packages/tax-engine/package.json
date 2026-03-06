@@ -1,0 +1,24 @@
+{
+    "name": "@dtax/tax-engine",
+    "version": "0.1.0",
+    "description": "Open source crypto tax calculation engine - FIFO, LIFO, HIFO",
+    "license": "AGPL-3.0",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsup src/index.ts --format cjs,esm --dts",
+        "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "lint": "eslint src/",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@dtax/shared-types": "workspace:*"
+    },
+    "devDependencies": {
+        "tsup": "^8.0.0",
+        "vitest": "^2.0.0",
+        "typescript": "^5.4.0"
+    }
+}
