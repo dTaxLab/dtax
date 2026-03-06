@@ -6,7 +6,7 @@
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "build": "tsup src/index.ts --format cjs,esm --dts",
+        "build": "tsup",
         "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
         "test": "vitest run",
         "test:watch": "vitest",
@@ -17,8 +17,8 @@
         "@dtax/shared-types": "workspace:*"
     },
     "devDependencies": {
-        "tsup": "^8.0.0",
-        "vitest": "^2.0.0",
-        "typescript": "^5.4.0"
+        "tsup": "^8.5.1",
+        "typescript": "^5.9.3",
+        "vitest": "^2.1.9"
     }
 }
