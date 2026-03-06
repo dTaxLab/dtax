@@ -1,0 +1,30 @@
+{
+  "name": "dtax",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-Powered Crypto Tax Intelligence Platform",
+  "homepage": "https://getdtax.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Phosmax/dtax.git"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "clean": "turbo clean",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.2.0",
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

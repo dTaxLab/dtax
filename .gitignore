@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+out/
+.next/
+.turbo/
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+# IDE & editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+.vitest/
+
+# Database
+*.sqlite
+*.sqlite3
+
+# Docker
+docker/data/
+
+# Generated
+*.tsbuildinfo
