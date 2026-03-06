@@ -1,0 +1,17 @@
+{
+    "extends": "./tsconfig.base.json",
+    "compilerOptions": {
+        "noEmit": true
+    },
+    "references": [
+        {
+            "path": "packages/shared-types"
+        },
+        {
+            "path": "packages/tax-engine"
+        },
+        {
+            "path": "packages/cli"
+        }
+    ]
+}
