@@ -23,6 +23,7 @@
         "totalCount": "{count} total transactions",
         "addTransaction": "+ Add Transaction",
         "importCsv": "📁 Import CSV",
+        "connectApi": "🔌 Connect API",
         "cancel": "✕ Cancel",
         "save": "Save Transaction",
         "saving": "Saving...",
@@ -39,6 +40,20 @@
             "success": "{count} transactions imported successfully",
             "errors": "{count} rows had errors",
             "noFile": "Please select a file first"
+        },
+        "apiSync": {
+            "title": "Connect Exchange API",
+            "description": "Securely connect your exchange via read-only API keys for automatic transaction syncing.",
+            "exchange": "Exchange",
+            "apiKey": "API Key",
+            "apiSecret": "API Secret",
+            "apiPassword": "API Password (Optional)",
+            "connect": "Connect Exchange",
+            "connecting": "Connecting...",
+            "myConnections": "My Connections",
+            "sync": "Sync",
+            "syncing": "Syncing...",
+            "lastSync": "Last sync: {time}"
         },
         "form": {
             "type": "Type",

@@ -13,6 +13,7 @@ import { healthRoutes } from './routes/health';
 import { transactionRoutes } from './routes/transactions';
 import { importRoutes } from './routes/import';
 import { taxRoutes } from './routes/tax';
+import { connectionRoutes } from './routes/connections';
 
 async function main() {
     const app = Fastify({
@@ -39,6 +40,7 @@ async function main() {
     await app.register(transactionRoutes, { prefix: '/api/v1' });
     await app.register(importRoutes, { prefix: '/api/v1' });
     await app.register(taxRoutes, { prefix: '/api/v1' });
+    await app.register(connectionRoutes, { prefix: '/api/v1' });
 
     // Graceful shutdown
     const shutdown = async () => {

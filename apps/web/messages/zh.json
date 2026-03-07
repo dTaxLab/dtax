@@ -23,6 +23,7 @@
         "totalCount": "共 {count} 笔交易",
         "addTransaction": "+ 添加交易",
         "importCsv": "📁 导入 CSV",
+        "connectApi": "🔌 连接 API",
         "cancel": "✕ 取消",
         "save": "保存交易",
         "saving": "保存中...",
@@ -39,6 +40,20 @@
             "success": "成功导入 {count} 笔交易",
             "errors": "{count} 行存在错误",
             "noFile": "请先选择文件"
+        },
+        "apiSync": {
+            "title": "连接交易所 API",
+            "description": "通过只读 API 密钥安全连接您的交易所，实现交易记录自动同步。",
+            "exchange": "交易所",
+            "apiKey": "API Key",
+            "apiSecret": "API Secret",
+            "apiPassword": "API 密码 (选填)",
+            "connect": "连接交易所",
+            "connecting": "连接中...",
+            "myConnections": "我的连接",
+            "sync": "同步",
+            "syncing": "同步中...",
+            "lastSync": "上次同步: {time}"
         },
         "form": {
             "type": "类型",

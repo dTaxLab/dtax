@@ -108,3 +108,19 @@ export async function importCsv(file: File, format?: string): Promise<{ data: Im
 
     return res.json();
 }
+export async function createConnection(data: { exchangeId: string; apiKey: string; apiSecret: string; apiPassword?: string }) {
+    return apiFetch<{ data: { id: string; name: string; status: string } }>('/api/v1/connections', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+export async function getConnections() {
+    return apiFetch<{ data: { id: string; name: string; status: string; lastSyncAt: string | null; createdAt: string }[] }>('/api/v1/connections');
+}
+
+export async function syncConnection(id: string) {
+    return apiFetch<{ data: { status: string; message: string } }>(`/api/v1/connections/${id}/sync`, {
+        method: 'POST',
+    });
+}
