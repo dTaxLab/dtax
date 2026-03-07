@@ -41,6 +41,17 @@ export type {
   GenericColumnMap,
 } from './parsers';
 
+// Reports
+export { generateForm8949, form8949ToCsv } from './reports/form8949';
+export type {
+  Form8949Line,
+  Form8949Box,
+  Form8949BoxSummary,
+  Form8949Report,
+  Form8949Options,
+  LotDateMap,
+} from './reports/form8949';
+
 export { matchInternalTransfers } from './normalizers/internal-transfer';
 export type {
   TransferRecord,
