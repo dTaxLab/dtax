@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { CostBasisCalculator } from '../calculator';
 import type { TaxLot, TaxableEvent } from '../types';
 
-describe('Wallet-Siloed calculation', () => {
-    const lots: TaxLot[] = [
+function createSiloLots(): TaxLot[] {
+    return [
         {
             id: 'lot-1',
             asset: 'BTC',
@@ -21,10 +21,13 @@ describe('Wallet-Siloed calculation', () => {
             sourceId: 'coinbase-1',
         },
     ];
+}
+
+describe('Wallet-Siloed calculation', () => {
 
     it('should consume cross-platform if strictSilo is false (legacy behavior)', () => {
         const calc = new CostBasisCalculator('FIFO');
-        calc.addLots(lots);
+        calc.addLots(createSiloLots());
         
         const sale: TaxableEvent = {
             id: 's1',
@@ -44,7 +47,7 @@ describe('Wallet-Siloed calculation', () => {
 
     it('should strictly isolate the source if strictSilo is true', () => {
         const calc = new CostBasisCalculator('FIFO');
-        calc.addLots(lots);
+        calc.addLots(createSiloLots());
         
         const sale: TaxableEvent = {
             id: 's1',
@@ -67,7 +70,7 @@ describe('Wallet-Siloed calculation', () => {
 
     it('should calculate warning if siloing causes insufficient funds', () => {
         const calc = new CostBasisCalculator('FIFO');
-        calc.addLots(lots);
+        calc.addLots(createSiloLots());
         
         const sale: TaxableEvent = {
             id: 's1',

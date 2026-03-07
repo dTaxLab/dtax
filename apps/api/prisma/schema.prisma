@@ -51,6 +51,7 @@ model DataSource {
   // Relations
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
+  taxLots      TaxLot[]
 
   @@index([userId])
   @@map("data_sources")
@@ -164,6 +165,7 @@ model TaxLot {
   remaining     Decimal  @db.Decimal(30, 18)  // Amount not yet consumed
   costBasisUsd  Decimal  @map("cost_basis_usd") @db.Decimal(20, 8)
   acquiredAt    DateTime @map("acquired_at")
+  sourceId      String?  @map("source_id")    // DataSource ID for wallet-siloed isolation
   source        String?  // "Binance BUY", "Airdrop", etc.
   transactionId String?  @map("transaction_id")
 
@@ -171,10 +173,12 @@ model TaxLot {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dataSource DataSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
 
   @@index([userId, asset])
   @@index([userId, acquiredAt])
+  @@index([sourceId])
   @@map("tax_lots")
 }
 

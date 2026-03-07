@@ -15,6 +15,7 @@ const TEMP_USER_ID = '00000000-0000-0000-0000-000000000001';
 const calculateSchema = z.object({
     taxYear: z.number().int().min(2009).max(2030),
     method: z.enum(['FIFO', 'LIFO', 'HIFO']).default('FIFO'),
+    strictSilo: z.boolean().default(false),
 });
 
 export async function taxRoutes(app: FastifyInstance) {
@@ -52,6 +53,7 @@ export async function taxRoutes(app: FastifyInstance) {
             amount: Number(tx.receivedAmount || 0),
             costBasisUsd: Number(tx.receivedValueUsd || 0),
             acquiredAt: tx.timestamp,
+            sourceId: tx.sourceId || 'unknown',
         }));
 
         const events: TaxableEvent[] = dispositions.map((tx) => ({
@@ -61,6 +63,7 @@ export async function taxRoutes(app: FastifyInstance) {
             proceedsUsd: Number(tx.sentValueUsd || 0),
             date: tx.timestamp,
             feeUsd: Number(tx.feeValueUsd || 0),
+            sourceId: tx.sourceId || 'unknown',
         }));
 
         // 4. Calculate using the tax engine
@@ -74,7 +77,7 @@ export async function taxRoutes(app: FastifyInstance) {
         const results = [];
 
         for (const event of events) {
-            const result = calculator.calculate(event);
+            const result = calculator.calculate(event, body.strictSilo);
             results.push(result);
 
             if (result.holdingPeriod === 'SHORT_TERM') {
