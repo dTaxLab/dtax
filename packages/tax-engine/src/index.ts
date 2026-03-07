@@ -40,3 +40,10 @@ export type {
   ParsedTransaction,
   GenericColumnMap,
 } from './parsers';
+
+export { matchInternalTransfers } from './normalizers/internal-transfer';
+export type {
+  TransferRecord,
+  InternalTransferMatch,
+  MatchResult,
+} from './normalizers/internal-transfer';
