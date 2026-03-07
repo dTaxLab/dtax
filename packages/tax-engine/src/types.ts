@@ -24,7 +24,9 @@ export interface TaxLot {
     costBasisUsd: number;
     /** Date the asset was acquired */
     acquiredAt: Date;
-    /** Source of the acquisition */
+    /** Identifier of the exchange or wallet holding this asset */
+    sourceId: string;
+    /** Human-readable source type */
     source?: string;
 }
 
@@ -42,6 +44,8 @@ export interface TaxableEvent {
     proceedsUsd: number;
     /** Date of the disposition */
     date: Date;
+    /** Identifier of the exchange or wallet executing this disposition */
+    sourceId: string;
     /** Fee in USD */
     feeUsd?: number;
 }

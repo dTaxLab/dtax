@@ -32,10 +32,15 @@ function getHoldingPeriod(acquiredAt: Date, soldAt: Date): HoldingPeriod {
  */
 export function calculateLIFO(
     lots: TaxLot[],
-    event: TaxableEvent
+    event: TaxableEvent,
+    strictSilo: boolean = false
 ): CalculationResult {
+    const applicableLots = strictSilo
+        ? lots.filter(l => l.sourceId === event.sourceId)
+        : lots;
+
     // Sort lots by acquisition date DESCENDING for LIFO (newest first)
-    const sortedLots = [...lots]
+    const sortedLots = [...applicableLots]
         .filter((lot) => lot.asset === event.asset && lot.amount > 0)
         .sort((a, b) => b.acquiredAt.getTime() - a.acquiredAt.getTime());
 
