@@ -46,5 +46,9 @@ coverage/
 # Docker
 docker/data/
 
+# Memory & AI context (sensitive)
+.memory/
+.claude/
+
 # Generated
 *.tsbuildinfo
