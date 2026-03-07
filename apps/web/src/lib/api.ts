@@ -125,6 +125,37 @@ export async function syncConnection(id: string) {
     });
 }
 
+// ─── Form 8949 ─────────────────────────────────
+
+export interface Form8949Line {
+    description: string;
+    dateAcquired: string;
+    dateSold: string;
+    proceeds: number;
+    costBasis: number;
+    adjustmentCode: string;
+    adjustmentAmount: number;
+    gainLoss: number;
+    box: string;
+    holdingPeriod: string;
+    eventId: string;
+}
+
+export interface Form8949Report {
+    taxYear: number;
+    lines: Form8949Line[];
+    boxSummaries: { box: string; totalProceeds: number; totalCostBasis: number; totalAdjustments: number; totalGainLoss: number; lineCount: number }[];
+    totals: { shortTermGainLoss: number; longTermGainLoss: number; totalGainLoss: number; totalProceeds: number; totalCostBasis: number; lineCount: number };
+}
+
+export async function getForm8949(year: number, method = 'FIFO') {
+    return apiFetch<{ data: Form8949Report }>(`/api/v1/tax/form8949?year=${year}&method=${method}`);
+}
+
+export function getForm8949CsvUrl(year: number, method = 'FIFO') {
+    return `${API_BASE}/api/v1/tax/form8949?year=${year}&method=${method}&format=csv`;
+}
+
 // ─── Transfer Matching ─────────────────────────
 
 export interface TransferMatch {

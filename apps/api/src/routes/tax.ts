@@ -7,8 +7,8 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { CostBasisCalculator } from '@dtax/tax-engine';
-import type { TaxLot, TaxableEvent } from '@dtax/tax-engine';
+import { CostBasisCalculator, generateForm8949, form8949ToCsv } from '@dtax/tax-engine';
+import type { TaxLot, TaxableEvent, LotDateMap } from '@dtax/tax-engine';
 
 const TEMP_USER_ID = '00000000-0000-0000-0000-000000000001';
 
@@ -136,6 +136,78 @@ export async function taxRoutes(app: FastifyInstance) {
                 },
             },
         });
+    });
+
+    // GET /tax/form8949 — Generate Form 8949 report (JSON or CSV)
+    app.get('/tax/form8949', async (request, reply) => {
+        const query = z.object({
+            year: z.coerce.number().int().min(2009).max(2030),
+            method: z.enum(['FIFO', 'LIFO', 'HIFO']).default('FIFO'),
+            format: z.enum(['json', 'csv']).default('json'),
+            strictSilo: z.coerce.boolean().default(false),
+        }).parse(request.query);
+
+        const yearStart = new Date(`${query.year}-01-01T00:00:00Z`);
+        const yearEnd = new Date(`${query.year + 1}-01-01T00:00:00Z`);
+
+        const acquisitions = await prisma.transaction.findMany({
+            where: {
+                userId: TEMP_USER_ID,
+                type: { in: ['BUY', 'TRADE', 'AIRDROP', 'STAKING_REWARD', 'MINING_REWARD', 'INTEREST', 'FORK', 'GIFT_RECEIVED'] },
+                timestamp: { lt: yearEnd },
+            },
+            orderBy: { timestamp: 'asc' },
+        });
+
+        const dispositions = await prisma.transaction.findMany({
+            where: {
+                userId: TEMP_USER_ID,
+                type: { in: ['SELL', 'TRADE', 'GIFT_SENT', 'LOST', 'STOLEN'] },
+                timestamp: { gte: yearStart, lt: yearEnd },
+            },
+            orderBy: { timestamp: 'asc' },
+        });
+
+        const lots: TaxLot[] = acquisitions.map((tx) => ({
+            id: tx.id,
+            asset: tx.receivedAsset || '',
+            amount: Number(tx.receivedAmount || 0),
+            costBasisUsd: Number(tx.receivedValueUsd || 0),
+            acquiredAt: tx.timestamp,
+            sourceId: tx.sourceId || 'unknown',
+        }));
+
+        const lotDates: LotDateMap = new Map(lots.map(l => [l.id, l.acquiredAt]));
+
+        const events: TaxableEvent[] = dispositions.map((tx) => ({
+            id: tx.id,
+            asset: tx.sentAsset || '',
+            amount: Number(tx.sentAmount || 0),
+            proceedsUsd: Number(tx.sentValueUsd || 0),
+            date: tx.timestamp,
+            feeUsd: Number(tx.feeValueUsd || 0),
+            sourceId: tx.sourceId || 'unknown',
+        }));
+
+        const calculator = new CostBasisCalculator(query.method);
+        calculator.addLots(lots);
+        const results = events.map(e => calculator.calculate(e, query.strictSilo));
+
+        const report = generateForm8949(results, {
+            taxYear: query.year,
+            lotDates,
+            reportingBasis: 'none',
+        });
+
+        if (query.format === 'csv') {
+            const csv = form8949ToCsv(report);
+            return reply
+                .header('Content-Type', 'text/csv')
+                .header('Content-Disposition', `attachment; filename="form8949-${query.year}-${query.method}.csv"`)
+                .send(csv);
+        }
+
+        return { data: report };
     });
 
     // GET /tax/summary — Get tax summary for a year

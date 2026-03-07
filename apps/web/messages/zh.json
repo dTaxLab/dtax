@@ -114,7 +114,18 @@
         "shortTerm": "短期（< 1 年）",
         "longTerm": "长期（> 1 年）",
         "total": "合计",
-        "disclaimer": "⚠️ 本报告仅供参考，不构成税务建议。请咨询专业税务顾问了解您的具体情况。"
+        "disclaimer": "⚠️ 本报告仅供参考，不构成税务建议。请咨询专业税务顾问了解您的具体情况。",
+        "form8949": {
+            "title": "IRS Form 8949 — 资产销售与处置",
+            "downloadCsv": "下载 CSV",
+            "box": "类别",
+            "description": "资产描述",
+            "acquired": "获取日期",
+            "sold": "出售日期",
+            "proceeds": "收入",
+            "basis": "成本基础",
+            "gainLoss": "收益/亏损"
+        }
     },
     "table": {
         "date": "日期",

@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { calculateTax } from '@/lib/api';
-import type { TaxSummary } from '@/lib/api';
+import { calculateTax, getForm8949, getForm8949CsvUrl } from '@/lib/api';
+import type { TaxSummary, Form8949Report } from '@/lib/api';
 
 function formatUsd(v: number) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
@@ -26,6 +26,7 @@ export default function TaxPage() {
     const [year, setYear] = useState(2025);
     const [method, setMethod] = useState('FIFO');
     const [report, setReport] = useState<TaxSummary | null>(null);
+    const [form8949, setForm8949] = useState<Form8949Report | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -33,8 +34,12 @@ export default function TaxPage() {
         setLoading(true);
         setError(null);
         try {
-            const res = await calculateTax(year, method);
-            setReport(res.data.report);
+            const [taxRes, f8949Res] = await Promise.all([
+                calculateTax(year, method),
+                getForm8949(year, method),
+            ]);
+            setReport(taxRes.data.report);
+            setForm8949(f8949Res.data);
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Failed');
         }
@@ -130,6 +135,81 @@ export default function TaxPage() {
                             <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{t('disclaimer')}</p>
                         </div>
                     </div>
+
+                    {/* Form 8949 Section */}
+                    {form8949 && form8949.lines.length > 0 && (
+                        <div className="card" style={{ marginTop: '24px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <h3 style={{ fontSize: '16px', fontWeight: '600' }}>{t('form8949.title')}</h3>
+                                <a
+                                    href={getForm8949CsvUrl(year, method)}
+                                    download
+                                    className="btn btn-primary"
+                                    style={{ fontSize: '13px', textDecoration: 'none' }}
+                                >
+                                    {t('form8949.downloadCsv')}
+                                </a>
+                            </div>
+
+                            {/* Box summaries */}
+                            {form8949.boxSummaries.length > 0 && (
+                                <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                                    {form8949.boxSummaries.map(bs => (
+                                        <div key={bs.box} style={{
+                                            padding: '12px 16px', background: 'var(--bg-surface)',
+                                            borderRadius: 'var(--radius-sm)', fontSize: '13px',
+                                            border: '1px solid var(--border)',
+                                        }}>
+                                            <div style={{ fontWeight: 600, marginBottom: '4px' }}>
+                                                {t('form8949.box')} {bs.box} ({bs.lineCount} {bs.lineCount === 1 ? 'item' : 'items'})
+                                            </div>
+                                            <div style={{ color: bs.totalGainLoss >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                                                {formatUsd(bs.totalGainLoss)}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Line items table */}
+                            <div className="table-container" style={{ border: 'none' }}>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>{t('form8949.box')}</th>
+                                            <th>{t('form8949.description')}</th>
+                                            <th>{t('form8949.acquired')}</th>
+                                            <th>{t('form8949.sold')}</th>
+                                            <th style={{ textAlign: 'right' }}>{t('form8949.proceeds')}</th>
+                                            <th style={{ textAlign: 'right' }}>{t('form8949.basis')}</th>
+                                            <th style={{ textAlign: 'right' }}>{t('form8949.gainLoss')}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {form8949.lines.map((line) => (
+                                            <tr key={line.eventId}>
+                                                <td><span style={{
+                                                    display: 'inline-block', width: '24px', height: '24px',
+                                                    lineHeight: '24px', textAlign: 'center',
+                                                    background: 'var(--bg-surface)', borderRadius: '4px',
+                                                    fontSize: '12px', fontWeight: 600,
+                                                }}>{line.box}</span></td>
+                                                <td style={{ fontFamily: 'var(--font-mono)', fontSize: '13px' }}>{line.description}</td>
+                                                <td style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{line.dateAcquired}</td>
+                                                <td style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{line.dateSold}</td>
+                                                <td style={{ textAlign: 'right', fontSize: '13px' }}>{formatUsd(line.proceeds)}</td>
+                                                <td style={{ textAlign: 'right', fontSize: '13px' }}>{formatUsd(line.costBasis)}</td>
+                                                <td style={{
+                                                    textAlign: 'right', fontSize: '13px', fontWeight: 600,
+                                                    color: line.gainLoss >= 0 ? 'var(--green)' : 'var(--red)',
+                                                }}>{formatUsd(line.gainLoss)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
                 </>
             )}
         </div>

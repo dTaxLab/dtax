@@ -114,7 +114,18 @@
         "shortTerm": "Short-Term (< 1 year)",
         "longTerm": "Long-Term (> 1 year)",
         "total": "TOTAL",
-        "disclaimer": "⚠️ This is for informational purposes only and does not constitute tax advice. Consult a qualified tax professional for your specific situation."
+        "disclaimer": "⚠️ This is for informational purposes only and does not constitute tax advice. Consult a qualified tax professional for your specific situation.",
+        "form8949": {
+            "title": "IRS Form 8949 — Sales and Dispositions",
+            "downloadCsv": "Download CSV",
+            "box": "Box",
+            "description": "Description",
+            "acquired": "Acquired",
+            "sold": "Sold",
+            "proceeds": "Proceeds",
+            "basis": "Cost Basis",
+            "gainLoss": "Gain/Loss"
+        }
     },
     "table": {
         "date": "Date",
