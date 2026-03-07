@@ -130,6 +130,80 @@ describe('CostBasisCalculator', () => {
         expect(result.matchedLots[0].lotId).toBe('lot-new');
     });
 
+    it('should correctly consume lots across multiple calculate() calls', () => {
+        const calc = new CostBasisCalculator('FIFO');
+        calc.addLots([
+            {
+                id: 'lot-1',
+                asset: 'BTC', sourceId: 'binance-1',
+                amount: 1.0,
+                costBasisUsd: 30000,
+                acquiredAt: new Date('2024-01-01'),
+            },
+        ]);
+
+        // First sale: sell 0.6 BTC
+        const sale1: TaxableEvent = {
+            id: 'sale-1',
+            asset: 'BTC', sourceId: 'binance-1',
+            amount: 0.6,
+            proceedsUsd: 27000, // $45k per BTC
+            date: new Date('2025-06-01'),
+        };
+        const result1 = calc.calculate(sale1);
+        expect(result1.gainLoss).toBe(9000); // 27000 - 18000
+
+        // Second sale: sell 0.6 BTC — but only 0.4 remains in lot
+        const sale2: TaxableEvent = {
+            id: 'sale-2',
+            asset: 'BTC', sourceId: 'binance-1',
+            amount: 0.6,
+            proceedsUsd: 27000,
+            date: new Date('2025-07-01'),
+        };
+        const result2 = calc.calculate(sale2);
+
+        // Should only match 0.4 BTC remaining (not 0.6 again!)
+        expect(result2.matchedLots).toHaveLength(1);
+        expect(result2.matchedLots[0].amountConsumed).toBeCloseTo(0.4, 8);
+        // Cost basis for 0.4 BTC = 30000 * 0.4 = 12000
+        expect(result2.matchedLots[0].costBasisUsd).toBeCloseTo(12000, 2);
+    });
+
+    it('should fully deplete lots and report insufficient on subsequent calls', () => {
+        const calc = new CostBasisCalculator('FIFO');
+        calc.addLots([
+            {
+                id: 'lot-1',
+                asset: 'ETH', sourceId: 'cb-1',
+                amount: 2.0,
+                costBasisUsd: 4000,
+                acquiredAt: new Date('2024-01-01'),
+            },
+        ]);
+
+        // Sell all 2.0 ETH
+        const sale1: TaxableEvent = {
+            id: 'sale-1',
+            asset: 'ETH', sourceId: 'cb-1',
+            amount: 2.0,
+            proceedsUsd: 6000,
+            date: new Date('2025-01-01'),
+        };
+        calc.calculate(sale1);
+
+        // Try selling more — lot should be depleted
+        const sale2: TaxableEvent = {
+            id: 'sale-2',
+            asset: 'ETH', sourceId: 'cb-1',
+            amount: 1.0,
+            proceedsUsd: 3000,
+            date: new Date('2025-02-01'),
+        };
+        const result2 = calc.calculate(sale2);
+        expect(result2.matchedLots).toHaveLength(0);
+    });
+
     it('should calculate using HIFO method', () => {
         const calc = new CostBasisCalculator('HIFO');
         calc.addLots([

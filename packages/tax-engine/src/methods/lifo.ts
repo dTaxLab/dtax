@@ -41,7 +41,7 @@ export function calculateLIFO(
 
     // Sort lots by acquisition date DESCENDING for LIFO (newest first)
     const sortedLots = [...applicableLots]
-        .filter((lot) => lot.asset === event.asset && lot.amount > 0)
+        .filter((lot) => lot.asset === event.asset && lot.amount > 0.00000001)
         .sort((a, b) => b.acquiredAt.getTime() - a.acquiredAt.getTime());
 
     let remainingAmount = event.amount;
@@ -53,16 +53,20 @@ export function calculateLIFO(
         if (remainingAmount <= 0) break;
 
         const consumeAmount = Math.min(lot.amount, remainingAmount);
-        const costPerUnit = lot.costBasisUsd / lot.amount;
+        const costPerUnit = lot.amount > 0.00000001 ? lot.costBasisUsd / lot.amount : 0;
         const consumedCostBasis = costPerUnit * consumeAmount;
+        const fullyConsumed = consumeAmount >= lot.amount - 0.00000001;
 
         matchedLots.push({
             lotId: lot.id,
             amountConsumed: consumeAmount,
             costBasisUsd: consumedCostBasis,
-            fullyConsumed: consumeAmount >= lot.amount,
+            fullyConsumed,
         });
 
+        // Mutate lot to track remaining balance across multiple calculations
+        lot.amount -= consumeAmount;
+        lot.costBasisUsd -= consumedCostBasis;
         totalCostBasis += consumedCostBasis;
         remainingAmount -= consumeAmount;
 
