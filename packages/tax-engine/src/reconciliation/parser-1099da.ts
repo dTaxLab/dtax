@@ -32,12 +32,25 @@ const COLUMN_MAPS: Record<string, Record<string, string>> = {
     },
 };
 
+const ASSET_ALIASES: Record<string, string> = {
+    'BITCOIN': 'BTC',
+    'ETHEREUM': 'ETH',
+    'SOLANA': 'SOL',
+    'DOGECOIN': 'DOGE',
+    'BITCOIN CASH': 'BCH',
+    'ETHEREUM CLASSIC': 'ETC',
+    'LITECOIN': 'LTC',
+    'RIPPLE': 'XRP',
+    'CARDANO': 'ADA',
+    'POLKADOT': 'DOT',
+};
+
 function normalizeAsset(raw: string): string {
-    return raw.replace(/\s+/g, '').toUpperCase()
-        .replace('BITCOIN', 'BTC')
-        .replace('ETHEREUM', 'ETH')
-        .replace('SOLANA', 'SOL')
-        .replace('DOGECOIN', 'DOGE');
+    const trimmed = raw.trim().toUpperCase();
+    // Check full-name aliases first (exact match)
+    if (ASSET_ALIASES[trimmed]) return ASSET_ALIASES[trimmed];
+    // Otherwise strip whitespace and return as-is (already a ticker)
+    return trimmed.replace(/\s+/g, '');
 }
 
 function parseDate(raw: string | undefined): Date | undefined {
