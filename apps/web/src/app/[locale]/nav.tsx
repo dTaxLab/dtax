@@ -32,6 +32,9 @@ export function LocaleNav({ locale }: { locale: string }) {
                 <Link href="/tax" className={`nav-link ${pathname === '/tax' ? 'active' : ''}`}>
                     {t('taxReport')}
                 </Link>
+                <Link href="/reconcile" className={`nav-link ${pathname === '/reconcile' ? 'active' : ''}`}>
+                    {t('reconcile')}
+                </Link>
                 <span className="nav-divider" style={{
                     width: '1px', height: '20px', background: 'var(--border)',
                     margin: '0 4px', alignSelf: 'center',

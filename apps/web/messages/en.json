@@ -3,7 +3,8 @@
         "dashboard": "Dashboard",
         "transactions": "Transactions",
         "transfers": "Transfers",
-        "taxReport": "Tax Report"
+        "taxReport": "Tax Report",
+        "reconcile": "Reconcile"
     },
     "dashboard": {
         "title": "Dashboard",
@@ -125,6 +126,34 @@
             "proceeds": "Proceeds",
             "basis": "Cost Basis",
             "gainLoss": "Gain/Loss"
+        }
+    },
+    "reconcile": {
+        "title": "1099-DA Reconciliation",
+        "subtitle": "Compare your broker's 1099-DA against DTax calculations to find discrepancies",
+        "taxYear": "Tax Year",
+        "method": "Method",
+        "broker": "Broker Name",
+        "upload1099da": "Upload 1099-DA CSV",
+        "reconcile": "Reconcile",
+        "reconciling": "Reconciling...",
+        "matched": "Matched",
+        "mismatches": "Mismatches",
+        "missingInDtax": "Missing in DTax",
+        "missingIn1099da": "Not on 1099-DA",
+        "transferMisclassified": "Transfer Misclassified",
+        "netDiff": "Net G/L Diff",
+        "details": "Reconciliation Details",
+        "proceeds": "Proceeds",
+        "basis": "Basis",
+        "status": {
+            "matched": "Matched",
+            "proceeds_mismatch": "Proceeds Mismatch",
+            "basis_mismatch": "Basis Mismatch",
+            "both_mismatch": "Both Mismatch",
+            "missing_in_dtax": "Missing in DTax",
+            "missing_in_1099da": "Not on 1099-DA",
+            "internal_transfer_misclassified": "Transfer Misclassified"
         }
     },
     "table": {

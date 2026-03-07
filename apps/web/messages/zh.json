@@ -3,7 +3,8 @@
         "dashboard": "仪表盘",
         "transactions": "交易记录",
         "transfers": "内部转账",
-        "taxReport": "税务报告"
+        "taxReport": "税务报告",
+        "reconcile": "对账"
     },
     "dashboard": {
         "title": "仪表盘",
@@ -125,6 +126,34 @@
             "proceeds": "收入",
             "basis": "成本基础",
             "gainLoss": "收益/亏损"
+        }
+    },
+    "reconcile": {
+        "title": "1099-DA 对账",
+        "subtitle": "将交易所 1099-DA 报告与 DTax 计算结果进行比对，发现差异",
+        "taxYear": "纳税年度",
+        "method": "计算方法",
+        "broker": "交易所名称",
+        "upload1099da": "上传 1099-DA CSV",
+        "reconcile": "开始对账",
+        "reconciling": "对账中...",
+        "matched": "已匹配",
+        "mismatches": "差异项",
+        "missingInDtax": "DTax 缺失",
+        "missingIn1099da": "1099-DA 缺失",
+        "transferMisclassified": "转账误分类",
+        "netDiff": "净收益差异",
+        "details": "对账明细",
+        "proceeds": "收入",
+        "basis": "成本",
+        "status": {
+            "matched": "已匹配",
+            "proceeds_mismatch": "收入差异",
+            "basis_mismatch": "成本差异",
+            "both_mismatch": "双重差异",
+            "missing_in_dtax": "DTax 缺失",
+            "missing_in_1099da": "1099-DA 缺失",
+            "internal_transfer_misclassified": "转账误分类"
         }
     },
     "table": {

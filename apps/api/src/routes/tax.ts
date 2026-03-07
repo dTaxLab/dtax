@@ -7,8 +7,8 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { CostBasisCalculator, generateForm8949, form8949ToCsv } from '@dtax/tax-engine';
-import type { TaxLot, TaxableEvent, LotDateMap } from '@dtax/tax-engine';
+import { CostBasisCalculator, generateForm8949, form8949ToCsv, parse1099DA, reconcile } from '@dtax/tax-engine';
+import type { TaxLot, TaxableEvent, LotDateMap, DtaxDisposition } from '@dtax/tax-engine';
 
 const TEMP_USER_ID = '00000000-0000-0000-0000-000000000001';
 
@@ -250,6 +250,108 @@ export async function taxRoutes(app: FastifyInstance) {
                 totalTransactions: report.totalTransactions,
                 status: report.status,
                 updatedAt: report.updatedAt,
+            },
+        };
+    });
+
+    // POST /tax/reconcile — Upload 1099-DA CSV and reconcile against DTax calculations
+    app.post('/tax/reconcile', async (request, reply) => {
+        const body = z.object({
+            csvContent: z.string().min(1),
+            brokerName: z.string().default('Unknown'),
+            taxYear: z.number().int().min(2009).max(2030),
+            method: z.enum(['FIFO', 'LIFO', 'HIFO']).default('FIFO'),
+        }).parse(request.body);
+
+        // 1. Parse the 1099-DA CSV
+        const parsed = parse1099DA(body.csvContent, body.brokerName, body.taxYear);
+
+        if (parsed.entries.length === 0) {
+            return reply.status(400).send({
+                error: { message: 'No valid entries found in 1099-DA CSV', details: parsed.errors },
+            });
+        }
+
+        // 2. Build DTax dispositions for the same tax year
+        const yearStart = new Date(`${body.taxYear}-01-01T00:00:00Z`);
+        const yearEnd = new Date(`${body.taxYear + 1}-01-01T00:00:00Z`);
+
+        const acquisitions = await prisma.transaction.findMany({
+            where: {
+                userId: TEMP_USER_ID,
+                type: { in: ['BUY', 'TRADE', 'AIRDROP', 'STAKING_REWARD', 'MINING_REWARD', 'INTEREST', 'FORK', 'GIFT_RECEIVED'] },
+                timestamp: { lt: yearEnd },
+            },
+            orderBy: { timestamp: 'asc' },
+        });
+
+        const dispositions = await prisma.transaction.findMany({
+            where: {
+                userId: TEMP_USER_ID,
+                type: { in: ['SELL', 'TRADE', 'GIFT_SENT', 'LOST', 'STOLEN'] },
+                timestamp: { gte: yearStart, lt: yearEnd },
+            },
+            orderBy: { timestamp: 'asc' },
+        });
+
+        // Get internal transfer IDs for misclassification detection
+        const internalTransfers = await prisma.transaction.findMany({
+            where: {
+                userId: TEMP_USER_ID,
+                type: 'INTERNAL_TRANSFER',
+                timestamp: { gte: yearStart, lt: yearEnd },
+            },
+            select: { externalId: true },
+        });
+        const internalTransferIds = new Set(
+            internalTransfers.map(t => t.externalId).filter((id): id is string => id !== null)
+        );
+
+        const lots: TaxLot[] = acquisitions.map((tx) => ({
+            id: tx.id,
+            asset: tx.receivedAsset || '',
+            amount: Number(tx.receivedAmount || 0),
+            costBasisUsd: Number(tx.receivedValueUsd || 0),
+            acquiredAt: tx.timestamp,
+            sourceId: tx.sourceId || 'unknown',
+        }));
+
+        const events: TaxableEvent[] = dispositions.map((tx) => ({
+            id: tx.id,
+            asset: tx.sentAsset || '',
+            amount: Number(tx.sentAmount || 0),
+            proceedsUsd: Number(tx.sentValueUsd || 0),
+            date: tx.timestamp,
+            feeUsd: Number(tx.feeValueUsd || 0),
+            sourceId: tx.sourceId || 'unknown',
+        }));
+
+        // 3. Calculate using the tax engine
+        const calculator = new CostBasisCalculator(body.method);
+        calculator.addLots(lots);
+        const results = events.map(e => calculator.calculate(e));
+
+        // 4. Convert to DtaxDisposition format
+        const dtaxDispositions: DtaxDisposition[] = results.map(r => ({
+            eventId: r.event.id,
+            asset: r.event.asset,
+            dateSold: r.event.date,
+            proceeds: r.event.proceedsUsd,
+            costBasis: r.matchedLots.reduce((s, l) => s + l.costBasisUsd, 0),
+            gainLoss: r.gainLoss,
+        }));
+
+        // 5. Reconcile
+        const report = reconcile(parsed.entries, dtaxDispositions, {
+            taxYear: body.taxYear,
+            brokerName: body.brokerName,
+            internalTransferIds,
+        });
+
+        return {
+            data: {
+                ...report,
+                parseErrors: parsed.errors,
             },
         };
     });

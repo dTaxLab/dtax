@@ -156,6 +156,45 @@ export function getForm8949CsvUrl(year: number, method = 'FIFO') {
     return `${API_BASE}/api/v1/tax/form8949?year=${year}&method=${method}&format=csv`;
 }
 
+// ─── 1099-DA Reconciliation ────────────────────
+
+export interface ReconciliationItem {
+    status: string;
+    brokerEntry: { asset: string; dateSold: string; grossProceeds: number; costBasis?: number; gainLoss?: number } | null;
+    dtaxEntry: { eventId: string; asset: string; dateSold: string; proceeds: number; costBasis: number; gainLoss: number } | null;
+    proceedsDiff: number;
+    costBasisDiff: number;
+    gainLossDiff: number;
+    rebuttalSuggestion?: string;
+}
+
+export interface ReconciliationReport {
+    taxYear: number;
+    brokerName: string;
+    summary: {
+        totalBrokerEntries: number;
+        totalDtaxDispositions: number;
+        matched: number;
+        proceedsMismatch: number;
+        basisMismatch: number;
+        bothMismatch: number;
+        missingInDtax: number;
+        missingIn1099da: number;
+        internalTransferMisclassified: number;
+        netProceedsDiff: number;
+        netGainLossDiff: number;
+    };
+    items: ReconciliationItem[];
+    parseErrors: { row: number; message: string }[];
+}
+
+export async function reconcile1099DA(csvContent: string, brokerName: string, taxYear: number, method = 'FIFO') {
+    return apiFetch<{ data: ReconciliationReport }>('/api/v1/tax/reconcile', {
+        method: 'POST',
+        body: JSON.stringify({ csvContent, brokerName, taxYear, method }),
+    });
+}
+
 // ─── Transfer Matching ─────────────────────────
 
 export interface TransferMatch {
