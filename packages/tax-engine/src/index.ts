@@ -52,6 +52,18 @@ export type {
   LotDateMap,
 } from './reports/form8949';
 
+// Reconciliation
+export { parse1099DA, reconcile } from './reconciliation';
+export type {
+  Form1099DAEntry,
+  Parse1099DAResult,
+  DtaxDisposition,
+  MatchStatus,
+  ReconciliationItem,
+  ReconciliationReport,
+  ReconcileOptions,
+} from './reconciliation';
+
 export { matchInternalTransfers } from './normalizers/internal-transfer';
 export type {
   TransferRecord,
