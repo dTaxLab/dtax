@@ -4,7 +4,8 @@
         "transactions": "交易记录",
         "transfers": "内部转账",
         "taxReport": "税务报告",
-        "reconcile": "对账"
+        "reconcile": "对账",
+        "portfolio": "持仓"
     },
     "dashboard": {
         "title": "仪表盘",
@@ -154,6 +155,42 @@
             "missing_in_dtax": "DTax 缺失",
             "missing_in_1099da": "1099-DA 缺失",
             "internal_transfer_misclassified": "转账误分类"
+        }
+    },
+    "portfolio": {
+        "title": "持仓",
+        "subtitle": "查看您的持仓和税务亏损收割机会",
+        "loading": "加载持仓...",
+        "totalCostBasis": "总成本基础",
+        "totalValue": "总市值",
+        "unrealizedGL": "未实现损益",
+        "positions": "持仓",
+        "noPositions": "暂无持仓",
+        "noPositionsHint": "导入交易记录以查看您的持仓",
+        "asset": "资产",
+        "amount": "数量",
+        "avgCost": "平均成本",
+        "currentPrice": "当前价格",
+        "value": "市值",
+        "gainLoss": "损益",
+        "lots": "批次",
+        "holdingPeriod": "持有期",
+        "longTerm": "长期",
+        "shortTerm": "短期",
+        "pricesTitle": "市场价格",
+        "pricesHint": "输入当前价格以查看未实现损益和 TLH 机会",
+        "priceInput": "价格 (USD)",
+        "applyPrices": "应用价格",
+        "tlh": {
+            "title": "税务亏损收割机会",
+            "noOpportunities": "未发现 TLH 机会",
+            "noOpportunitiesHint": "在上方输入市场价格以识别收割机会",
+            "totalAvailable": "可收割亏损总额",
+            "unrealizedLoss": "未实现亏损",
+            "amountToSell": "可出售数量",
+            "costBasis": "成本基础",
+            "currentValue": "当前市值",
+            "washSaleWarning": "包含短期批次 — 若在 30 天内回购请注意洗售规则"
         }
     },
     "table": {

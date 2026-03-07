@@ -4,7 +4,8 @@
         "transactions": "Transactions",
         "transfers": "Transfers",
         "taxReport": "Tax Report",
-        "reconcile": "Reconcile"
+        "reconcile": "Reconcile",
+        "portfolio": "Portfolio"
     },
     "dashboard": {
         "title": "Dashboard",
@@ -154,6 +155,42 @@
             "missing_in_dtax": "Missing in DTax",
             "missing_in_1099da": "Not on 1099-DA",
             "internal_transfer_misclassified": "Transfer Misclassified"
+        }
+    },
+    "portfolio": {
+        "title": "Portfolio",
+        "subtitle": "View your holdings and Tax-Loss Harvesting opportunities",
+        "loading": "Loading portfolio...",
+        "totalCostBasis": "Total Cost Basis",
+        "totalValue": "Total Value",
+        "unrealizedGL": "Unrealized G/L",
+        "positions": "Positions",
+        "noPositions": "No holdings found",
+        "noPositionsHint": "Import transactions to see your portfolio",
+        "asset": "Asset",
+        "amount": "Amount",
+        "avgCost": "Avg Cost",
+        "currentPrice": "Current Price",
+        "value": "Value",
+        "gainLoss": "Gain/Loss",
+        "lots": "Lots",
+        "holdingPeriod": "Period",
+        "longTerm": "LT",
+        "shortTerm": "ST",
+        "pricesTitle": "Market Prices",
+        "pricesHint": "Enter current prices to see unrealized gains and TLH opportunities",
+        "priceInput": "Price (USD)",
+        "applyPrices": "Apply Prices",
+        "tlh": {
+            "title": "Tax-Loss Harvesting Opportunities",
+            "noOpportunities": "No TLH opportunities found",
+            "noOpportunitiesHint": "Enter market prices above to identify harvesting opportunities",
+            "totalAvailable": "Total Harvestable Loss",
+            "unrealizedLoss": "Unrealized Loss",
+            "amountToSell": "Amount to Sell",
+            "costBasis": "Cost Basis",
+            "currentValue": "Current Value",
+            "washSaleWarning": "Contains short-term lots — watch for wash sale rule if repurchasing within 30 days"
         }
     },
     "table": {

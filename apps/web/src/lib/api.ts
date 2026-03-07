@@ -195,6 +195,61 @@ export async function reconcile1099DA(csvContent: string, brokerName: string, ta
     });
 }
 
+// ─── Portfolio Holdings ────────────────────────
+
+export interface LotHolding {
+    lotId: string;
+    asset: string;
+    amount: number;
+    costBasisUsd: number;
+    costPerUnit: number;
+    acquiredAt: string;
+    sourceId: string;
+    isLongTerm: boolean;
+    unrealizedGainLoss?: number;
+    currentValueUsd?: number;
+}
+
+export interface AssetPosition {
+    asset: string;
+    totalAmount: number;
+    totalCostBasis: number;
+    avgCostPerUnit: number;
+    currentPrice?: number;
+    currentValueUsd?: number;
+    unrealizedGainLoss?: number;
+    unrealizedPct?: number;
+    lotCount: number;
+    earliestAcquired: string;
+    latestAcquired: string;
+    lots: LotHolding[];
+}
+
+export interface TlhOpportunity {
+    asset: string;
+    unrealizedLoss: number;
+    loseLots: LotHolding[];
+    totalAmount: number;
+    totalCostBasis: number;
+    currentValue: number;
+    hasShortTermLots: boolean;
+}
+
+export interface PortfolioAnalysis {
+    positions: AssetPosition[];
+    totalCostBasis: number;
+    totalCurrentValue?: number;
+    totalUnrealizedGainLoss?: number;
+    tlhOpportunities: TlhOpportunity[];
+    totalTlhAvailable: number;
+    asOfDate: string;
+}
+
+export async function getPortfolioHoldings(prices?: Record<string, number>) {
+    const params = prices ? `?prices=${encodeURIComponent(JSON.stringify(prices))}` : '';
+    return apiFetch<{ data: PortfolioAnalysis }>(`/api/v1/portfolio/holdings${params}`);
+}
+
 // ─── Transfer Matching ─────────────────────────
 
 export interface TransferMatch {

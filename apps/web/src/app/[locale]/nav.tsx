@@ -32,6 +32,9 @@ export function LocaleNav({ locale }: { locale: string }) {
                 <Link href="/tax" className={`nav-link ${pathname === '/tax' ? 'active' : ''}`}>
                     {t('taxReport')}
                 </Link>
+                <Link href="/portfolio" className={`nav-link ${pathname === '/portfolio' ? 'active' : ''}`}>
+                    {t('portfolio')}
+                </Link>
                 <Link href="/reconcile" className={`nav-link ${pathname === '/reconcile' ? 'active' : ''}`}>
                     {t('reconcile')}
                 </Link>
