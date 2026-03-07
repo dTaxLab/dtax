@@ -76,3 +76,35 @@ export async function createTransaction(tx: Record<string, unknown>) {
         body: JSON.stringify(tx),
     });
 }
+
+export interface ImportResult {
+    imported: number;
+    errors: { row: number; message: string }[];
+    summary: {
+        totalRows: number;
+        parsed: number;
+        failed: number;
+        format: string;
+    };
+}
+
+export async function importCsv(file: File, format?: string): Promise<{ data: ImportResult }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const url = format
+        ? `${API_BASE}/api/v1/transactions/import?format=${format}`
+        : `${API_BASE}/api/v1/transactions/import`;
+
+    const res = await fetch(url, {
+        method: 'POST',
+        body: formData,
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: { message: res.statusText } }));
+        throw new Error(error.error?.message || `Import failed: ${res.status}`);
+    }
+
+    return res.json();
+}

@@ -6,10 +6,12 @@
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
 import { config } from './config';
 import { prisma } from './lib/prisma';
 import { healthRoutes } from './routes/health';
 import { transactionRoutes } from './routes/transactions';
+import { importRoutes } from './routes/import';
 import { taxRoutes } from './routes/tax';
 
 async function main() {
@@ -28,10 +30,14 @@ async function main() {
         origin: config.corsOrigin,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     });
+    await app.register(multipart, {
+        limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+    });
 
     // Routes
     await app.register(healthRoutes, { prefix: '/api' });
     await app.register(transactionRoutes, { prefix: '/api/v1' });
+    await app.register(importRoutes, { prefix: '/api/v1' });
     await app.register(taxRoutes, { prefix: '/api/v1' });
 
     // Graceful shutdown

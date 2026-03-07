@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { getTransactions, createTransaction } from '@/lib/api';
-import type { Transaction } from '@/lib/api';
+import { getTransactions, createTransaction, importCsv } from '@/lib/api';
+import type { Transaction, ImportResult } from '@/lib/api';
 
 function formatUsd(v: string | null) {
     if (!v) return '—';
@@ -40,11 +40,20 @@ export default function TransactionsPage() {
     const [meta, setMeta] = useState({ total: 0, page: 1, totalPages: 0, limit: 20 });
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
+    const [showImport, setShowImport] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [form, setForm] = useState({
         type: 'BUY', timestamp: new Date().toISOString().slice(0, 16),
         asset: '', amount: '', valueUsd: '', feeUsd: '', notes: '',
     });
+
+    // Import state
+    const fileRef = useRef<HTMLInputElement>(null);
+    const [importFile, setImportFile] = useState<File | null>(null);
+    const [importFormat, setImportFormat] = useState('');
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState<ImportResult | null>(null);
+    const [importError, setImportError] = useState<string | null>(null);
 
     useEffect(() => { loadPage(1); }, []);
 
@@ -84,6 +93,24 @@ export default function TransactionsPage() {
         setSubmitting(false);
     }
 
+    async function handleImport() {
+        if (!importFile) {
+            setImportError(t('import.noFile'));
+            return;
+        }
+        setImporting(true);
+        setImportError(null);
+        setImportResult(null);
+        try {
+            const res = await importCsv(importFile, importFormat || undefined);
+            setImportResult(res.data);
+            loadPage(1);
+        } catch (e) {
+            setImportError(e instanceof Error ? e.message : 'Import failed');
+        }
+        setImporting(false);
+    }
+
     return (
         <div className="animate-in">
             <div className="page-header">
@@ -91,11 +118,89 @@ export default function TransactionsPage() {
                     <h1 className="page-title">{t('title')}</h1>
                     <p className="page-subtitle">{t('totalCount', { count: meta.total })}</p>
                 </div>
-                <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-                    {showForm ? t('cancel') : t('addTransaction')}
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn btn-secondary" onClick={() => { setShowImport(!showImport); setShowForm(false); }}>
+                        {showImport ? t('cancel') : t('importCsv')}
+                    </button>
+                    <button className="btn btn-primary" onClick={() => { setShowForm(!showForm); setShowImport(false); }}>
+                        {showForm ? t('cancel') : t('addTransaction')}
+                    </button>
+                </div>
             </div>
 
+            {/* ── Import Panel ── */}
+            {showImport && (
+                <div className="card" style={{ marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>{t('import.title')}</h3>
+                    <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                        {t('import.description')}
+                    </p>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                        <div style={{ flex: 1, minWidth: '200px' }}>
+                            <label style={labelStyle}>{t('import.selectFile')}</label>
+                            <input
+                                ref={fileRef}
+                                type="file"
+                                accept=".csv,text/csv"
+                                onChange={e => {
+                                    setImportFile(e.target.files?.[0] || null);
+                                    setImportResult(null);
+                                    setImportError(null);
+                                }}
+                                style={{
+                                    ...inputStyle,
+                                    padding: '7px 12px',
+                                    cursor: 'pointer',
+                                }}
+                            />
+                        </div>
+                        <div style={{ minWidth: '160px' }}>
+                            <label style={labelStyle}>{t('import.formatLabel')}</label>
+                            <select value={importFormat} onChange={e => setImportFormat(e.target.value)} style={inputStyle}>
+                                <option value="">{t('import.autoDetect')}</option>
+                                <option value="coinbase">Coinbase</option>
+                                <option value="binance">Binance (International)</option>
+                                <option value="binance_us">Binance US</option>
+                                <option value="generic">Generic CSV</option>
+                            </select>
+                        </div>
+                        <button className="btn btn-primary" onClick={handleImport} disabled={importing || !importFile}>
+                            {importing ? `⏳ ${t('import.uploading')}` : `📤 ${t('import.upload')}`}
+                        </button>
+                    </div>
+
+                    {importError && (
+                        <div style={{ marginTop: '12px', padding: '12px 16px', background: 'var(--red-bg)', borderRadius: 'var(--radius-sm)', color: 'var(--red-light)', fontSize: '14px' }}>
+                            ⚠️ {importError}
+                        </div>
+                    )}
+
+                    {importResult && (
+                        <div style={{ marginTop: '12px', padding: '16px', background: 'var(--green-bg)', borderRadius: 'var(--radius-sm)' }}>
+                            <p style={{ color: 'var(--green-light)', fontWeight: 600, fontSize: '14px' }}>
+                                ✅ {t('import.success', { count: importResult.imported })}
+                            </p>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '4px' }}>
+                                Format: {importResult.summary.format} · {importResult.summary.totalRows} rows · {importResult.summary.parsed} parsed
+                            </p>
+                            {importResult.errors.length > 0 && (
+                                <div style={{ marginTop: '8px', padding: '8px 12px', background: 'var(--yellow-bg)', borderRadius: 'var(--radius-sm)' }}>
+                                    <p style={{ color: 'var(--yellow)', fontSize: '12px', fontWeight: 600 }}>
+                                        ⚠️ {t('import.errors', { count: importResult.errors.length })}
+                                    </p>
+                                    {importResult.errors.slice(0, 5).map((err, i) => (
+                                        <p key={i} style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '2px' }}>
+                                            Row {err.row}: {err.message}
+                                        </p>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ── Manual Add Form ── */}
             {showForm && (
                 <form onSubmit={handleSubmit} className="card" style={{ marginBottom: '24px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
@@ -103,8 +208,8 @@ export default function TransactionsPage() {
                             <label style={labelStyle}>{t('form.type')}</label>
                             <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} style={inputStyle}>
                                 {['BUY', 'SELL', 'TRADE', 'AIRDROP', 'STAKING_REWARD', 'MINING_REWARD', 'INTEREST',
-                                    'TRANSFER_IN', 'TRANSFER_OUT', 'GIFT_RECEIVED', 'GIFT_SENT'].map(t => (
-                                        <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>
+                                    'TRANSFER_IN', 'TRANSFER_OUT', 'GIFT_RECEIVED', 'GIFT_SENT'].map(tp => (
+                                        <option key={tp} value={tp}>{tp.replace(/_/g, ' ')}</option>
                                     ))}
                             </select>
                         </div>
