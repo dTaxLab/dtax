@@ -64,6 +64,16 @@ export type {
   ReconcileOptions,
 } from './reconciliation';
 
+// Portfolio Analysis
+export { analyzeHoldings } from './portfolio';
+export type {
+    PriceMap,
+    LotHolding,
+    AssetPosition,
+    TlhOpportunity,
+    PortfolioAnalysis,
+} from './portfolio';
+
 export { matchInternalTransfers } from './normalizers/internal-transfer';
 export type {
   TransferRecord,
