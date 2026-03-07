@@ -95,15 +95,22 @@ describe('CostBasisCalculator', () => {
         expect(result.method).toBe('FIFO');
     });
 
-    it('should throw for unimplemented LIFO method', () => {
+    it('should calculate using LIFO method', () => {
         const calc = new CostBasisCalculator('LIFO');
         calc.addLots([
             {
-                id: 'lot-1',
+                id: 'lot-old',
                 asset: 'BTC',
                 amount: 1.0,
-                costBasisUsd: 30000,
-                acquiredAt: new Date('2024-01-01'),
+                costBasisUsd: 20000,
+                acquiredAt: new Date('2023-01-01'),
+            },
+            {
+                id: 'lot-new',
+                asset: 'BTC',
+                amount: 1.0,
+                costBasisUsd: 40000,
+                acquiredAt: new Date('2024-06-01'),
             },
         ]);
 
@@ -115,18 +122,30 @@ describe('CostBasisCalculator', () => {
             date: new Date('2025-06-01'),
         };
 
-        expect(() => calc.calculate(event)).toThrow('LIFO not yet implemented');
+        const result = calc.calculate(event);
+
+        // LIFO: consumes lot-new ($40k) → gain = $45k - $40k = $5k
+        expect(result.gainLoss).toBe(5000);
+        expect(result.method).toBe('LIFO');
+        expect(result.matchedLots[0].lotId).toBe('lot-new');
     });
 
-    it('should throw for unimplemented HIFO method', () => {
+    it('should calculate using HIFO method', () => {
         const calc = new CostBasisCalculator('HIFO');
         calc.addLots([
             {
-                id: 'lot-1',
+                id: 'lot-cheap',
                 asset: 'BTC',
                 amount: 1.0,
-                costBasisUsd: 30000,
+                costBasisUsd: 20000,
                 acquiredAt: new Date('2024-01-01'),
+            },
+            {
+                id: 'lot-expensive',
+                asset: 'BTC',
+                amount: 1.0,
+                costBasisUsd: 50000,
+                acquiredAt: new Date('2024-06-01'),
             },
         ]);
 
@@ -138,6 +157,11 @@ describe('CostBasisCalculator', () => {
             date: new Date('2025-06-01'),
         };
 
-        expect(() => calc.calculate(event)).toThrow('HIFO not yet implemented');
+        const result = calc.calculate(event);
+
+        // HIFO: consumes lot-expensive ($50k) → gain = $45k - $50k = -$5k
+        expect(result.gainLoss).toBe(-5000);
+        expect(result.method).toBe('HIFO');
+        expect(result.matchedLots[0].lotId).toBe('lot-expensive');
     });
 });
