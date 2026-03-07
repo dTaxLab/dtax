@@ -29,14 +29,14 @@ describe('CostBasisCalculator', () => {
         const lots: TaxLot[] = [
             {
                 id: 'lot-1',
-                asset: 'BTC',
+                asset: 'BTC', sourceId: 'binance-1',
                 amount: 1.0,
                 costBasisUsd: 30000,
                 acquiredAt: new Date('2024-01-01'),
             },
             {
                 id: 'lot-2',
-                asset: 'ETH',
+                asset: 'ETH', sourceId: 'binance-1',
                 amount: 10.0,
                 costBasisUsd: 20000,
                 acquiredAt: new Date('2024-03-01'),
@@ -56,7 +56,7 @@ describe('CostBasisCalculator', () => {
         calc.addLots([
             {
                 id: 'lot-1',
-                asset: 'BTC',
+                asset: 'BTC', sourceId: 'binance-1',
                 amount: 1.0,
                 costBasisUsd: 30000,
                 acquiredAt: new Date('2024-01-01'),
@@ -74,7 +74,7 @@ describe('CostBasisCalculator', () => {
         calc.addLots([
             {
                 id: 'lot-1',
-                asset: 'BTC',
+                asset: 'BTC', sourceId: 'binance-1',
                 amount: 1.0,
                 costBasisUsd: 30000,
                 acquiredAt: new Date('2024-01-01'),
@@ -83,7 +83,7 @@ describe('CostBasisCalculator', () => {
 
         const event: TaxableEvent = {
             id: 'sale-1',
-            asset: 'BTC',
+            asset: 'BTC', sourceId: 'binance-1',
             amount: 1.0,
             proceedsUsd: 45000,
             date: new Date('2025-06-01'),
@@ -100,14 +100,14 @@ describe('CostBasisCalculator', () => {
         calc.addLots([
             {
                 id: 'lot-old',
-                asset: 'BTC',
+                asset: 'BTC', sourceId: 'binance-1',
                 amount: 1.0,
                 costBasisUsd: 20000,
                 acquiredAt: new Date('2023-01-01'),
             },
             {
                 id: 'lot-new',
-                asset: 'BTC',
+                asset: 'BTC', sourceId: 'binance-1',
                 amount: 1.0,
                 costBasisUsd: 40000,
                 acquiredAt: new Date('2024-06-01'),
@@ -116,7 +116,7 @@ describe('CostBasisCalculator', () => {
 
         const event: TaxableEvent = {
             id: 'sale-1',
-            asset: 'BTC',
+            asset: 'BTC', sourceId: 'binance-1',
             amount: 1.0,
             proceedsUsd: 45000,
             date: new Date('2025-06-01'),
@@ -135,14 +135,14 @@ describe('CostBasisCalculator', () => {
         calc.addLots([
             {
                 id: 'lot-cheap',
-                asset: 'BTC',
+                asset: 'BTC', sourceId: 'binance-1',
                 amount: 1.0,
                 costBasisUsd: 20000,
                 acquiredAt: new Date('2024-01-01'),
             },
             {
                 id: 'lot-expensive',
-                asset: 'BTC',
+                asset: 'BTC', sourceId: 'binance-1',
                 amount: 1.0,
                 costBasisUsd: 50000,
                 acquiredAt: new Date('2024-06-01'),
@@ -151,7 +151,7 @@ describe('CostBasisCalculator', () => {
 
         const event: TaxableEvent = {
             id: 'sale-1',
-            asset: 'BTC',
+            asset: 'BTC', sourceId: 'binance-1',
             amount: 1.0,
             proceedsUsd: 45000,
             date: new Date('2025-06-01'),

@@ -35,11 +35,11 @@ describe('calculateLIFO', () => {
     // ── Test 1: Basic LIFO — should consume NEWEST lot first ──
     it('should consume the newest lot first', () => {
         const lots = [
-            createLot({ id: 'old', asset: 'BTC', amount: 1.0, costBasisUsd: 20000, acquiredAt: new Date('2023-01-01') }),
-            createLot({ id: 'new', asset: 'BTC', amount: 1.0, costBasisUsd: 50000, acquiredAt: new Date('2024-06-01') }),
+            createLot({ id: 'old', asset: 'BTC', sourceId: 'binance-1', amount: 1.0, costBasisUsd: 20000, acquiredAt: new Date('2023-01-01') }),
+            createLot({ id: 'new', asset: 'BTC', sourceId: 'binance-1', amount: 1.0, costBasisUsd: 50000, acquiredAt: new Date('2024-06-01') }),
         ];
 
-        const event = createEvent({ asset: 'BTC', amount: 0.5, proceedsUsd: 30000 });
+        const event = createEvent({ asset: 'BTC', sourceId: 'binance-1', amount: 0.5, proceedsUsd: 30000 });
         const result = calculateLIFO(lots, event);
 
         // LIFO: should match 'new' lot (2024-06-01), not 'old' (2023-01-01)
@@ -52,13 +52,13 @@ describe('calculateLIFO', () => {
     // ── Test 2: LIFO with multiple lots spanning ──
     it('should span from newest to oldest when selling more than newest lot', () => {
         const lots = [
-            createLot({ id: 'lot-1', asset: 'ETH', amount: 2.0, costBasisUsd: 4000, acquiredAt: new Date('2023-01-01') }),
-            createLot({ id: 'lot-2', asset: 'ETH', amount: 3.0, costBasisUsd: 9000, acquiredAt: new Date('2024-01-01') }),
-            createLot({ id: 'lot-3', asset: 'ETH', amount: 1.0, costBasisUsd: 3500, acquiredAt: new Date('2024-06-01') }),
+            createLot({ id: 'lot-1', asset: 'ETH', sourceId: 'binance-1', amount: 2.0, costBasisUsd: 4000, acquiredAt: new Date('2023-01-01') }),
+            createLot({ id: 'lot-2', asset: 'ETH', sourceId: 'binance-1', amount: 3.0, costBasisUsd: 9000, acquiredAt: new Date('2024-01-01') }),
+            createLot({ id: 'lot-3', asset: 'ETH', sourceId: 'binance-1', amount: 1.0, costBasisUsd: 3500, acquiredAt: new Date('2024-06-01') }),
         ];
 
         // Sell 4 ETH — LIFO order: lot-3 (1), lot-2 (3) = 4 total
-        const event = createEvent({ asset: 'ETH', amount: 4.0, proceedsUsd: 16000 });
+        const event = createEvent({ asset: 'ETH', sourceId: 'binance-1', amount: 4.0, proceedsUsd: 16000 });
         const result = calculateLIFO(lots, event);
 
         expect(result.matchedLots).toHaveLength(2);
@@ -75,11 +75,11 @@ describe('calculateLIFO', () => {
     // ── Test 3: Short-term holding with recent lot ──
     it('should classify as SHORT_TERM when newest lot is recent', () => {
         const lots = [
-            createLot({ id: 'old', asset: 'BTC', amount: 1.0, costBasisUsd: 20000, acquiredAt: new Date('2023-01-01') }),
-            createLot({ id: 'recent', asset: 'BTC', amount: 1.0, costBasisUsd: 40000, acquiredAt: new Date('2025-03-01') }),
+            createLot({ id: 'old', asset: 'BTC', sourceId: 'binance-1', amount: 1.0, costBasisUsd: 20000, acquiredAt: new Date('2023-01-01') }),
+            createLot({ id: 'recent', asset: 'BTC', sourceId: 'binance-1', amount: 1.0, costBasisUsd: 40000, acquiredAt: new Date('2025-03-01') }),
         ];
 
-        const event = createEvent({ asset: 'BTC', amount: 0.5, proceedsUsd: 25000, date: new Date('2025-06-01') });
+        const event = createEvent({ asset: 'BTC', sourceId: 'binance-1', amount: 0.5, proceedsUsd: 25000, date: new Date('2025-06-01') });
         const result = calculateLIFO(lots, event);
 
         // LIFO consumes 'recent' (2025-03-01), held < 1 year
@@ -92,11 +92,11 @@ describe('calculateLIFO', () => {
     // ── Test 4: LIFO vs FIFO gives different gains ──
     it('should produce different gain than FIFO with same data', () => {
         const lots = [
-            createLot({ id: 'cheap', asset: 'BTC', amount: 1.0, costBasisUsd: 10000, acquiredAt: new Date('2023-01-01') }),
-            createLot({ id: 'expensive', asset: 'BTC', amount: 1.0, costBasisUsd: 50000, acquiredAt: new Date('2024-06-01') }),
+            createLot({ id: 'cheap', asset: 'BTC', sourceId: 'binance-1', amount: 1.0, costBasisUsd: 10000, acquiredAt: new Date('2023-01-01') }),
+            createLot({ id: 'expensive', asset: 'BTC', sourceId: 'binance-1', amount: 1.0, costBasisUsd: 50000, acquiredAt: new Date('2024-06-01') }),
         ];
 
-        const event = createEvent({ asset: 'BTC', amount: 1.0, proceedsUsd: 45000 });
+        const event = createEvent({ asset: 'BTC', sourceId: 'binance-1', amount: 1.0, proceedsUsd: 45000 });
         const result = calculateLIFO(lots, event);
 
         // LIFO: consumes 'expensive' ($50k) → loss = $45k - $50k = -$5k
@@ -108,10 +108,10 @@ describe('calculateLIFO', () => {
     // ── Test 5: Fee deduction ──
     it('should deduct fees from gain', () => {
         const lots = [
-            createLot({ id: 'lot-1', asset: 'BTC', amount: 1.0, costBasisUsd: 30000, acquiredAt: new Date('2024-01-01') }),
+            createLot({ id: 'lot-1', asset: 'BTC', sourceId: 'binance-1', amount: 1.0, costBasisUsd: 30000, acquiredAt: new Date('2024-01-01') }),
         ];
 
-        const event = createEvent({ asset: 'BTC', amount: 1.0, proceedsUsd: 40000, feeUsd: 100 });
+        const event = createEvent({ asset: 'BTC', sourceId: 'binance-1', amount: 1.0, proceedsUsd: 40000, feeUsd: 100 });
         const result = calculateLIFO(lots, event);
 
         expect(result.gainLoss).toBeCloseTo(9900, 2);
@@ -121,10 +121,10 @@ describe('calculateLIFO', () => {
     it('should warn when lots are insufficient', () => {
         const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
         const lots = [
-            createLot({ id: 'lot-1', asset: 'BTC', amount: 0.5, costBasisUsd: 15000 }),
+            createLot({ id: 'lot-1', asset: 'BTC', sourceId: 'binance-1', amount: 0.5, costBasisUsd: 15000 }),
         ];
 
-        const event = createEvent({ asset: 'BTC', amount: 1.0, proceedsUsd: 40000 });
+        const event = createEvent({ asset: 'BTC', sourceId: 'binance-1', amount: 1.0, proceedsUsd: 40000 });
         calculateLIFO(lots, event);
 
         expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Insufficient lots'));
@@ -134,11 +134,11 @@ describe('calculateLIFO', () => {
     // ── Test 7: Asset isolation ──
     it('should only match lots of the same asset', () => {
         const lots = [
-            createLot({ id: 'btc-lot', asset: 'BTC', amount: 1.0, costBasisUsd: 30000, acquiredAt: new Date('2024-06-01') }),
-            createLot({ id: 'eth-lot', asset: 'ETH', amount: 10.0, costBasisUsd: 20000, acquiredAt: new Date('2024-01-01') }),
+            createLot({ id: 'btc-lot', asset: 'BTC', sourceId: 'binance-1', amount: 1.0, costBasisUsd: 30000, acquiredAt: new Date('2024-06-01') }),
+            createLot({ id: 'eth-lot', asset: 'ETH', sourceId: 'binance-1', amount: 10.0, costBasisUsd: 20000, acquiredAt: new Date('2024-01-01') }),
         ];
 
-        const event = createEvent({ asset: 'BTC', amount: 0.5, proceedsUsd: 20000 });
+        const event = createEvent({ asset: 'BTC', sourceId: 'binance-1', amount: 0.5, proceedsUsd: 20000 });
         const result = calculateLIFO(lots, event);
 
         expect(result.matchedLots).toHaveLength(1);

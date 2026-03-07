@@ -50,7 +50,7 @@ describe('calculateFIFO', () => {
         const lots = [
             createLot({
                 id: 'lot-1',
-                asset: 'BTC',
+                asset: 'BTC', sourceId: 'binance-1',
                 amount: 1.0,
                 costBasisUsd: 30000,
                 acquiredAt: new Date('2024-01-01'),
@@ -59,7 +59,7 @@ describe('calculateFIFO', () => {
 
         const event = createEvent({
             id: 'sale-1',
-            asset: 'BTC',
+            asset: 'BTC', sourceId: 'binance-1',
             amount: 1.0,
             proceedsUsd: 45000,
             date: new Date('2025-06-01'),
@@ -79,7 +79,7 @@ describe('calculateFIFO', () => {
         const lots = [
             createLot({
                 id: 'lot-1',
-                asset: 'ETH',
+                asset: 'ETH', sourceId: 'binance-1',
                 amount: 5.0,
                 costBasisUsd: 10000, // $2000 per ETH
                 acquiredAt: new Date('2024-03-01'),
@@ -87,7 +87,7 @@ describe('calculateFIFO', () => {
         ];
 
         const event = createEvent({
-            asset: 'ETH',
+            asset: 'ETH', sourceId: 'binance-1',
             amount: 5.0,
             proceedsUsd: 7500, // $1500 per ETH — a loss
             date: new Date('2024-09-01'),
@@ -104,7 +104,7 @@ describe('calculateFIFO', () => {
         const lots = [
             createLot({
                 id: 'lot-1',
-                asset: 'BTC',
+                asset: 'BTC', sourceId: 'binance-1',
                 amount: 1.0,
                 costBasisUsd: 30000,
                 acquiredAt: new Date('2024-01-01'),
@@ -112,7 +112,7 @@ describe('calculateFIFO', () => {
         ];
 
         const event = createEvent({
-            asset: 'BTC',
+            asset: 'BTC', sourceId: 'binance-1',
             amount: 0.3,
             proceedsUsd: 12000, // Selling 0.3 BTC at $40k
             date: new Date('2025-06-01'),
@@ -133,21 +133,21 @@ describe('calculateFIFO', () => {
         const lots = [
             createLot({
                 id: 'lot-1',
-                asset: 'BTC',
+                asset: 'BTC', sourceId: 'binance-1',
                 amount: 0.5,
                 costBasisUsd: 15000, // $30k per BTC
                 acquiredAt: new Date('2024-01-01'),
             }),
             createLot({
                 id: 'lot-2',
-                asset: 'BTC',
+                asset: 'BTC', sourceId: 'binance-1',
                 amount: 0.5,
                 costBasisUsd: 20000, // $40k per BTC
                 acquiredAt: new Date('2024-06-01'),
             }),
             createLot({
                 id: 'lot-3',
-                asset: 'BTC',
+                asset: 'BTC', sourceId: 'binance-1',
                 amount: 1.0,
                 costBasisUsd: 50000, // $50k per BTC
                 acquiredAt: new Date('2024-12-01'),
@@ -155,7 +155,7 @@ describe('calculateFIFO', () => {
         ];
 
         const event = createEvent({
-            asset: 'BTC',
+            asset: 'BTC', sourceId: 'binance-1',
             amount: 0.8,
             proceedsUsd: 40000, // Selling 0.8 BTC at $50k
             date: new Date('2025-06-01'),
@@ -188,7 +188,7 @@ describe('calculateFIFO', () => {
         const lots = [
             createLot({
                 id: 'lot-1',
-                asset: 'BTC',
+                asset: 'BTC', sourceId: 'binance-1',
                 amount: 1.0,
                 costBasisUsd: 30000,
                 acquiredAt: new Date('2025-01-01'),
@@ -196,7 +196,7 @@ describe('calculateFIFO', () => {
         ];
 
         const event = createEvent({
-            asset: 'BTC',
+            asset: 'BTC', sourceId: 'binance-1',
             amount: 1.0,
             proceedsUsd: 35000,
             date: new Date('2025-06-01'), // 5 months later
@@ -211,7 +211,7 @@ describe('calculateFIFO', () => {
         const lots = [
             createLot({
                 id: 'lot-1',
-                asset: 'BTC',
+                asset: 'BTC', sourceId: 'binance-1',
                 amount: 1.0,
                 costBasisUsd: 30000,
                 acquiredAt: new Date('2023-01-01'),
@@ -219,7 +219,7 @@ describe('calculateFIFO', () => {
         ];
 
         const event = createEvent({
-            asset: 'BTC',
+            asset: 'BTC', sourceId: 'binance-1',
             amount: 1.0,
             proceedsUsd: 50000,
             date: new Date('2025-06-01'), // 2.5 years later
@@ -261,7 +261,7 @@ describe('calculateFIFO', () => {
         const lots = [
             createLot({
                 id: 'lot-1',
-                asset: 'BTC',
+                asset: 'BTC', sourceId: 'binance-1',
                 amount: 0.5,
                 costBasisUsd: 15000,
                 acquiredAt: new Date('2024-01-01'),
@@ -269,7 +269,7 @@ describe('calculateFIFO', () => {
         ];
 
         const event = createEvent({
-            asset: 'BTC',
+            asset: 'BTC', sourceId: 'binance-1',
             amount: 1.0, // Trying to sell 1.0 but only have 0.5
             proceedsUsd: 50000,
             date: new Date('2025-06-01'),
@@ -290,7 +290,7 @@ describe('calculateFIFO', () => {
         const lots = [
             createLot({
                 id: 'lot-1',
-                asset: 'ETH',
+                asset: 'ETH', sourceId: 'binance-1',
                 amount: 10,
                 costBasisUsd: 20000, // $2000 per ETH
                 acquiredAt: new Date('2024-01-01'),
@@ -298,7 +298,7 @@ describe('calculateFIFO', () => {
         ];
 
         const event = createEvent({
-            asset: 'ETH',
+            asset: 'ETH', sourceId: 'binance-1',
             amount: 10,
             proceedsUsd: 30000, // $3000 per ETH
             date: new Date('2025-06-01'),
@@ -316,14 +316,14 @@ describe('calculateFIFO', () => {
         const lots = [
             createLot({
                 id: 'btc-lot',
-                asset: 'BTC',
+                asset: 'BTC', sourceId: 'binance-1',
                 amount: 1.0,
                 costBasisUsd: 30000,
                 acquiredAt: new Date('2024-01-01'),
             }),
             createLot({
                 id: 'eth-lot',
-                asset: 'ETH',
+                asset: 'ETH', sourceId: 'binance-1',
                 amount: 10.0,
                 costBasisUsd: 20000,
                 acquiredAt: new Date('2024-01-01'),
@@ -331,7 +331,7 @@ describe('calculateFIFO', () => {
         ];
 
         const event = createEvent({
-            asset: 'BTC',
+            asset: 'BTC', sourceId: 'binance-1',
             amount: 1.0,
             proceedsUsd: 45000,
             date: new Date('2025-06-01'),
@@ -351,7 +351,7 @@ describe('calculateFIFO', () => {
         const lots = [
             createLot({
                 id: 'lot-1',
-                asset: 'BTC',
+                asset: 'BTC', sourceId: 'binance-1',
                 amount: 1.0,
                 costBasisUsd: 30000,
                 acquiredAt: new Date('2024-01-01'), // Leap year
@@ -359,7 +359,7 @@ describe('calculateFIFO', () => {
         ];
 
         const event = createEvent({
-            asset: 'BTC',
+            asset: 'BTC', sourceId: 'binance-1',
             amount: 1.0,
             proceedsUsd: 50000,
             date: new Date('2025-01-02'), // 367 days later
@@ -374,7 +374,7 @@ describe('calculateFIFO', () => {
         const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
 
         const event = createEvent({
-            asset: 'BTC',
+            asset: 'BTC', sourceId: 'binance-1',
             amount: 1.0,
             proceedsUsd: 50000,
             date: new Date('2025-06-01'),

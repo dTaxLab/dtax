@@ -27,14 +27,14 @@ export class CostBasisCalculator {
     }
 
     /** Calculate gains/losses for a taxable event */
-    calculate(event: TaxableEvent): CalculationResult {
+    calculate(event: TaxableEvent, strictSilo: boolean = false): CalculationResult {
         switch (this.method) {
             case 'FIFO':
-                return calculateFIFO(this.lots, event);
+                return calculateFIFO(this.lots, event, strictSilo);
             case 'LIFO':
-                return calculateLIFO(this.lots, event);
+                return calculateLIFO(this.lots, event, strictSilo);
             case 'HIFO':
-                return calculateHIFO(this.lots, event);
+                return calculateHIFO(this.lots, event, strictSilo);
             default:
                 throw new Error(`Unknown method: ${this.method}`);
         }
