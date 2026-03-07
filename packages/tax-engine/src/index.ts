@@ -8,8 +8,8 @@
  */
 
 export { calculateFIFO } from './methods/fifo';
-// export { calculateLIFO } from './methods/lifo';
-// export { calculateHIFO } from './methods/hifo';
+export { calculateLIFO } from './methods/lifo';
+export { calculateHIFO } from './methods/hifo';
 export { CostBasisCalculator } from './calculator';
 export type {
   TaxLot,

@@ -4,6 +4,8 @@
  */
 
 import { calculateFIFO } from './methods/fifo';
+import { calculateLIFO } from './methods/lifo';
+import { calculateHIFO } from './methods/hifo';
 import type {
     TaxLot,
     TaxableEvent,
@@ -30,9 +32,9 @@ export class CostBasisCalculator {
             case 'FIFO':
                 return calculateFIFO(this.lots, event);
             case 'LIFO':
-                throw new Error('LIFO not yet implemented');
+                return calculateLIFO(this.lots, event);
             case 'HIFO':
-                throw new Error('HIFO not yet implemented');
+                return calculateHIFO(this.lots, event);
             default:
                 throw new Error(`Unknown method: ${this.method}`);
         }
