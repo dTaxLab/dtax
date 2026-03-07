@@ -68,7 +68,9 @@ body {
   min-height: 100vh;
 }
 
-code, pre, .mono {
+code,
+pre,
+.mono {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
@@ -134,9 +136,17 @@ code, pre, .mono {
   font-variant-numeric: tabular-nums;
 }
 
-.stat-value.positive { color: var(--green); }
-.stat-value.negative { color: var(--red); }
-.stat-value.neutral { color: var(--text-primary); }
+.stat-value.positive {
+  color: var(--green);
+}
+
+.stat-value.negative {
+  color: var(--red);
+}
+
+.stat-value.neutral {
+  color: var(--text-primary);
+}
 
 /* ── Buttons ── */
 .btn {
@@ -224,25 +234,61 @@ tr:hover td {
   letter-spacing: 0.3px;
 }
 
-.badge-buy { background: var(--green-bg); color: var(--green-light); }
-.badge-sell { background: var(--red-bg); color: var(--red-light); }
-.badge-trade { background: var(--yellow-bg); color: var(--yellow); }
-.badge-other { background: var(--bg-surface); color: var(--text-muted); }
+.badge-buy {
+  background: var(--green-bg);
+  color: var(--green-light);
+}
+
+.badge-sell {
+  background: var(--red-bg);
+  color: var(--red-light);
+}
+
+.badge-trade {
+  background: var(--yellow-bg);
+  color: var(--yellow);
+}
+
+.badge-other {
+  background: var(--bg-surface);
+  color: var(--text-muted);
+}
 
 /* ── Animations ── */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideIn {
-  from { opacity: 0; transform: translateX(-20px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .animate-in {
@@ -294,9 +340,22 @@ tr:hover td {
   transition: all 0.2s;
 }
 
-.nav-link:hover, .nav-link.active {
+.nav-link:hover,
+.nav-link.active {
   color: var(--text-primary);
   background: var(--bg-surface);
+}
+
+.locale-switch {
+  border: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.locale-switch:hover {
+  border-color: var(--accent);
+  color: var(--accent-light);
 }
 
 /* ── Grid ── */
@@ -313,13 +372,17 @@ tr:hover td {
 }
 
 @media (max-width: 768px) {
-  .grid-4, .grid-3 {
+
+  .grid-4,
+  .grid-3 {
     grid-template-columns: 1fr 1fr;
   }
 }
 
 @media (max-width: 480px) {
-  .grid-4, .grid-3 {
+
+  .grid-4,
+  .grid-3 {
     grid-template-columns: 1fr;
   }
 }

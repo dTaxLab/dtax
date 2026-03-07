@@ -1,0 +1,85 @@
+{
+    "nav": {
+        "dashboard": "仪表盘",
+        "transactions": "交易记录",
+        "taxReport": "税务报告"
+    },
+    "dashboard": {
+        "title": "仪表盘",
+        "subtitle": "{year} 纳税年度 · {method} 计算法",
+        "calculateTax": "计算税务",
+        "calculating": "计算中...",
+        "netGainLoss": "净收益 / 亏损",
+        "longTermGains": "长期资本利得",
+        "shortTermGains": "短期资本利得",
+        "transactions": "交易数量",
+        "recentTransactions": "近期交易",
+        "viewAll": "查看全部 →",
+        "noTransactions": "暂无交易记录",
+        "noTransactionsHint": "通过 CSV 导入交易记录或手动添加"
+    },
+    "transactions": {
+        "title": "交易记录",
+        "totalCount": "共 {count} 笔交易",
+        "addTransaction": "+ 添加交易",
+        "cancel": "✕ 取消",
+        "save": "保存交易",
+        "saving": "保存中...",
+        "noTransactions": "暂无交易记录",
+        "loading": "加载交易记录...",
+        "form": {
+            "type": "类型",
+            "dateTime": "日期和时间",
+            "asset": "资产",
+            "assetPlaceholder": "BTC, ETH, SOL...",
+            "amount": "数量",
+            "valueUsd": "价值 (USD)",
+            "feeUsd": "手续费 (USD)",
+            "notes": "备注"
+        }
+    },
+    "tax": {
+        "title": "税务报告",
+        "subtitle": "计算您的加密货币资本利得",
+        "taxYear": "纳税年度",
+        "method": "计算方法",
+        "calculate": "计算",
+        "calculating": "计算中...",
+        "fifo": "FIFO（先进先出）",
+        "lifo": "LIFO（后进先出）",
+        "hifo": "HIFO（最高成本先出）",
+        "netGainLoss": "净收益 / 亏损",
+        "totalDispositions": "处置交易数",
+        "methodLabel": "计算方法",
+        "breakdown": "资本利得明细",
+        "category": "类别",
+        "gains": "收益",
+        "losses": "亏损",
+        "net": "净额",
+        "shortTerm": "短期（< 1 年）",
+        "longTerm": "长期（> 1 年）",
+        "total": "合计",
+        "disclaimer": "⚠️ 本报告仅供参考，不构成税务建议。请咨询专业税务顾问了解您的具体情况。"
+    },
+    "table": {
+        "date": "日期",
+        "type": "类型",
+        "asset": "资产",
+        "amount": "数量",
+        "valueUsd": "价值（美元）",
+        "fee": "手续费",
+        "gainLoss": "收益/亏损",
+        "notes": "备注"
+    },
+    "common": {
+        "loading": "加载 DTax...",
+        "error": "连接错误",
+        "errorHint": "请确保 API 正在运行：",
+        "retry": "重试"
+    },
+    "footer": {
+        "version": "DTax v0.1.0 · 开源税务引擎 (AGPL-3.0)",
+        "github": "GitHub",
+        "docs": "文档"
+    }
+}

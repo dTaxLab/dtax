@@ -1,0 +1,85 @@
+{
+    "nav": {
+        "dashboard": "Dashboard",
+        "transactions": "Transactions",
+        "taxReport": "Tax Report"
+    },
+    "dashboard": {
+        "title": "Dashboard",
+        "subtitle": "Tax Year {year} · {method} Method",
+        "calculateTax": "Calculate Tax",
+        "calculating": "Calculating...",
+        "netGainLoss": "Net Gain / Loss",
+        "longTermGains": "Long-Term Gains",
+        "shortTermGains": "Short-Term Gains",
+        "transactions": "Transactions",
+        "recentTransactions": "Recent Transactions",
+        "viewAll": "View All →",
+        "noTransactions": "No transactions yet",
+        "noTransactionsHint": "Import transactions via CSV or add them manually"
+    },
+    "transactions": {
+        "title": "Transactions",
+        "totalCount": "{count} total transactions",
+        "addTransaction": "+ Add Transaction",
+        "cancel": "✕ Cancel",
+        "save": "Save Transaction",
+        "saving": "Saving...",
+        "noTransactions": "No transactions yet",
+        "loading": "Loading transactions...",
+        "form": {
+            "type": "Type",
+            "dateTime": "Date & Time",
+            "asset": "Asset",
+            "assetPlaceholder": "BTC, ETH, SOL...",
+            "amount": "Amount",
+            "valueUsd": "Value (USD)",
+            "feeUsd": "Fee (USD)",
+            "notes": "Notes"
+        }
+    },
+    "tax": {
+        "title": "Tax Report",
+        "subtitle": "Calculate your crypto capital gains",
+        "taxYear": "Tax Year",
+        "method": "Method",
+        "calculate": "Calculate",
+        "calculating": "Calculating...",
+        "fifo": "FIFO (First In, First Out)",
+        "lifo": "LIFO (Last In, First Out)",
+        "hifo": "HIFO (Highest In, First Out)",
+        "netGainLoss": "Net Gain / Loss",
+        "totalDispositions": "Total Dispositions",
+        "methodLabel": "Method",
+        "breakdown": "Capital Gains Breakdown",
+        "category": "Category",
+        "gains": "Gains",
+        "losses": "Losses",
+        "net": "Net",
+        "shortTerm": "Short-Term (< 1 year)",
+        "longTerm": "Long-Term (> 1 year)",
+        "total": "TOTAL",
+        "disclaimer": "⚠️ This is for informational purposes only and does not constitute tax advice. Consult a qualified tax professional for your specific situation."
+    },
+    "table": {
+        "date": "Date",
+        "type": "Type",
+        "asset": "Asset",
+        "amount": "Amount",
+        "valueUsd": "Value (USD)",
+        "fee": "Fee",
+        "gainLoss": "Gain/Loss",
+        "notes": "Notes"
+    },
+    "common": {
+        "loading": "Loading DTax...",
+        "error": "Connection Error",
+        "errorHint": "Make sure the API is running:",
+        "retry": "Retry"
+    },
+    "footer": {
+        "version": "DTax v0.1.0 · Open Source Tax Engine (AGPL-3.0)",
+        "github": "GitHub",
+        "docs": "Docs"
+    }
+}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { getTransactions, getTaxSummary, calculateTax } from '@/lib/api';
 import type { Transaction, TaxSummary } from '@/lib/api';
 
@@ -12,12 +13,11 @@ function formatUsd(value: number | string | null): string {
 
 function formatAmount(value: string | null, asset: string | null): string {
   if (!value || !asset) return '—';
-  const num = parseFloat(value);
-  return `${num.toLocaleString('en-US', { maximumFractionDigits: 8 })} ${asset}`;
+  return `${parseFloat(value).toLocaleString('en-US', { maximumFractionDigits: 8 })} ${asset}`;
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
+function formatDate(iso: string, locale: string): string {
+  return new Date(iso).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US', {
     year: 'numeric', month: 'short', day: 'numeric',
   });
 }
@@ -30,6 +30,11 @@ function getBadgeClass(type: string): string {
 }
 
 export default function Dashboard() {
+  const t = useTranslations('dashboard');
+  const tt = useTranslations('table');
+  const tc = useTranslations('common');
+  const tf = useTranslations('footer');
+
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [txMeta, setTxMeta] = useState({ total: 0, page: 1, totalPages: 0 });
   const [taxSummary, setTaxSummary] = useState<TaxSummary | null>(null);
@@ -37,9 +42,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [calculating, setCalculating] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   async function loadData() {
     setLoading(true);
@@ -49,7 +52,6 @@ export default function Dashboard() {
         getTransactions(1, 10),
         getTaxSummary(2025),
       ]);
-
       if (txRes.status === 'fulfilled') {
         setTransactions(txRes.value.data);
         setTxMeta(txRes.value.meta);
@@ -58,7 +60,7 @@ export default function Dashboard() {
         setTaxSummary(taxRes.value.data);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to connect to API');
+      setError(e instanceof Error ? e.message : 'Failed to connect');
     } finally {
       setLoading(false);
     }
@@ -70,7 +72,7 @@ export default function Dashboard() {
       const res = await calculateTax(2025, 'FIFO');
       setTaxSummary(res.data.report);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Calculation failed');
+      setError(e instanceof Error ? e.message : 'Failed');
     } finally {
       setCalculating(false);
     }
@@ -80,7 +82,7 @@ export default function Dashboard() {
     return (
       <div style={{ padding: '60px 0', textAlign: 'center' }}>
         <div className="loading-pulse" style={{ fontSize: '48px' }}>🧮</div>
-        <p style={{ color: 'var(--text-muted)', marginTop: '16px' }}>Loading DTax...</p>
+        <p style={{ color: 'var(--text-muted)', marginTop: '16px' }}>{tc('loading')}</p>
       </div>
     );
   }
@@ -91,10 +93,10 @@ export default function Dashboard() {
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
         <p style={{ color: 'var(--red)' }}>{error}</p>
         <p style={{ color: 'var(--text-muted)', marginTop: '8px', fontSize: '14px' }}>
-          Make sure the API is running: <code>pnpm --filter @dtax/api dev</code>
+          {tc('errorHint')} <code>pnpm --filter @dtax/api dev</code>
         </p>
         <button className="btn btn-primary" style={{ marginTop: '16px' }} onClick={loadData}>
-          Retry
+          {tc('retry')}
         </button>
       </div>
     );
@@ -102,61 +104,54 @@ export default function Dashboard() {
 
   return (
     <div className="animate-in">
-      {/* ── Header ── */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Dashboard</h1>
-          <p className="page-subtitle">Tax Year 2025 · FIFO Method</p>
+          <h1 className="page-title">{t('title')}</h1>
+          <p className="page-subtitle">{t('subtitle', { year: 2025, method: 'FIFO' })}</p>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={handleCalculate}
-          disabled={calculating}
-        >
-          {calculating ? '⏳ Calculating...' : '🧮 Calculate Tax'}
+        <button className="btn btn-primary" onClick={handleCalculate} disabled={calculating}>
+          {calculating ? `⏳ ${t('calculating')}` : `🧮 ${t('calculateTax')}`}
         </button>
       </div>
 
-      {/* ── Tax Summary Cards ── */}
       <div className="grid-4" style={{ marginBottom: '32px' }}>
         <div className="stat-card">
-          <span className="stat-label">Net Gain / Loss</span>
+          <span className="stat-label">{t('netGainLoss')}</span>
           <span className={`stat-value ${taxSummary && taxSummary.netGainLoss >= 0 ? 'positive' : 'negative'}`}>
             {taxSummary ? formatUsd(taxSummary.netGainLoss) : '—'}
           </span>
         </div>
         <div className="stat-card">
-          <span className="stat-label">Long-Term Gains</span>
+          <span className="stat-label">{t('longTermGains')}</span>
           <span className="stat-value positive">
             {taxSummary ? formatUsd(taxSummary.longTermGains) : '—'}
           </span>
         </div>
         <div className="stat-card">
-          <span className="stat-label">Short-Term Gains</span>
+          <span className="stat-label">{t('shortTermGains')}</span>
           <span className="stat-value positive">
             {taxSummary ? formatUsd(taxSummary.shortTermGains) : '—'}
           </span>
         </div>
         <div className="stat-card">
-          <span className="stat-label">Transactions</span>
+          <span className="stat-label">{t('transactions')}</span>
           <span className="stat-value neutral">{txMeta.total}</span>
         </div>
       </div>
 
-      {/* ── Transactions Table ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: '600' }}>Recent Transactions</h2>
-        <a href="/transactions" className="btn btn-secondary" style={{ fontSize: '13px' }}>
-          View All →
+        <h2 style={{ fontSize: '18px', fontWeight: '600' }}>{t('recentTransactions')}</h2>
+        <a href="transactions" className="btn btn-secondary" style={{ fontSize: '13px' }}>
+          {t('viewAll')}
         </a>
       </div>
 
       {transactions.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '48px' }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>📭</div>
-          <p style={{ color: 'var(--text-muted)' }}>No transactions yet</p>
+          <p style={{ color: 'var(--text-muted)' }}>{t('noTransactions')}</p>
           <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '8px' }}>
-            Import transactions via CSV or add them manually
+            {t('noTransactionsHint')}
           </p>
         </div>
       ) : (
@@ -164,12 +159,12 @@ export default function Dashboard() {
           <table>
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Asset</th>
-                <th>Amount</th>
-                <th style={{ textAlign: 'right' }}>Value (USD)</th>
-                <th style={{ textAlign: 'right' }}>Gain/Loss</th>
+                <th>{tt('date')}</th>
+                <th>{tt('type')}</th>
+                <th>{tt('asset')}</th>
+                <th>{tt('amount')}</th>
+                <th style={{ textAlign: 'right' }}>{tt('valueUsd')}</th>
+                <th style={{ textAlign: 'right' }}>{tt('gainLoss')}</th>
               </tr>
             </thead>
             <tbody>
@@ -179,12 +174,8 @@ export default function Dashboard() {
                 const value = tx.receivedValueUsd || tx.sentValueUsd;
                 return (
                   <tr key={tx.id}>
-                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>
-                      {formatDate(tx.timestamp)}
-                    </td>
-                    <td>
-                      <span className={getBadgeClass(tx.type)}>{tx.type}</span>
-                    </td>
+                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>{formatDate(tx.timestamp, 'en')}</td>
+                    <td><span className={getBadgeClass(tx.type)}>{tx.type}</span></td>
                     <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{asset}</td>
                     <td className="mono">{formatAmount(amount, asset)}</td>
                     <td style={{ textAlign: 'right' }} className="mono">{formatUsd(value)}</td>
@@ -193,9 +184,7 @@ export default function Dashboard() {
                         <span style={{ color: parseFloat(tx.gainLoss) >= 0 ? 'var(--green)' : 'var(--red)' }}>
                           {formatUsd(tx.gainLoss)}
                         </span>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)' }}>—</span>
-                      )}
+                      ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
                     </td>
                   </tr>
                 );
@@ -205,26 +194,16 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Footer ── */}
       <div style={{
-        marginTop: '48px',
-        paddingTop: '24px',
-        borderTop: '1px solid var(--border)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        fontSize: '13px',
-        color: 'var(--text-muted)',
-        paddingBottom: '24px',
+        marginTop: '48px', paddingTop: '24px', borderTop: '1px solid var(--border)',
+        display: 'flex', justifyContent: 'space-between', fontSize: '13px',
+        color: 'var(--text-muted)', paddingBottom: '24px',
       }}>
-        <span>DTax v0.1.0 · Open Source Tax Engine (AGPL-3.0)</span>
+        <span>{tf('version')}</span>
         <span>
-          <a href="https://github.com/Phosmax/dtax" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
-            GitHub
-          </a>
+          <a href="https://github.com/Phosmax/dtax" style={{ color: 'var(--accent)', textDecoration: 'none' }}>{tf('github')}</a>
           {' · '}
-          <a href="https://dtax.dev" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
-            Docs
-          </a>
+          <a href="https://dtax.dev" style={{ color: 'var(--accent)', textDecoration: 'none' }}>{tf('docs')}</a>
         </span>
       </div>
     </div>
