@@ -52,10 +52,11 @@ describe('1099-DA Parser', () => {
             'Ethereum,2025-03-15,500',
             'Solana,2025-03-15,200',
             'Dogecoin,2025-03-15,50',
+            'Ethereum Classic,2025-03-15,30',
         ].join('\n');
 
         const result = parse1099DA(csv);
-        expect(result.entries.map(e => e.asset)).toEqual(['BTC', 'ETH', 'SOL', 'DOGE']);
+        expect(result.entries.map(e => e.asset)).toEqual(['BTC', 'ETH', 'SOL', 'DOGE', 'ETC']);
     });
 
     it('should handle missing required fields gracefully', () => {
