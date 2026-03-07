@@ -3,6 +3,7 @@
  *
  * Open source crypto tax calculation engine.
  * Supports FIFO, LIFO, HIFO cost basis methods.
+ * Includes CSV parsers for Coinbase and generic formats.
  *
  * @license AGPL-3.0
  */
@@ -17,3 +18,25 @@ export type {
   CalculationResult,
   CostBasisMethod,
 } from './types';
+
+// CSV Parsers
+export {
+  parseCsv,
+  parseGenericCsv,
+  parseCoinbaseCsv,
+  isCoinbaseCsv,
+  parseBinanceCsv,
+  parseBinanceUsCsv,
+  isBinanceCsv,
+  isBinanceUsCsv,
+  detectCsvFormat,
+  parseCsvRows,
+  parseCsvToObjects,
+} from './parsers';
+export type {
+  CsvFormat,
+  CsvParseResult,
+  CsvParseError,
+  ParsedTransaction,
+  GenericColumnMap,
+} from './parsers';
