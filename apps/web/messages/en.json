@@ -90,7 +90,17 @@
             "amount": "Amount",
             "valueUsd": "Value (USD)",
             "feeUsd": "Fee (USD)",
-            "notes": "Notes"
+            "notes": "Notes",
+            "sentAsset": "Sent Asset",
+            "sentAmount": "Sent Amount",
+            "sentValueUsd": "Sent Value (USD)",
+            "receivedAsset": "Received Asset",
+            "receivedAmount": "Received Amount",
+            "receivedValueUsd": "Received Value (USD)",
+            "nftCollection": "Collection",
+            "nftCollectionPlaceholder": "BAYC, CryptoPunks...",
+            "nftTokenId": "Token ID",
+            "nftTokenIdPlaceholder": "1234"
         }
     },
     "transfers": {

@@ -90,7 +90,17 @@
             "amount": "数量",
             "valueUsd": "价值 (USD)",
             "feeUsd": "手续费 (USD)",
-            "notes": "备注"
+            "notes": "备注",
+            "sentAsset": "支付资产",
+            "sentAmount": "支付数量",
+            "sentValueUsd": "支付价值 (USD)",
+            "receivedAsset": "收到资产",
+            "receivedAmount": "收到数量",
+            "receivedValueUsd": "收到价值 (USD)",
+            "nftCollection": "合集",
+            "nftCollectionPlaceholder": "BAYC, CryptoPunks...",
+            "nftTokenId": "Token ID",
+            "nftTokenIdPlaceholder": "1234"
         }
     },
     "transfers": {

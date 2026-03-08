@@ -32,6 +32,14 @@ export const BUY_TYPES = [
     'LP_REWARD', 'NFT_MINT', 'BRIDGE_IN', 'UNWRAP',
 ];
 
+/** Types that involve both sent and received sides (swap/exchange) */
+export const TWO_SIDED_TYPES = [
+    'TRADE', 'DEX_SWAP', 'NFT_PURCHASE', 'LP_DEPOSIT', 'LP_WITHDRAWAL',
+];
+
+/** Types where the asset is an NFT (use collection:tokenId format) */
+export const NFT_TYPES = ['NFT_MINT', 'NFT_PURCHASE', 'NFT_SALE'];
+
 export const inputStyle = {
     width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-sm)',
     background: 'var(--bg-secondary)', border: '1px solid var(--border)',
