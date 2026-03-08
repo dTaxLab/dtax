@@ -19,6 +19,7 @@
  */
 
 import type { CalculationResult } from '../types';
+import type { WashSaleAdjustment } from '../wash-sale';
 
 /**
  * Form 8949 Box types.
@@ -97,6 +98,8 @@ export interface Form8949Options {
     reportingBasis?: 'none' | 'all_reported' | 'custom';
     /** Custom classifier for 1099-B reporting (used when reportingBasis='custom') */
     classifyFn?: (result: CalculationResult) => 'reported_correct' | 'reported_incorrect' | 'not_reported';
+    /** Wash sale adjustments to apply (maps eventId → adjustment) */
+    washSaleAdjustments?: Map<string, WashSaleAdjustment>;
 }
 
 function formatDate(date: Date): string {
@@ -131,7 +134,7 @@ export function generateForm8949(
     results: CalculationResult[],
     options: Form8949Options,
 ): Form8949Report {
-    const { taxYear, lotDates, reportingBasis = 'none', classifyFn } = options;
+    const { taxYear, lotDates, reportingBasis = 'none', classifyFn, washSaleAdjustments } = options;
 
     const lines: Form8949Line[] = [];
 
@@ -171,6 +174,25 @@ export function generateForm8949(
         const totalCostBasis = matchedLots.reduce((sum, l) => sum + l.costBasisUsd, 0);
 
         const feeUsd = event.feeUsd ?? 0;
+        const washSale = washSaleAdjustments?.get(event.id);
+
+        // Build adjustment code: E for fees, W for wash sale, or both
+        let adjCode = '';
+        let adjAmount = 0;
+        if (feeUsd > 0 && washSale) {
+            adjCode = 'E;W';
+            adjAmount = round2(-feeUsd + washSale.disallowedLoss);
+        } else if (washSale) {
+            adjCode = 'W';
+            adjAmount = round2(washSale.disallowedLoss);
+        } else if (feeUsd > 0) {
+            adjCode = 'E';
+            adjAmount = round2(-feeUsd);
+        }
+
+        const adjustedGainLoss = washSale
+            ? round2(gainLoss + washSale.disallowedLoss)
+            : round2(gainLoss);
 
         lines.push({
             description: `${event.amount} ${event.asset}`,
@@ -178,9 +200,9 @@ export function generateForm8949(
             dateSold: formatDate(event.date),
             proceeds: round2(event.proceedsUsd),
             costBasis: round2(totalCostBasis),
-            adjustmentCode: feeUsd > 0 ? 'E' : '',
-            adjustmentAmount: round2(feeUsd > 0 ? -feeUsd : 0),
-            gainLoss: round2(gainLoss),
+            adjustmentCode: adjCode,
+            adjustmentAmount: adjAmount,
+            gainLoss: adjustedGainLoss,
             box,
             holdingPeriod,
             eventId: event.id,
