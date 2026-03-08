@@ -81,6 +81,14 @@ export type {
   MatchResult,
 } from './normalizers/internal-transfer';
 
+// Wash Sale Detection
+export { detectWashSales } from './wash-sale';
+export type {
+    WashSaleAdjustment,
+    WashSaleResult,
+    AcquisitionRecord,
+} from './wash-sale';
+
 export { isWrapPair, getUnderlyingAsset, processWrapUnwrap } from './normalizers/wrap-unwrap';
 export type {
   WrapEvent,
