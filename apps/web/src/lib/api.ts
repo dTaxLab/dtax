@@ -103,12 +103,16 @@ export interface ImportResult {
     };
 }
 
-export async function importCsv(file: File, format?: string): Promise<{ data: ImportResult }> {
+export async function importCsv(file: File, format?: string, source?: string): Promise<{ data: ImportResult }> {
     const formData = new FormData();
     formData.append('file', file);
 
-    const url = format
-        ? `${API_BASE}/api/v1/transactions/import?format=${format}`
+    const params = new URLSearchParams();
+    if (format) params.set('format', format);
+    if (source) params.set('source', source);
+    const qs = params.toString();
+    const url = qs
+        ? `${API_BASE}/api/v1/transactions/import?${qs}`
         : `${API_BASE}/api/v1/transactions/import`;
 
     const res = await fetch(url, {

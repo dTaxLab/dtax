@@ -43,6 +43,8 @@
             "title": "从 CSV 导入交易",
             "description": "上传交易所导出的 CSV 文件。支持 Coinbase、币安国际版、币安美国版及通用格式。",
             "selectFile": "选择 CSV 文件",
+            "sourceLabel": "来源",
+            "sourcePlaceholder": "如 Coinbase、币安...",
             "formatLabel": "格式",
             "autoDetect": "自动检测",
             "uploading": "导入中...",

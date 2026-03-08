@@ -32,6 +32,7 @@ const createTransactionSchema = z.object({
     feeValueUsd: z.number().optional(),
     notes: z.string().optional(),
     tags: z.array(z.string()).optional(),
+    sourceId: z.string().uuid().optional(),
 });
 
 const listQuerySchema = z.object({
@@ -70,6 +71,7 @@ export async function transactionRoutes(app: FastifyInstance) {
                 feeValueUsd: body.feeValueUsd,
                 notes: body.notes,
                 tags: body.tags || [],
+                sourceId: body.sourceId,
             },
         });
 

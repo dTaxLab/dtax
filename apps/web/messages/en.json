@@ -43,6 +43,8 @@
             "title": "Import Transactions from CSV",
             "description": "Upload a CSV file from your exchange. Supports Coinbase, Binance, Binance US, and generic formats.",
             "selectFile": "Select CSV File",
+            "sourceLabel": "Source",
+            "sourcePlaceholder": "e.g. Coinbase, Binance...",
             "formatLabel": "Format",
             "autoDetect": "Auto-Detect",
             "uploading": "Importing...",

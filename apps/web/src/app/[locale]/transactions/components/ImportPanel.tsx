@@ -15,6 +15,7 @@ export function ImportPanel({ onImported }: ImportPanelProps) {
     const fileRef = useRef<HTMLInputElement>(null);
     const [importFile, setImportFile] = useState<File | null>(null);
     const [importFormat, setImportFormat] = useState('');
+    const [sourceName, setSourceName] = useState('');
     const [importing, setImporting] = useState(false);
     const [importResult, setImportResult] = useState<ImportResult | null>(null);
     const [importError, setImportError] = useState<string | null>(null);
@@ -28,7 +29,7 @@ export function ImportPanel({ onImported }: ImportPanelProps) {
         setImportError(null);
         setImportResult(null);
         try {
-            const res = await importCsv(importFile, importFormat || undefined);
+            const res = await importCsv(importFile, importFormat || undefined, sourceName || undefined);
             setImportResult(res.data);
             onImported();
         } catch (e) {
@@ -56,6 +57,15 @@ export function ImportPanel({ onImported }: ImportPanelProps) {
                             setImportError(null);
                         }}
                         style={{ ...inputStyle, padding: '7px 12px', cursor: 'pointer' }}
+                    />
+                </div>
+                <div style={{ minWidth: '160px' }}>
+                    <label style={labelStyle}>{t('import.sourceLabel')}</label>
+                    <input
+                        placeholder={t('import.sourcePlaceholder')}
+                        value={sourceName}
+                        onChange={e => setSourceName(e.target.value)}
+                        style={inputStyle}
                     />
                 </div>
                 <div style={{ minWidth: '160px' }}>

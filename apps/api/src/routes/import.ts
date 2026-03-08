@@ -9,6 +9,7 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
+import { DataSourceType, DataSourceStatus } from '@prisma/client';
 import { parseCsv } from '@dtax/tax-engine';
 import type { CsvFormat, ParsedTransaction } from '@dtax/tax-engine';
 
@@ -21,9 +22,10 @@ export async function importRoutes(app: FastifyInstance) {
 
     // POST /transactions/import — CSV file upload
     app.post('/transactions/import', async (request, reply) => {
-        // Get optional format from query
+        // Get optional format and source from query
         const query = request.query as Record<string, string>;
         const formatParam = formatSchema.parse(query.format);
+        const sourceName = query.source || undefined;
 
         let csvContent: string;
 
@@ -80,9 +82,21 @@ export async function importRoutes(app: FastifyInstance) {
             });
         }
 
-        // Bulk insert into database
+        // Create a DataSource to track the import origin
+        const dsName = sourceName || parseResult.summary.format.toUpperCase() + ' Import';
+        const dataSource = await prisma.dataSource.create({
+            data: {
+                userId: TEMP_USER_ID,
+                type: DataSourceType.CSV_IMPORT,
+                name: dsName,
+                status: DataSourceStatus.ACTIVE,
+            },
+        });
+
+        // Bulk insert into database with sourceId
         const dbRecords = parseResult.transactions.map((tx: ParsedTransaction) => ({
             userId: TEMP_USER_ID,
+            sourceId: dataSource.id,
             type: tx.type,
             timestamp: new Date(tx.timestamp),
             receivedAsset: tx.receivedAsset || null,
@@ -107,6 +121,8 @@ export async function importRoutes(app: FastifyInstance) {
                 imported: created.count,
                 errors: parseResult.errors.slice(0, 10),
                 summary: parseResult.summary,
+                sourceId: dataSource.id,
+                sourceName: dsName,
             },
             meta: {
                 requestId: request.id,
