@@ -19,6 +19,7 @@ import { transferRoutes } from './routes/transfers';
 import { portfolioRoutes } from './routes/portfolio';
 import { priceRoutes } from './routes/prices';
 import { authRoutes } from './routes/auth';
+import { adminRoutes } from './routes/admin';
 import authPlugin from './plugins/auth';
 
 async function main() {
@@ -90,6 +91,7 @@ async function main() {
     await app.register(transferRoutes, { prefix: '/api/v1' });
     await app.register(portfolioRoutes, { prefix: '/api/v1' });
     await app.register(priceRoutes, { prefix: '/api/v1' });
+    await app.register(adminRoutes, { prefix: '/api/v1' });
 
     // Graceful shutdown
     const shutdown = async () => {
