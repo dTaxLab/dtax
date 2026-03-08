@@ -61,6 +61,13 @@ describe('parseArgs', () => {
         expect(result.flags.json).toBe('true');
         expect(result.flags.verbose).toBe('true');
     });
+
+    it('parses --include-wash-sales and --schedule-d flags', () => {
+        const result = parseArgs(['calculate', 'f.csv', '--include-wash-sales', '--schedule-d', '--year', '2025']);
+        expect(result.flags['include-wash-sales']).toBe('true');
+        expect(result.flags['schedule-d']).toBe('true');
+        expect(result.flags.year).toBe('2025');
+    });
 });
 
 // ─── toTaxLot ───────────────────────────────────

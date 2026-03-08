@@ -15,8 +15,10 @@ import {
     parseCsv,
     generateForm8949,
     form8949ToCsv,
+    generateScheduleD,
+    detectWashSales,
 } from '@dtax/tax-engine';
-import type { TaxLot, TaxableEvent, LotDateMap, CostBasisMethod, CsvFormat } from '@dtax/tax-engine';
+import type { TaxLot, TaxableEvent, LotDateMap, CostBasisMethod, CsvFormat, AcquisitionRecord, WashSaleAdjustment } from '@dtax/tax-engine';
 import { parseArgs, toTaxLot, toTaxableEvent } from './lib';
 
 const VERSION = '0.1.0';
@@ -35,12 +37,15 @@ function printUsage(): void {
     console.log('  --year <YYYY>              Tax year to report (default: all)');
     console.log('  --format <csv-format>      CSV format hint (default: auto-detect)');
     console.log('  --output <file>            Write Form 8949 CSV to file');
+    console.log('  --include-wash-sales       Detect and report wash sales');
+    console.log('  --schedule-d               Show Schedule D summary');
     console.log('  --json                     Output report as JSON');
     console.log('');
     console.log('Examples:');
     console.log('  dtax calculate transactions.csv');
     console.log('  dtax calculate coinbase.csv --method HIFO --year 2025');
     console.log('  dtax calculate trades.csv --output form8949.csv');
+    console.log('  dtax calculate trades.csv --include-wash-sales --schedule-d');
     console.log('');
     console.log('https://dtax.dev');
 }
@@ -128,9 +133,37 @@ function calculate(file: string, flags: Record<string, string>): void {
 
     const netGainLoss = (shortTermGains - shortTermLosses) + (longTermGains - longTermLosses);
 
+    // Wash sale detection
+    const includeWashSales = flags['include-wash-sales'] === 'true';
+    let washSaleAdjustments: Map<string, WashSaleAdjustment> | undefined;
+    let washSaleSummary: { totalDisallowed: number; adjustmentCount: number } | undefined;
+
+    if (includeWashSales) {
+        const acqRecords: AcquisitionRecord[] = lots.map(l => ({
+            lotId: l.id, asset: l.asset, amount: l.amount, acquiredAt: l.acquiredAt,
+        }));
+        const consumedLotIds = new Set(results.flatMap(r => r.matchedLots.map(m => m.lotId)));
+        const washResult = detectWashSales(results, acqRecords, consumedLotIds);
+        washSaleAdjustments = new Map(washResult.adjustments.map(a => [a.lossEventId, a]));
+        washSaleSummary = { totalDisallowed: washResult.totalDisallowed, adjustmentCount: washResult.adjustments.length };
+    }
+
+    // Form 8949 + Schedule D generation
+    const lotDates: LotDateMap = new Map(lots.map(l => [l.id, l.acquiredAt]));
+    const taxYear = yearFilter || new Date().getFullYear();
+    const form8949Report = generateForm8949(results, {
+        taxYear,
+        lotDates,
+        reportingBasis: 'none',
+        washSaleAdjustments,
+    });
+
+    const showScheduleD = flags['schedule-d'] === 'true';
+    const scheduleDReport = showScheduleD ? generateScheduleD(form8949Report) : undefined;
+
     // Output
     if (flags.json === 'true') {
-        console.log(JSON.stringify({
+        const output: Record<string, unknown> = {
             method,
             taxYear: yearFilter || 'all',
             shortTermGains,
@@ -140,7 +173,10 @@ function calculate(file: string, flags: Record<string, string>): void {
             netGainLoss,
             totalDispositions: events.length,
             results,
-        }, null, 2));
+        };
+        if (washSaleSummary) output.washSales = washSaleSummary;
+        if (scheduleDReport) output.scheduleD = scheduleDReport;
+        console.log(JSON.stringify(output, null, 2));
     } else {
         const fmt = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
@@ -160,17 +196,34 @@ function calculate(file: string, flags: Record<string, string>): void {
         console.log(`  NET GAIN/LOSS:      ${fmt(netGainLoss)}`);
         console.log(`  Total Dispositions: ${events.length}`);
         console.log('='.repeat(39));
+
+        if (washSaleSummary && washSaleSummary.adjustmentCount > 0) {
+            console.log('');
+            console.log('  WASH SALES DETECTED');
+            console.log(`  Disallowed Losses:  ${fmt(washSaleSummary.totalDisallowed)}`);
+            console.log(`  Wash Sale Events:   ${washSaleSummary.adjustmentCount}`);
+        }
+
+        if (scheduleDReport) {
+            console.log('');
+            console.log('='.repeat(39));
+            console.log('          Schedule D Summary');
+            console.log('='.repeat(39));
+            console.log('');
+            console.log(`  Net Short-Term:     ${fmt(scheduleDReport.netShortTerm)}`);
+            console.log(`  Net Long-Term:      ${fmt(scheduleDReport.netLongTerm)}`);
+            console.log(`  Combined Net:       ${fmt(scheduleDReport.combinedNetGainLoss)}`);
+            if (scheduleDReport.capitalLossDeduction > 0) {
+                console.log(`  Loss Deduction:     (${fmt(scheduleDReport.capitalLossDeduction)})`);
+                console.log(`  Carryover Loss:     (${fmt(scheduleDReport.carryoverLoss)})`);
+            }
+            console.log('='.repeat(39));
+        }
     }
 
     // Generate Form 8949 CSV if output requested
     if (flags.output) {
-        const lotDates: LotDateMap = new Map(lots.map(l => [l.id, l.acquiredAt]));
-        const report = generateForm8949(results, {
-            taxYear: yearFilter || new Date().getFullYear(),
-            lotDates,
-            reportingBasis: 'none',
-        });
-        const csv = form8949ToCsv(report);
+        const csv = form8949ToCsv(form8949Report);
         writeFileSync(flags.output, csv, 'utf-8');
         console.log(`\nForm 8949 CSV written to: ${flags.output}`);
     }
