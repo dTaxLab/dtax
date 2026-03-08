@@ -18,6 +18,7 @@ import { connectionRoutes } from './routes/connections';
 import { transferRoutes } from './routes/transfers';
 import { portfolioRoutes } from './routes/portfolio';
 import { priceRoutes } from './routes/prices';
+import { authRoutes } from './routes/auth';
 import authPlugin from './plugins/auth';
 
 async function main() {
@@ -80,6 +81,7 @@ async function main() {
     await app.register(authPlugin);
 
     // Routes
+    await app.register(authRoutes, { prefix: '/api/v1' });
     await app.register(healthRoutes, { prefix: '/api' });
     await app.register(transactionRoutes, { prefix: '/api/v1' });
     await app.register(importRoutes, { prefix: '/api/v1' });
