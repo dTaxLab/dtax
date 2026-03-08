@@ -23,8 +23,8 @@ const loginSchema = z.object({
 
 export async function authRoutes(app: FastifyInstance) {
 
-    // POST /auth/register
-    app.post('/auth/register', async (request, reply) => {
+    // POST /auth/register（速率限制：每分钟 5 次）
+    app.post('/auth/register', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
         const body = registerSchema.parse(request.body);
 
         const existing = await prisma.user.findUnique({ where: { email: body.email } });
@@ -46,8 +46,8 @@ export async function authRoutes(app: FastifyInstance) {
         });
     });
 
-    // POST /auth/login
-    app.post('/auth/login', async (request, reply) => {
+    // POST /auth/login（速率限制：每分钟 10 次）
+    app.post('/auth/login', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
         const body = loginSchema.parse(request.body);
 
         const user = await prisma.user.findUnique({ where: { email: body.email } });

@@ -7,9 +7,11 @@ import ccxt, { Exchange, Trade } from 'ccxt';
 import crypto from 'crypto';
 import { config } from '../config';
 
-// ─── Simple Encryption for API Keys ─────────────
-// Note: In production, consider using a dedicated KMS.
-const ENCRYPTION_KEY = Buffer.from(config.databaseUrl.slice(0, 32).padEnd(32, '0')); // Placeholder key derived from secrets
+// ─── API Key Encryption ─────────────
+// 使用独立 ENCRYPTION_KEY 环境变量，回退到 DATABASE_URL 派生密钥（仅开发环境）
+const ENCRYPTION_KEY = Buffer.from(
+    (config.encryptionKey || config.databaseUrl.slice(0, 32)).padEnd(32, '0')
+);
 const IV_LENGTH = 16;
 
 export function encryptKey(text: string): string {

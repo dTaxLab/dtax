@@ -7,6 +7,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
+import rateLimit from '@fastify/rate-limit';
 import { ZodError } from 'zod';
 import { config } from './config';
 import { prisma } from './lib/prisma';
@@ -78,6 +79,12 @@ async function main() {
     });
     await app.register(multipart, {
         limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+    });
+    await app.register(rateLimit, {
+        max: 100,
+        timeWindow: '1 minute',
+        // 认证路由更严格
+        keyGenerator: (request) => request.ip,
     });
     await app.register(authPlugin);
 
