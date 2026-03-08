@@ -12,8 +12,8 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { fetchTaxData, calculateIncome, fetchInternalTransferIds } from '../lib/tax-data';
 import {
-    CostBasisCalculator, generateForm8949, form8949ToCsv, generateScheduleD,
-    detectWashSales, parse1099DA, reconcile,
+    CostBasisCalculator, generateForm8949, form8949ToCsv, generateForm8949Pdf,
+    generateScheduleD, detectWashSales, parse1099DA, reconcile,
 } from '@dtax/tax-engine';
 import type { LotDateMap, DtaxDisposition, AcquisitionRecord } from '@dtax/tax-engine';
 
@@ -99,7 +99,7 @@ export async function taxRoutes(app: FastifyInstance) {
         const query = z.object({
             year: z.coerce.number().int().min(2009).max(2030),
             method: z.enum(['FIFO', 'LIFO', 'HIFO']).default('FIFO'),
-            format: z.enum(['json', 'csv']).default('json'),
+            format: z.enum(['json', 'csv', 'pdf']).default('json'),
             strictSilo: z.coerce.boolean().default(false),
             includeWashSales: z.coerce.boolean().default(false),
         }).parse(request.query);
@@ -127,6 +127,15 @@ export async function taxRoutes(app: FastifyInstance) {
                 .header('Content-Type', 'text/csv')
                 .header('Content-Disposition', `attachment; filename="form8949-${query.year}-${query.method}.csv"`)
                 .send(csv);
+        }
+
+        if (query.format === 'pdf') {
+            const scheduleD = generateScheduleD(report);
+            const pdfBuffer = await generateForm8949Pdf(report, { scheduleD });
+            return reply
+                .header('Content-Type', 'application/pdf')
+                .header('Content-Disposition', `attachment; filename="form8949-${query.year}-${query.method}.pdf"`)
+                .send(pdfBuffer);
         }
 
         return { data: { ...report, washSaleSummary } };

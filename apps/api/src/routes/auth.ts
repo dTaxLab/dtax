@@ -69,6 +69,24 @@ export async function authRoutes(app: FastifyInstance) {
         return { data: { token, user: { id: user.id, email: user.email, name: user.name, role: user.role } } };
     });
 
+    // POST /auth/refresh — 刷新 token（需要有效的现有 token）
+    app.post('/auth/refresh', async (request, reply) => {
+        // request.userId is set by the auth plugin (token was valid)
+        const user = await prisma.user.findUnique({
+            where: { id: request.userId },
+            select: { id: true, role: true },
+        });
+
+        if (!user) {
+            return reply.status(401).send({
+                error: { code: 'UNAUTHORIZED', message: 'User not found' },
+            });
+        }
+
+        const token = app.jwt.sign({ sub: user.id, role: user.role });
+        return { data: { token } };
+    });
+
     // GET /auth/me — 需要认证
     app.get('/auth/me', async (request, reply) => {
         const user = await prisma.user.findUnique({

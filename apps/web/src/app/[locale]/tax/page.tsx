@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { calculateTax, getForm8949, getForm8949CsvUrl, getScheduleD } from '@/lib/api';
+import { calculateTax, getForm8949, getForm8949CsvUrl, getForm8949PdfUrl, getScheduleD } from '@/lib/api';
 import type { TaxSummary, Form8949Report, ScheduleDReport } from '@/lib/api';
 import { getPreferences } from '@/lib/preferences';
 
@@ -341,14 +341,24 @@ export default function TaxPage() {
                         <div className="card" style={{ marginTop: '24px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                                 <h3 style={{ fontSize: '16px', fontWeight: '600' }}>{t('form8949.title')}</h3>
-                                <a
-                                    href={getForm8949CsvUrl(year, method, includeWashSales)}
-                                    download
-                                    className="btn btn-primary"
-                                    style={{ fontSize: '13px', textDecoration: 'none' }}
-                                >
-                                    {t('form8949.downloadCsv')}
-                                </a>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <a
+                                        href={getForm8949PdfUrl(year, method, includeWashSales)}
+                                        download
+                                        className="btn btn-primary"
+                                        style={{ fontSize: '13px', textDecoration: 'none' }}
+                                    >
+                                        {t('form8949.downloadPdf')}
+                                    </a>
+                                    <a
+                                        href={getForm8949CsvUrl(year, method, includeWashSales)}
+                                        download
+                                        className="btn btn-secondary"
+                                        style={{ fontSize: '13px', textDecoration: 'none' }}
+                                    >
+                                        {t('form8949.downloadCsv')}
+                                    </a>
+                                </div>
                             </div>
 
                             {/* Box summaries */}

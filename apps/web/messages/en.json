@@ -188,7 +188,8 @@
         },
         "form8949": {
             "title": "IRS Form 8949 — Sales and Dispositions",
-            "downloadCsv": "Download CSV",
+            "downloadCsv": "CSV",
+            "downloadPdf": "Download PDF",
             "box": "Box",
             "description": "Description",
             "acquired": "Acquired",

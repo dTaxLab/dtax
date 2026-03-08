@@ -216,6 +216,11 @@ export function getForm8949CsvUrl(year: number, method = 'FIFO', includeWashSale
     return `${API_BASE}/api/v1/tax/form8949?year=${year}&method=${method}&format=csv${ws}`;
 }
 
+export function getForm8949PdfUrl(year: number, method = 'FIFO', includeWashSales = false) {
+    const ws = includeWashSales ? '&includeWashSales=true' : '';
+    return `${API_BASE}/api/v1/tax/form8949?year=${year}&method=${method}&format=pdf${ws}`;
+}
+
 // ─── Schedule D ─────────────────────────────────
 
 export interface ScheduleDLine {

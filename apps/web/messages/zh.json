@@ -188,7 +188,8 @@
         },
         "form8949": {
             "title": "IRS Form 8949 — 资产销售与处置",
-            "downloadCsv": "下载 CSV",
+            "downloadCsv": "CSV",
+            "downloadPdf": "下载 PDF",
             "box": "类别",
             "description": "资产描述",
             "acquired": "获取日期",
