@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { getTransactions, getTransactionExportUrl } from '@/lib/api';
-import type { Transaction, TransactionFilters } from '@/lib/api';
+import type { Transaction, TransactionFilters, SortField, SortOrder } from '@/lib/api';
 import { ImportPanel } from './components/ImportPanel';
 import { ApiSyncPanel } from './components/ApiSyncPanel';
 import { TransactionForm } from './components/TransactionForm';
@@ -19,15 +19,19 @@ export default function TransactionsPage() {
     const [loadError, setLoadError] = useState<string | null>(null);
     const [activePanel, setActivePanel] = useState<'none' | 'form' | 'import' | 'api'>('none');
     const filtersRef = useRef<TransactionFilters>({});
+    const [sortField, setSortField] = useState<SortField>('timestamp');
+    const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
     useEffect(() => { loadPage(1); }, []);
 
-    async function loadPage(page: number, filters?: TransactionFilters) {
+    async function loadPage(page: number, filters?: TransactionFilters, sort?: SortField, order?: SortOrder) {
         if (filters !== undefined) filtersRef.current = filters;
+        const s = sort ?? sortField;
+        const o = order ?? sortOrder;
         setLoading(true);
         setLoadError(null);
         try {
-            const res = await getTransactions(page, 20, filtersRef.current);
+            const res = await getTransactions(page, 20, filtersRef.current, s, o);
             setTransactions(res.data);
             setMeta(res.meta);
         } catch (e) {
@@ -42,6 +46,13 @@ export default function TransactionsPage() {
 
     function handleFilter(filters: TransactionFilters) {
         loadPage(1, filters);
+    }
+
+    function handleSort(field: SortField) {
+        const newOrder: SortOrder = field === sortField && sortOrder === 'desc' ? 'asc' : 'desc';
+        setSortField(field);
+        setSortOrder(newOrder);
+        loadPage(1, undefined, field, newOrder);
     }
 
     return (
@@ -103,6 +114,9 @@ export default function TransactionsPage() {
                     meta={meta}
                     onPageChange={(p) => loadPage(p)}
                     onRefresh={() => loadPage(meta.page)}
+                    sortField={sortField}
+                    sortOrder={sortOrder}
+                    onSort={handleSort}
                 />
             )}
         </div>

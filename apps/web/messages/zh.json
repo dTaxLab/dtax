@@ -196,6 +196,14 @@
             "proceeds": "收入",
             "basis": "成本基础",
             "gainLoss": "收益/亏损"
+        },
+        "perAsset": {
+            "title": "按资产分析",
+            "asset": "资产",
+            "dispositions": "处置次数",
+            "proceeds": "收入",
+            "costBasis": "成本基础",
+            "gainLoss": "收益/亏损"
         }
     },
     "reconcile": {

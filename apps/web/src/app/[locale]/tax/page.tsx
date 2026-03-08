@@ -158,6 +158,52 @@ export default function TaxPage() {
                         </div>
                     </div>
 
+                    {/* Per-Asset Breakdown */}
+                    {form8949 && form8949.lines.length > 0 && (() => {
+                        const assetMap = new Map<string, { count: number; proceeds: number; costBasis: number; gainLoss: number }>();
+                        for (const line of form8949.lines) {
+                            const asset = line.description.replace(/^[\d.,]+\s*/, '');
+                            const entry = assetMap.get(asset) || { count: 0, proceeds: 0, costBasis: 0, gainLoss: 0 };
+                            entry.count++;
+                            entry.proceeds += line.proceeds;
+                            entry.costBasis += line.costBasis;
+                            entry.gainLoss += line.gainLoss;
+                            assetMap.set(asset, entry);
+                        }
+                        const assets = [...assetMap.entries()].sort((a, b) => Math.abs(b[1].gainLoss) - Math.abs(a[1].gainLoss));
+                        return (
+                            <div className="card" style={{ marginTop: '24px' }}>
+                                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px' }}>{t('perAsset.title')}</h3>
+                                <div className="table-container" style={{ border: 'none' }}>
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>{t('perAsset.asset')}</th>
+                                                <th style={{ textAlign: 'right' }}>{t('perAsset.dispositions')}</th>
+                                                <th style={{ textAlign: 'right' }}>{t('perAsset.proceeds')}</th>
+                                                <th style={{ textAlign: 'right' }}>{t('perAsset.costBasis')}</th>
+                                                <th style={{ textAlign: 'right' }}>{t('perAsset.gainLoss')}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {assets.map(([asset, data]) => (
+                                                <tr key={asset}>
+                                                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{asset}</td>
+                                                    <td style={{ textAlign: 'right' }}>{data.count}</td>
+                                                    <td style={{ textAlign: 'right', fontSize: '13px' }}>{formatUsd(data.proceeds)}</td>
+                                                    <td style={{ textAlign: 'right', fontSize: '13px' }}>{formatUsd(data.costBasis)}</td>
+                                                    <td style={{ textAlign: 'right', fontWeight: 600, color: data.gainLoss >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                                                        {formatUsd(data.gainLoss)}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        );
+                    })()}
+
                     {/* Wash Sale Summary */}
                     {washSaleSummary && washSaleSummary.adjustmentCount > 0 && (
                         <div className="card" style={{ marginTop: '24px', borderLeft: '3px solid var(--yellow)' }}>

@@ -46,6 +46,8 @@ const listQuerySchema = z.object({
     type: z.string().optional(),
     from: z.string().datetime().optional(),
     to: z.string().datetime().optional(),
+    sort: z.enum(['timestamp', 'type', 'sentAmount', 'receivedAmount', 'sentValueUsd', 'receivedValueUsd', 'feeValueUsd']).default('timestamp'),
+    order: z.enum(['asc', 'desc']).default('desc'),
 });
 
 // ─── Routes ─────────────────────────────────────
@@ -105,7 +107,7 @@ export async function transactionRoutes(app: FastifyInstance) {
         const [transactions, total] = await Promise.all([
             prisma.transaction.findMany({
                 where,
-                orderBy: { timestamp: 'desc' },
+                orderBy: { [query.sort]: query.order },
                 skip,
                 take: query.limit,
             }),

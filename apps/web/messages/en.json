@@ -196,6 +196,14 @@
             "proceeds": "Proceeds",
             "basis": "Cost Basis",
             "gainLoss": "Gain/Loss"
+        },
+        "perAsset": {
+            "title": "Per-Asset Breakdown",
+            "asset": "Asset",
+            "dispositions": "Dispositions",
+            "proceeds": "Proceeds",
+            "costBasis": "Cost Basis",
+            "gainLoss": "Gain/Loss"
         }
     },
     "reconcile": {

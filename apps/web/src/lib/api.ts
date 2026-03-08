@@ -73,12 +73,17 @@ export interface TransactionFilters {
     to?: string;
 }
 
-export async function getTransactions(page = 1, limit = 20, filters?: TransactionFilters) {
+export type SortField = 'timestamp' | 'type' | 'sentAmount' | 'receivedAmount' | 'sentValueUsd' | 'receivedValueUsd' | 'feeValueUsd';
+export type SortOrder = 'asc' | 'desc';
+
+export async function getTransactions(page = 1, limit = 20, filters?: TransactionFilters, sort?: SortField, order?: SortOrder) {
     const params = new URLSearchParams({ page: String(page), limit: String(limit) });
     if (filters?.asset) params.set('asset', filters.asset);
     if (filters?.type) params.set('type', filters.type);
     if (filters?.from) params.set('from', filters.from);
     if (filters?.to) params.set('to', filters.to);
+    if (sort) params.set('sort', sort);
+    if (order) params.set('order', order);
     return apiFetch<{
         data: Transaction[];
         meta: { total: number; page: number; limit: number; totalPages: number };

@@ -3,17 +3,33 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { updateTransaction, deleteTransaction } from '@/lib/api';
-import type { Transaction } from '@/lib/api';
+import type { Transaction, SortField, SortOrder } from '@/lib/api';
 import { formatUsd, formatDate, getBadgeClass, inputStyle, TRANSACTION_TYPES, BUY_TYPES } from './shared';
+
+/** Build truncated page numbers: 1 ... 4 5 [6] 7 8 ... 20 */
+function getPageNumbers(current: number, total: number): (number | '...')[] {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    const pages: (number | '...')[] = [1];
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+    if (start > 2) pages.push('...');
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (end < total - 1) pages.push('...');
+    pages.push(total);
+    return pages;
+}
 
 interface TransactionTableProps {
     transactions: Transaction[];
     meta: { total: number; page: number; totalPages: number; limit: number };
     onPageChange: (page: number) => void;
     onRefresh: () => void;
+    sortField: SortField;
+    sortOrder: SortOrder;
+    onSort: (field: SortField) => void;
 }
 
-export function TransactionTable({ transactions, meta, onPageChange, onRefresh }: TransactionTableProps) {
+export function TransactionTable({ transactions, meta, onPageChange, onRefresh, sortField, sortOrder, onSort }: TransactionTableProps) {
     const t = useTranslations('transactions');
     const tt = useTranslations('table');
     const tType = useTranslations('txTypes');
@@ -88,6 +104,16 @@ export function TransactionTable({ transactions, meta, onPageChange, onRefresh }
 
     const editInputStyle = { ...inputStyle, padding: '4px 6px', fontSize: '13px' };
 
+    const sortIndicator = (field: SortField) =>
+        sortField === field ? (sortOrder === 'asc' ? ' ▲' : ' ▼') : '';
+
+    const thSort = (field: SortField, label: string, align?: 'right') => (
+        <th style={{ cursor: 'pointer', userSelect: 'none', textAlign: align }}
+            onClick={() => onSort(field)}>
+            {label}{sortIndicator(field)}
+        </th>
+    );
+
     return (
         <>
             {actionError && (
@@ -99,12 +125,12 @@ export function TransactionTable({ transactions, meta, onPageChange, onRefresh }
                 <table>
                     <thead>
                         <tr>
-                            <th>{tt('date')}</th>
-                            <th>{tt('type')}</th>
+                            {thSort('timestamp', tt('date'))}
+                            {thSort('type', tt('type'))}
                             <th>{tt('asset')}</th>
                             <th>{tt('amount')}</th>
-                            <th style={{ textAlign: 'right' }}>{tt('valueUsd')}</th>
-                            <th style={{ textAlign: 'right' }}>{tt('fee')}</th>
+                            {thSort('sentValueUsd', tt('valueUsd'), 'right')}
+                            {thSort('feeValueUsd', tt('fee'), 'right')}
                             <th>{tt('notes')}</th>
                             <th style={{ textAlign: 'center' }}>{t('actions')}</th>
                         </tr>
@@ -202,13 +228,25 @@ export function TransactionTable({ transactions, meta, onPageChange, onRefresh }
                 </table>
             </div>
             {meta.totalPages > 1 && (
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '24px' }}>
-                    {Array.from({ length: meta.totalPages }, (_, i) => (
-                        <button key={i + 1} className={`btn ${meta.page === i + 1 ? 'btn-primary' : 'btn-secondary'}`}
-                            style={{ padding: '6px 14px', fontSize: '13px' }} onClick={() => onPageChange(i + 1)}>
-                            {i + 1}
-                        </button>
-                    ))}
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px', marginTop: '24px' }}>
+                    <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '13px' }}
+                        disabled={meta.page === 1} onClick={() => onPageChange(meta.page - 1)}>
+                        ‹
+                    </button>
+                    {getPageNumbers(meta.page, meta.totalPages).map((p, i) =>
+                        p === '...' ? (
+                            <span key={`ellipsis-${i}`} style={{ padding: '6px 4px', color: 'var(--text-muted)' }}>…</span>
+                        ) : (
+                            <button key={p} className={`btn ${meta.page === p ? 'btn-primary' : 'btn-secondary'}`}
+                                style={{ padding: '6px 14px', fontSize: '13px' }} onClick={() => onPageChange(p as number)}>
+                                {p}
+                            </button>
+                        )
+                    )}
+                    <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '13px' }}
+                        disabled={meta.page === meta.totalPages} onClick={() => onPageChange(meta.page + 1)}>
+                        ›
+                    </button>
                 </div>
             )}
         </>
