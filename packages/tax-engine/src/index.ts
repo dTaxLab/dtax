@@ -43,6 +43,8 @@ export type {
 
 // Reports
 export { generateForm8949, form8949ToCsv } from './reports/form8949';
+export { generateScheduleD } from './reports/schedule-d';
+export type { ScheduleDLine, ScheduleDReport } from './reports/schedule-d';
 export type {
   Form8949Line,
   Form8949Box,
