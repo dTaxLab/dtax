@@ -10,18 +10,27 @@ export function formatDate(iso: string) {
 }
 
 export function getBadgeClass(type: string) {
-    if (['BUY', 'AIRDROP', 'STAKING_REWARD', 'MINING_REWARD'].includes(type)) return 'badge badge-buy';
-    if (['SELL', 'LIQUIDATION'].includes(type)) return 'badge badge-sell';
-    if (['TRADE'].includes(type)) return 'badge badge-trade';
+    if (['BUY', 'AIRDROP', 'STAKING_REWARD', 'MINING_REWARD', 'LP_REWARD', 'NFT_MINT'].includes(type)) return 'badge badge-buy';
+    if (['SELL', 'LIQUIDATION', 'NFT_SALE'].includes(type)) return 'badge badge-sell';
+    if (['TRADE', 'DEX_SWAP', 'NFT_PURCHASE'].includes(type)) return 'badge badge-trade';
+    if (['WRAP', 'UNWRAP', 'BRIDGE_OUT', 'BRIDGE_IN', 'CONTRACT_APPROVAL'].includes(type)) return 'badge badge-other';
     return 'badge badge-other';
 }
 
 export const TRANSACTION_TYPES = [
     'BUY', 'SELL', 'TRADE', 'AIRDROP', 'STAKING_REWARD', 'MINING_REWARD',
     'INTEREST', 'TRANSFER_IN', 'TRANSFER_OUT', 'GIFT_RECEIVED', 'GIFT_SENT',
+    // DeFi
+    'DEX_SWAP', 'LP_DEPOSIT', 'LP_WITHDRAWAL', 'LP_REWARD',
+    'WRAP', 'UNWRAP', 'BRIDGE_OUT', 'BRIDGE_IN',
+    // NFT
+    'NFT_MINT', 'NFT_PURCHASE', 'NFT_SALE',
 ];
 
-export const BUY_TYPES = ['BUY', 'AIRDROP', 'STAKING_REWARD', 'MINING_REWARD', 'INTEREST', 'FORK', 'GIFT_RECEIVED'];
+export const BUY_TYPES = [
+    'BUY', 'AIRDROP', 'STAKING_REWARD', 'MINING_REWARD', 'INTEREST', 'FORK', 'GIFT_RECEIVED',
+    'LP_REWARD', 'NFT_MINT', 'BRIDGE_IN', 'UNWRAP',
+];
 
 export const inputStyle = {
     width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-sm)',
