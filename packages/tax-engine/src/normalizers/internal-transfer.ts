@@ -13,7 +13,7 @@
 export interface TransferRecord {
     id: string;
     sourceId: string;
-    type: 'TRANSFER_IN' | 'TRANSFER_OUT';
+    type: 'TRANSFER_IN' | 'TRANSFER_OUT' | 'BRIDGE_IN' | 'BRIDGE_OUT';
     timestamp: Date;
     asset: string;
     amount: number;
@@ -43,12 +43,12 @@ export function matchInternalTransfers(
     transfers: TransferRecord[],
     maxTimeWindowMs: number = 24 * 60 * 60 * 1000
 ): MatchResult {
-    // Sort all transfers chronologically
+    // Sort all transfers chronologically (supports both TRANSFER and BRIDGE types)
     const outs = transfers
-        .filter((t) => t.type === 'TRANSFER_OUT')
+        .filter((t) => t.type === 'TRANSFER_OUT' || t.type === 'BRIDGE_OUT')
         .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
     const ins = transfers
-        .filter((t) => t.type === 'TRANSFER_IN')
+        .filter((t) => t.type === 'TRANSFER_IN' || t.type === 'BRIDGE_IN')
         .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
     const matched: InternalTransferMatch[] = [];

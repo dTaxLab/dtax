@@ -101,4 +101,66 @@ describe('Internal Transfer Normalizer', () => {
         expect(result.unmatchedIn).toHaveLength(1);
         expect(result.unmatchedIn[0].id).toBe('in-unmatched');
     });
+
+    // ─── Bridge Transfer Tests ─────────────────────────
+
+    it('should match BRIDGE_OUT with BRIDGE_IN', () => {
+        const bridgeOut: TransferRecord = {
+            id: 'bridge-out-1',
+            sourceId: 'ethereum',
+            type: 'BRIDGE_OUT',
+            asset: 'USDC',
+            amount: 1000,
+            timestamp: new Date('2025-03-01T10:00:00Z'),
+        };
+        const bridgeIn: TransferRecord = {
+            id: 'bridge-in-1',
+            sourceId: 'polygon',
+            type: 'BRIDGE_IN',
+            asset: 'USDC',
+            amount: 1000,
+            timestamp: new Date('2025-03-01T10:15:00Z'),
+        };
+
+        const result = matchInternalTransfers([bridgeOut, bridgeIn]);
+        expect(result.matched).toHaveLength(1);
+        expect(result.matched[0].outTx.id).toBe('bridge-out-1');
+        expect(result.matched[0].inTx.id).toBe('bridge-in-1');
+    });
+
+    it('should match bridge with amount difference (bridge fee deducted)', () => {
+        const bridgeOut: TransferRecord = {
+            id: 'bridge-out-2',
+            sourceId: 'ethereum',
+            type: 'BRIDGE_OUT',
+            asset: 'ETH',
+            amount: 5.0,
+            timestamp: new Date('2025-03-01T12:00:00Z'),
+        };
+        const bridgeIn: TransferRecord = {
+            id: 'bridge-in-2',
+            sourceId: 'arbitrum',
+            type: 'BRIDGE_IN',
+            asset: 'ETH',
+            amount: 4.99, // Bridge fee deducted
+            timestamp: new Date('2025-03-01T12:10:00Z'),
+        };
+
+        const result = matchInternalTransfers([bridgeOut, bridgeIn]);
+        expect(result.matched).toHaveLength(1);
+    });
+
+    it('should match mixed TRANSFER and BRIDGE types', () => {
+        const transfers: TransferRecord[] = [
+            { id: 'transfer-out', sourceId: 'binance', type: 'TRANSFER_OUT', asset: 'BTC', amount: 1, timestamp: new Date('2025-03-01T08:00:00Z') },
+            { id: 'transfer-in', sourceId: 'metamask', type: 'TRANSFER_IN', asset: 'BTC', amount: 1, timestamp: new Date('2025-03-01T08:05:00Z') },
+            { id: 'bridge-out', sourceId: 'ethereum', type: 'BRIDGE_OUT', asset: 'USDC', amount: 500, timestamp: new Date('2025-03-01T09:00:00Z') },
+            { id: 'bridge-in', sourceId: 'polygon', type: 'BRIDGE_IN', asset: 'USDC', amount: 500, timestamp: new Date('2025-03-01T09:20:00Z') },
+        ];
+
+        const result = matchInternalTransfers(transfers);
+        expect(result.matched).toHaveLength(2);
+        expect(result.unmatchedOut).toHaveLength(0);
+        expect(result.unmatchedIn).toHaveLength(0);
+    });
 });
