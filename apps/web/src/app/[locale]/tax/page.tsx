@@ -23,7 +23,8 @@ const labelStyle = {
 export default function TaxPage() {
     const t = useTranslations('tax');
 
-    const [year, setYear] = useState(2025);
+    const currentYear = new Date().getFullYear();
+    const [year, setYear] = useState(currentYear - 1);
     const [method, setMethod] = useState('FIFO');
     const [report, setReport] = useState<TaxSummary | null>(null);
     const [form8949, setForm8949] = useState<Form8949Report | null>(null);
@@ -60,7 +61,7 @@ export default function TaxPage() {
                     <div>
                         <label style={labelStyle}>{t('taxYear')}</label>
                         <select value={year} onChange={e => setYear(parseInt(e.target.value))} style={selectStyle}>
-                            {[2025, 2024, 2023, 2022].map(y => <option key={y} value={y}>{y}</option>)}
+                            {Array.from({ length: 6 }, (_, i) => currentYear - i).map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
                     </div>
                     <div>

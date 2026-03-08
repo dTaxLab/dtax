@@ -35,6 +35,9 @@ export default function Dashboard() {
   const tc = useTranslations('common');
   const tf = useTranslations('footer');
 
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(currentYear - 1);
+  const [method, setMethod] = useState('FIFO');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [txMeta, setTxMeta] = useState({ total: 0, page: 1, totalPages: 0 });
   const [taxSummary, setTaxSummary] = useState<TaxSummary | null>(null);
@@ -42,7 +45,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [calculating, setCalculating] = useState(false);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [year, method]);
 
   async function loadData() {
     setLoading(true);
@@ -50,7 +53,7 @@ export default function Dashboard() {
     try {
       const [txRes, taxRes] = await Promise.allSettled([
         getTransactions(1, 10),
-        getTaxSummary(2025),
+        getTaxSummary(year, method),
       ]);
       if (txRes.status === 'fulfilled') {
         setTransactions(txRes.value.data);
@@ -69,7 +72,7 @@ export default function Dashboard() {
   async function handleCalculate() {
     setCalculating(true);
     try {
-      const res = await calculateTax(2025, 'FIFO');
+      const res = await calculateTax(year, method);
       setTaxSummary(res.data.report);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed');
@@ -107,11 +110,25 @@ export default function Dashboard() {
       <div className="page-header">
         <div>
           <h1 className="page-title">{t('title')}</h1>
-          <p className="page-subtitle">{t('subtitle', { year: 2025, method: 'FIFO' })}</p>
+          <p className="page-subtitle">{t('subtitle', { year, method })}</p>
         </div>
-        <button className="btn btn-primary" onClick={handleCalculate} disabled={calculating}>
-          {calculating ? `⏳ ${t('calculating')}` : `🧮 ${t('calculateTax')}`}
-        </button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <select value={year} onChange={e => setYear(parseInt(e.target.value))}
+            style={{ padding: '8px 12px', borderRadius: '6px', background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: '14px' }}>
+            {Array.from({ length: 6 }, (_, i) => currentYear - i).map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+          <select value={method} onChange={e => setMethod(e.target.value)}
+            style={{ padding: '8px 12px', borderRadius: '6px', background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: '14px' }}>
+            <option value="FIFO">FIFO</option>
+            <option value="LIFO">LIFO</option>
+            <option value="HIFO">HIFO</option>
+          </select>
+          <button className="btn btn-primary" onClick={handleCalculate} disabled={calculating}>
+            {calculating ? `⏳ ${t('calculating')}` : `🧮 ${t('calculateTax')}`}
+          </button>
+        </div>
       </div>
 
       <div className="grid-4" style={{ marginBottom: '32px' }}>
