@@ -28,17 +28,36 @@ export async function taxRoutes(app: FastifyInstance) {
         const acquisitions = await prisma.transaction.findMany({
             where: {
                 userId: request.userId,
-                type: { in: ['BUY', 'TRADE', 'AIRDROP', 'STAKING_REWARD', 'MINING_REWARD', 'INTEREST', 'FORK', 'GIFT_RECEIVED', 'DEX_SWAP', 'LP_WITHDRAWAL', 'LP_REWARD', 'NFT_MINT'] },
+                type: { in: ['BUY', 'TRADE', 'AIRDROP', 'STAKING_REWARD', 'MINING_REWARD', 'INTEREST', 'FORK', 'GIFT_RECEIVED', 'DEX_SWAP', 'LP_WITHDRAWAL', 'LP_REWARD', 'NFT_MINT', 'MARGIN_TRADE', 'LIQUIDATION'] },
                 timestamp: { lt: yearEnd },
             },
             orderBy: { timestamp: 'asc' },
         });
 
+        // 1b. Calculate ordinary income from taxable year (staking, mining, airdrops, interest)
+        const INCOME_TYPES = ['STAKING_REWARD', 'MINING_REWARD', 'AIRDROP', 'INTEREST', 'LP_REWARD'] as const;
+        const incomeItems = acquisitions.filter(
+            tx => INCOME_TYPES.includes(tx.type as typeof INCOME_TYPES[number]) &&
+                tx.timestamp >= yearStart && tx.timestamp < yearEnd
+        );
+        let incomeFromStaking = 0;
+        let incomeFromMining = 0;
+        let incomeFromAirdrops = 0;
+        let incomeFromInterest = 0;
+        for (const tx of incomeItems) {
+            const val = Number(tx.receivedValueUsd || 0);
+            if (tx.type === 'STAKING_REWARD') incomeFromStaking += val;
+            else if (tx.type === 'MINING_REWARD') incomeFromMining += val;
+            else if (tx.type === 'AIRDROP') incomeFromAirdrops += val;
+            else if (tx.type === 'INTEREST' || tx.type === 'LP_REWARD') incomeFromInterest += val;
+        }
+        const totalIncome = incomeFromStaking + incomeFromMining + incomeFromAirdrops + incomeFromInterest;
+
         // 2. Get all SELL/TRADE dispositions in the tax year
         const dispositions = await prisma.transaction.findMany({
             where: {
                 userId: request.userId,
-                type: { in: ['SELL', 'TRADE', 'GIFT_SENT', 'LOST', 'STOLEN', 'DEX_SWAP', 'LP_DEPOSIT', 'NFT_PURCHASE', 'NFT_SALE'] },
+                type: { in: ['SELL', 'TRADE', 'GIFT_SENT', 'LOST', 'STOLEN', 'DEX_SWAP', 'LP_DEPOSIT', 'NFT_PURCHASE', 'NFT_SALE', 'MARGIN_TRADE', 'LIQUIDATION'] },
                 timestamp: { gte: yearStart, lt: yearEnd },
             },
             orderBy: { timestamp: 'asc' },
@@ -104,8 +123,9 @@ export async function taxRoutes(app: FastifyInstance) {
                 shortTermLosses,
                 longTermGains,
                 longTermLosses,
+                totalIncome,
                 totalTransactions: events.length,
-                reportData: JSON.parse(JSON.stringify(results)),
+                reportData: JSON.parse(JSON.stringify({ results, income: { staking: incomeFromStaking, mining: incomeFromMining, airdrops: incomeFromAirdrops, interest: incomeFromInterest } })),
                 status: 'COMPLETE',
             },
             update: {
@@ -113,8 +133,9 @@ export async function taxRoutes(app: FastifyInstance) {
                 shortTermLosses,
                 longTermGains,
                 longTermLosses,
+                totalIncome,
                 totalTransactions: events.length,
-                reportData: JSON.parse(JSON.stringify(results)),
+                reportData: JSON.parse(JSON.stringify({ results, income: { staking: incomeFromStaking, mining: incomeFromMining, airdrops: incomeFromAirdrops, interest: incomeFromInterest } })),
                 status: 'COMPLETE',
             },
         });
@@ -131,6 +152,13 @@ export async function taxRoutes(app: FastifyInstance) {
                     longTermLosses,
                     netGainLoss: (shortTermGains - shortTermLosses) + (longTermGains - longTermLosses),
                     totalTransactions: events.length,
+                    income: {
+                        staking: incomeFromStaking,
+                        mining: incomeFromMining,
+                        airdrops: incomeFromAirdrops,
+                        interest: incomeFromInterest,
+                        total: totalIncome,
+                    },
                 },
             },
         });
@@ -152,7 +180,7 @@ export async function taxRoutes(app: FastifyInstance) {
         const acquisitions = await prisma.transaction.findMany({
             where: {
                 userId: request.userId,
-                type: { in: ['BUY', 'TRADE', 'AIRDROP', 'STAKING_REWARD', 'MINING_REWARD', 'INTEREST', 'FORK', 'GIFT_RECEIVED', 'DEX_SWAP', 'LP_WITHDRAWAL', 'LP_REWARD', 'NFT_MINT'] },
+                type: { in: ['BUY', 'TRADE', 'AIRDROP', 'STAKING_REWARD', 'MINING_REWARD', 'INTEREST', 'FORK', 'GIFT_RECEIVED', 'DEX_SWAP', 'LP_WITHDRAWAL', 'LP_REWARD', 'NFT_MINT', 'MARGIN_TRADE', 'LIQUIDATION'] },
                 timestamp: { lt: yearEnd },
             },
             orderBy: { timestamp: 'asc' },
@@ -161,7 +189,7 @@ export async function taxRoutes(app: FastifyInstance) {
         const dispositions = await prisma.transaction.findMany({
             where: {
                 userId: request.userId,
-                type: { in: ['SELL', 'TRADE', 'GIFT_SENT', 'LOST', 'STOLEN', 'DEX_SWAP', 'LP_DEPOSIT', 'NFT_PURCHASE', 'NFT_SALE'] },
+                type: { in: ['SELL', 'TRADE', 'GIFT_SENT', 'LOST', 'STOLEN', 'DEX_SWAP', 'LP_DEPOSIT', 'NFT_PURCHASE', 'NFT_SALE', 'MARGIN_TRADE', 'LIQUIDATION'] },
                 timestamp: { gte: yearStart, lt: yearEnd },
             },
             orderBy: { timestamp: 'asc' },
@@ -246,7 +274,7 @@ export async function taxRoutes(app: FastifyInstance) {
         const acquisitions = await prisma.transaction.findMany({
             where: {
                 userId: request.userId,
-                type: { in: ['BUY', 'TRADE', 'AIRDROP', 'STAKING_REWARD', 'MINING_REWARD', 'INTEREST', 'FORK', 'GIFT_RECEIVED', 'DEX_SWAP', 'LP_WITHDRAWAL', 'LP_REWARD', 'NFT_MINT'] },
+                type: { in: ['BUY', 'TRADE', 'AIRDROP', 'STAKING_REWARD', 'MINING_REWARD', 'INTEREST', 'FORK', 'GIFT_RECEIVED', 'DEX_SWAP', 'LP_WITHDRAWAL', 'LP_REWARD', 'NFT_MINT', 'MARGIN_TRADE', 'LIQUIDATION'] },
                 timestamp: { lt: yearEnd },
             },
             orderBy: { timestamp: 'asc' },
@@ -255,7 +283,7 @@ export async function taxRoutes(app: FastifyInstance) {
         const dispositions = await prisma.transaction.findMany({
             where: {
                 userId: request.userId,
-                type: { in: ['SELL', 'TRADE', 'GIFT_SENT', 'LOST', 'STOLEN', 'DEX_SWAP', 'LP_DEPOSIT', 'NFT_PURCHASE', 'NFT_SALE'] },
+                type: { in: ['SELL', 'TRADE', 'GIFT_SENT', 'LOST', 'STOLEN', 'DEX_SWAP', 'LP_DEPOSIT', 'NFT_PURCHASE', 'NFT_SALE', 'MARGIN_TRADE', 'LIQUIDATION'] },
                 timestamp: { gte: yearStart, lt: yearEnd },
             },
             orderBy: { timestamp: 'asc' },
@@ -346,6 +374,7 @@ export async function taxRoutes(app: FastifyInstance) {
                 netGainLoss:
                     Number(report.shortTermGains) - Number(report.shortTermLosses) +
                     Number(report.longTermGains) - Number(report.longTermLosses),
+                totalIncome: Number(report.totalIncome),
                 totalTransactions: report.totalTransactions,
                 status: report.status,
                 updatedAt: report.updatedAt,
@@ -378,7 +407,7 @@ export async function taxRoutes(app: FastifyInstance) {
         const acquisitions = await prisma.transaction.findMany({
             where: {
                 userId: request.userId,
-                type: { in: ['BUY', 'TRADE', 'AIRDROP', 'STAKING_REWARD', 'MINING_REWARD', 'INTEREST', 'FORK', 'GIFT_RECEIVED', 'DEX_SWAP', 'LP_WITHDRAWAL', 'LP_REWARD', 'NFT_MINT'] },
+                type: { in: ['BUY', 'TRADE', 'AIRDROP', 'STAKING_REWARD', 'MINING_REWARD', 'INTEREST', 'FORK', 'GIFT_RECEIVED', 'DEX_SWAP', 'LP_WITHDRAWAL', 'LP_REWARD', 'NFT_MINT', 'MARGIN_TRADE', 'LIQUIDATION'] },
                 timestamp: { lt: yearEnd },
             },
             orderBy: { timestamp: 'asc' },
@@ -387,7 +416,7 @@ export async function taxRoutes(app: FastifyInstance) {
         const dispositions = await prisma.transaction.findMany({
             where: {
                 userId: request.userId,
-                type: { in: ['SELL', 'TRADE', 'GIFT_SENT', 'LOST', 'STOLEN', 'DEX_SWAP', 'LP_DEPOSIT', 'NFT_PURCHASE', 'NFT_SALE'] },
+                type: { in: ['SELL', 'TRADE', 'GIFT_SENT', 'LOST', 'STOLEN', 'DEX_SWAP', 'LP_DEPOSIT', 'NFT_PURCHASE', 'NFT_SALE', 'MARGIN_TRADE', 'LIQUIDATION'] },
                 timestamp: { gte: yearStart, lt: yearEnd },
             },
             orderBy: { timestamp: 'asc' },
