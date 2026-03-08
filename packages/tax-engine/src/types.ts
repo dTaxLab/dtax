@@ -4,7 +4,13 @@
  */
 
 /** Supported cost basis calculation methods */
-export type CostBasisMethod = 'FIFO' | 'LIFO' | 'HIFO';
+export type CostBasisMethod = 'FIFO' | 'LIFO' | 'HIFO' | 'SPECIFIC_ID';
+
+/** Lot selection for Specific ID method */
+export interface LotSelection {
+    lotId: string;
+    amount: number;
+}
 
 /** Holding period classification for tax purposes */
 export type HoldingPeriod = 'SHORT_TERM' | 'LONG_TERM';
