@@ -10,6 +10,7 @@
 import { parseGenericCsv } from './generic';
 import { parseCoinbaseCsv, isCoinbaseCsv } from './coinbase';
 import { parseBinanceCsv, parseBinanceUsCsv, isBinanceCsv, isBinanceUsCsv } from './binance';
+import { parseKrakenCsv, isKrakenCsv } from './kraken';
 import { isEtherscanCsv, isEtherscanErc20Csv } from './etherscan';
 import type { CsvParseResult, CsvFormat, GenericColumnMap } from './types';
 
@@ -20,6 +21,7 @@ export function detectCsvFormat(csv: string): CsvFormat {
     if (isCoinbaseCsv(csv)) return 'coinbase';
     if (isBinanceCsv(csv)) return 'binance';
     if (isBinanceUsCsv(csv)) return 'binance_us';
+    if (isKrakenCsv(csv)) return 'kraken';
     if (isEtherscanErc20Csv(csv)) return 'etherscan_erc20';
     if (isEtherscanCsv(csv)) return 'etherscan';
     return 'generic';
@@ -63,6 +65,8 @@ export function parseCsv(
             return parseBinanceCsv(csv);
         case 'binance_us':
             return parseBinanceUsCsv(csv);
+        case 'kraken':
+            return parseKrakenCsv(csv);
         case 'generic':
         default:
             return parseGenericCsv(csv, options?.columnMap);
@@ -73,6 +77,7 @@ export function parseCsv(
 export { parseGenericCsv } from './generic';
 export { parseCoinbaseCsv, isCoinbaseCsv } from './coinbase';
 export { parseBinanceCsv, parseBinanceUsCsv, isBinanceCsv, isBinanceUsCsv } from './binance';
+export { parseKrakenCsv, isKrakenCsv } from './kraken';
 export { parseEtherscanCsv, parseEtherscanErc20Csv, isEtherscanCsv, isEtherscanErc20Csv } from './etherscan';
 export { parseCsvRows, parseCsvToObjects } from './csv-core';
 export type {
