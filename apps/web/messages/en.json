@@ -178,7 +178,9 @@
         "longTerm": "LT",
         "shortTerm": "ST",
         "pricesTitle": "Market Prices",
-        "pricesHint": "Enter current prices to see unrealized gains and TLH opportunities",
+        "pricesHint": "Prices auto-fetched from CoinGecko. Edit below to override.",
+        "refreshPrices": "Refresh Prices",
+        "fetchingPrices": "Fetching...",
         "priceInput": "Price (USD)",
         "applyPrices": "Apply Prices",
         "tlh": {

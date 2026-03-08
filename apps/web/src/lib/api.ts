@@ -195,6 +195,21 @@ export async function reconcile1099DA(csvContent: string, brokerName: string, ta
     });
 }
 
+// ─── Prices ────────────────────────────────────
+
+export interface PriceResult {
+    prices: Record<string, number>;
+    fetchedAt: string;
+}
+
+export async function getPrices(assets: string[]) {
+    return apiFetch<{ data: PriceResult }>(`/api/v1/prices?assets=${encodeURIComponent(assets.join(','))}`);
+}
+
+export async function getSupportedTickers() {
+    return apiFetch<{ data: { tickers: string[] } }>('/api/v1/prices/supported');
+}
+
 // ─── Portfolio Holdings ────────────────────────
 
 export interface LotHolding {

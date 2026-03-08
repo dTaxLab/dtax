@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { getPortfolioHoldings } from '@/lib/api';
+import { getPortfolioHoldings, getPrices } from '@/lib/api';
 import type { PortfolioAnalysis } from '@/lib/api';
 
 function formatUsd(value: number | undefined | null): string {
@@ -26,6 +26,8 @@ export default function PortfolioPage() {
     const [analysis, setAnalysis] = useState<PortfolioAnalysis | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [priceError, setPriceError] = useState<string | null>(null);
+    const [fetchingPrices, setFetchingPrices] = useState(false);
 
     // Price inputs
     const [priceInputs, setPriceInputs] = useState<Record<string, string>>({});
@@ -40,18 +42,44 @@ export default function PortfolioPage() {
             const res = await getPortfolioHoldings(prices);
             setAnalysis(res.data);
 
-            // Populate price inputs from existing assets
-            if (!prices) {
+            // On first load, auto-fetch prices for all assets
+            if (!prices && res.data.positions.length > 0) {
                 const inputs: Record<string, string> = {};
                 for (const pos of res.data.positions) {
                     inputs[pos.asset] = '';
                 }
                 setPriceInputs(inputs);
+                autoFetchPrices(res.data.positions.map(p => p.asset));
             }
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Failed to load portfolio');
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function autoFetchPrices(assets: string[]) {
+        setFetchingPrices(true);
+        setPriceError(null);
+        try {
+            const res = await getPrices(assets);
+            const prices = res.data.prices;
+            if (Object.keys(prices).length > 0) {
+                // Populate inputs with fetched prices
+                const inputs: Record<string, string> = {};
+                for (const asset of assets) {
+                    inputs[asset] = prices[asset] !== undefined ? String(prices[asset]) : '';
+                }
+                setPriceInputs(inputs);
+                setAppliedPrices(prices);
+                // Reload portfolio with prices
+                const res2 = await getPortfolioHoldings(prices);
+                setAnalysis(res2.data);
+            }
+        } catch (e) {
+            setPriceError(e instanceof Error ? e.message : 'Failed to fetch prices');
+        } finally {
+            setFetchingPrices(false);
         }
     }
 
@@ -69,6 +97,11 @@ export default function PortfolioPage() {
             setAppliedPrices(prices);
             loadData(prices);
         }
+    }
+
+    async function handleRefreshPrices() {
+        if (!analysis) return;
+        await autoFetchPrices(analysis.positions.map(p => p.asset));
     }
 
     if (loading && !analysis) {
@@ -139,8 +172,21 @@ export default function PortfolioPage() {
             {/* Price Input Section */}
             {analysis && analysis.positions.length > 0 && (
                 <div className="card" style={{ marginBottom: '24px', padding: '20px' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px' }}>{t('pricesTitle')}</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: '600' }}>{t('pricesTitle')}</h3>
+                        <button
+                            className="btn btn-secondary"
+                            onClick={handleRefreshPrices}
+                            disabled={fetchingPrices}
+                            style={{ fontSize: '13px', padding: '4px 12px' }}
+                        >
+                            {fetchingPrices ? t('fetchingPrices') : t('refreshPrices')}
+                        </button>
+                    </div>
                     <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px' }}>{t('pricesHint')}</p>
+                    {priceError && (
+                        <p style={{ color: 'var(--red)', fontSize: '13px', marginBottom: '12px' }}>{priceError}</p>
+                    )}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'end' }}>
                         {analysis.positions.map(pos => (
                             <div key={pos.asset} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

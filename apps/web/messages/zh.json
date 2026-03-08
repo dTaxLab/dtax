@@ -178,7 +178,9 @@
         "longTerm": "长期",
         "shortTerm": "短期",
         "pricesTitle": "市场价格",
-        "pricesHint": "输入当前价格以查看未实现损益和 TLH 机会",
+        "pricesHint": "价格已从 CoinGecko 自动获取，可手动修改覆盖",
+        "refreshPrices": "刷新价格",
+        "fetchingPrices": "获取中...",
         "priceInput": "价格 (USD)",
         "applyPrices": "应用价格",
         "tlh": {

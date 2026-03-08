@@ -16,6 +16,7 @@ import { taxRoutes } from './routes/tax';
 import { connectionRoutes } from './routes/connections';
 import { transferRoutes } from './routes/transfers';
 import { portfolioRoutes } from './routes/portfolio';
+import { priceRoutes } from './routes/prices';
 
 async function main() {
     const app = Fastify({
@@ -45,6 +46,7 @@ async function main() {
     await app.register(connectionRoutes, { prefix: '/api/v1' });
     await app.register(transferRoutes, { prefix: '/api/v1' });
     await app.register(portfolioRoutes, { prefix: '/api/v1' });
+    await app.register(priceRoutes, { prefix: '/api/v1' });
 
     // Graceful shutdown
     const shutdown = async () => {
