@@ -7,6 +7,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
+import { ZodError } from 'zod';
 import { config } from './config';
 import { prisma } from './lib/prisma';
 import { healthRoutes } from './routes/health';
@@ -27,6 +28,44 @@ async function main() {
                     ? { target: 'pino-pretty', options: { colorize: true } }
                     : undefined,
         },
+    });
+
+    // Global error handler
+    app.setErrorHandler((error: Error, request, reply) => {
+        // Zod validation errors → 400
+        if (error instanceof ZodError) {
+            const issues = error.issues.map(i => ({
+                path: i.path.join('.'),
+                message: i.message,
+            }));
+            return reply.status(400).send({
+                error: {
+                    code: 'VALIDATION_ERROR',
+                    message: 'Request validation failed',
+                    details: issues,
+                },
+            });
+        }
+
+        // Prisma known errors → appropriate status
+        const errorWithCode = error as Error & { code?: string; statusCode?: number };
+        if (errorWithCode.code === 'P2025') {
+            return reply.status(404).send({
+                error: { code: 'NOT_FOUND', message: 'Record not found' },
+            });
+        }
+
+        // Log unexpected errors
+        request.log.error(error);
+
+        // Don't leak internals in production
+        const msg = config.nodeEnv === 'production'
+            ? 'Internal server error'
+            : error.message;
+
+        return reply.status(errorWithCode.statusCode || 500).send({
+            error: { code: 'INTERNAL_ERROR', message: msg },
+        });
     });
 
     // Plugins
