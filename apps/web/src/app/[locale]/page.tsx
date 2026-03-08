@@ -140,14 +140,14 @@ export default function Dashboard() {
         </div>
         <div className="stat-card">
           <span className="stat-label">{t('longTermGains')}</span>
-          <span className="stat-value positive">
-            {taxSummary ? formatUsd(taxSummary.longTermGains) : '—'}
+          <span className={`stat-value ${taxSummary && (taxSummary.longTermGains - taxSummary.longTermLosses) >= 0 ? 'positive' : 'negative'}`}>
+            {taxSummary ? formatUsd(taxSummary.longTermGains - taxSummary.longTermLosses) : '—'}
           </span>
         </div>
         <div className="stat-card">
           <span className="stat-label">{t('shortTermGains')}</span>
-          <span className="stat-value positive">
-            {taxSummary ? formatUsd(taxSummary.shortTermGains) : '—'}
+          <span className={`stat-value ${taxSummary && (taxSummary.shortTermGains - taxSummary.shortTermLosses) >= 0 ? 'positive' : 'negative'}`}>
+            {taxSummary ? formatUsd(taxSummary.shortTermGains - taxSummary.shortTermLosses) : '—'}
           </span>
         </div>
         <div className="stat-card">
