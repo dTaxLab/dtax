@@ -4,7 +4,7 @@
  */
 
 /** Supported exchange CSV formats */
-export type CsvFormat = 'generic' | 'coinbase' | 'binance' | 'binance_us' | 'etherscan' | 'etherscan_erc20';
+export type CsvFormat = 'generic' | 'coinbase' | 'binance' | 'binance_us' | 'kraken' | 'etherscan' | 'etherscan_erc20';
 
 /** A parsed transaction row from CSV */
 export interface ParsedTransaction {
