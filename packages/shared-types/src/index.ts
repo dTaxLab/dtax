@@ -29,6 +29,20 @@ export type TxType =
     | 'MARGIN_TRADE'
     | 'LIQUIDATION'
     | 'INTERNAL_TRANSFER'
+    // DeFi types
+    | 'DEX_SWAP'
+    | 'LP_DEPOSIT'
+    | 'LP_WITHDRAWAL'
+    | 'LP_REWARD'
+    | 'WRAP'
+    | 'UNWRAP'
+    | 'BRIDGE_OUT'
+    | 'BRIDGE_IN'
+    | 'CONTRACT_APPROVAL'
+    // NFT types
+    | 'NFT_MINT'
+    | 'NFT_PURCHASE'
+    | 'NFT_SALE'
     | 'UNKNOWN';
 
 export interface Transaction {
