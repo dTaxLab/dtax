@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { getTransactions, getTaxSummary, calculateTax } from '@/lib/api';
 import type { Transaction, TaxSummary } from '@/lib/api';
+import { getBadgeClass } from './transactions/components/shared';
 
 function formatUsd(value: number | string | null): string {
   if (value === null || value === undefined) return '—';
@@ -22,18 +23,12 @@ function formatDate(iso: string, locale: string): string {
   });
 }
 
-function getBadgeClass(type: string): string {
-  if (['BUY', 'AIRDROP', 'STAKING_REWARD', 'MINING_REWARD'].includes(type)) return 'badge badge-buy';
-  if (['SELL', 'LIQUIDATION'].includes(type)) return 'badge badge-sell';
-  if (['TRADE'].includes(type)) return 'badge badge-trade';
-  return 'badge badge-other';
-}
-
 export default function Dashboard() {
   const t = useTranslations('dashboard');
   const tt = useTranslations('table');
   const tc = useTranslations('common');
   const tf = useTranslations('footer');
+  const tType = useTranslations('txTypes');
 
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear - 1);
@@ -192,7 +187,7 @@ export default function Dashboard() {
                 return (
                   <tr key={tx.id}>
                     <td style={{ fontVariantNumeric: 'tabular-nums' }}>{formatDate(tx.timestamp, 'en')}</td>
-                    <td><span className={getBadgeClass(tx.type)}>{tx.type}</span></td>
+                    <td><span className={getBadgeClass(tx.type)}>{tType(tx.type)}</span></td>
                     <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{asset}</td>
                     <td className="mono">{formatAmount(amount, asset)}</td>
                     <td style={{ textAlign: 'right' }} className="mono">{formatUsd(value)}</td>

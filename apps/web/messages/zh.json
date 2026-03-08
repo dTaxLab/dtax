@@ -55,7 +55,7 @@
         "actions": "操作",
         "import": {
             "title": "从 CSV 导入交易",
-            "description": "上传交易所导出的 CSV 文件。支持 Coinbase、币安国际版、币安美国版及通用格式。",
+            "description": "上传交易所或区块链浏览器导出的 CSV 文件。支持 Coinbase、币安、Etherscan 及通用格式。",
             "selectFile": "选择 CSV 文件",
             "sourceLabel": "来源",
             "sourcePlaceholder": "如 Coinbase、币安...",
@@ -218,6 +218,34 @@
             "currentValue": "当前市值",
             "washSaleWarning": "包含短期批次 — 若在 30 天内回购请注意洗售规则"
         }
+    },
+    "txTypes": {
+        "BUY": "买入",
+        "SELL": "卖出",
+        "TRADE": "交易",
+        "AIRDROP": "空投",
+        "STAKING_REWARD": "质押奖励",
+        "MINING_REWARD": "挖矿奖励",
+        "INTEREST": "利息",
+        "TRANSFER_IN": "转入",
+        "TRANSFER_OUT": "转出",
+        "GIFT_RECEIVED": "收到赠予",
+        "GIFT_SENT": "赠予",
+        "LIQUIDATION": "清算",
+        "FORK": "分叉",
+        "DEX_SWAP": "DEX 兑换",
+        "LP_DEPOSIT": "LP 存入",
+        "LP_WITHDRAWAL": "LP 取出",
+        "LP_REWARD": "LP 奖励",
+        "WRAP": "封装",
+        "UNWRAP": "解封装",
+        "BRIDGE_OUT": "跨链转出",
+        "BRIDGE_IN": "跨链转入",
+        "CONTRACT_APPROVAL": "合约授权",
+        "NFT_MINT": "NFT 铸造",
+        "NFT_PURCHASE": "NFT 购买",
+        "NFT_SALE": "NFT 出售",
+        "UNKNOWN": "未知"
     },
     "table": {
         "date": "日期",

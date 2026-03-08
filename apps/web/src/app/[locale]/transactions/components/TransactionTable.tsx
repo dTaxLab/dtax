@@ -16,6 +16,7 @@ interface TransactionTableProps {
 export function TransactionTable({ transactions, meta, onPageChange, onRefresh }: TransactionTableProps) {
     const t = useTranslations('transactions');
     const tt = useTranslations('table');
+    const tType = useTranslations('txTypes');
 
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState({
@@ -127,7 +128,7 @@ export function TransactionTable({ transactions, meta, onPageChange, onRefresh }
                                                 onChange={e => setEditForm({ ...editForm, type: e.target.value })}
                                                 style={{ ...editInputStyle, width: '110px' }}>
                                                 {TRANSACTION_TYPES.map(tp => (
-                                                    <option key={tp} value={tp}>{tp.replace(/_/g, ' ')}</option>
+                                                    <option key={tp} value={tp}>{tType(tp)}</option>
                                                 ))}
                                             </select>
                                         </td>
@@ -175,7 +176,7 @@ export function TransactionTable({ transactions, meta, onPageChange, onRefresh }
                             return (
                                 <tr key={tx.id}>
                                     <td style={{ fontVariantNumeric: 'tabular-nums' }}>{formatDate(tx.timestamp)}</td>
-                                    <td><span className={getBadgeClass(tx.type)}>{tx.type}</span></td>
+                                    <td><span className={getBadgeClass(tx.type)}>{tType(tx.type)}</span></td>
                                     <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{asset}</td>
                                     <td className="mono">{amount ? parseFloat(amount).toLocaleString('en-US', { maximumFractionDigits: 8 }) : '—'}</td>
                                     <td style={{ textAlign: 'right' }} className="mono">{formatUsd(value)}</td>

@@ -55,7 +55,7 @@
         "actions": "Actions",
         "import": {
             "title": "Import Transactions from CSV",
-            "description": "Upload a CSV file from your exchange. Supports Coinbase, Binance, Binance US, and generic formats.",
+            "description": "Upload a CSV file from your exchange or blockchain explorer. Supports Coinbase, Binance, Etherscan, and generic formats.",
             "selectFile": "Select CSV File",
             "sourceLabel": "Source",
             "sourcePlaceholder": "e.g. Coinbase, Binance...",
@@ -218,6 +218,34 @@
             "currentValue": "Current Value",
             "washSaleWarning": "Contains short-term lots — watch for wash sale rule if repurchasing within 30 days"
         }
+    },
+    "txTypes": {
+        "BUY": "Buy",
+        "SELL": "Sell",
+        "TRADE": "Trade",
+        "AIRDROP": "Airdrop",
+        "STAKING_REWARD": "Staking Reward",
+        "MINING_REWARD": "Mining Reward",
+        "INTEREST": "Interest",
+        "TRANSFER_IN": "Transfer In",
+        "TRANSFER_OUT": "Transfer Out",
+        "GIFT_RECEIVED": "Gift Received",
+        "GIFT_SENT": "Gift Sent",
+        "LIQUIDATION": "Liquidation",
+        "FORK": "Fork",
+        "DEX_SWAP": "DEX Swap",
+        "LP_DEPOSIT": "LP Deposit",
+        "LP_WITHDRAWAL": "LP Withdrawal",
+        "LP_REWARD": "LP Reward",
+        "WRAP": "Wrap",
+        "UNWRAP": "Unwrap",
+        "BRIDGE_OUT": "Bridge Out",
+        "BRIDGE_IN": "Bridge In",
+        "CONTRACT_APPROVAL": "Contract Approval",
+        "NFT_MINT": "NFT Mint",
+        "NFT_PURCHASE": "NFT Purchase",
+        "NFT_SALE": "NFT Sale",
+        "UNKNOWN": "Unknown"
     },
     "table": {
         "date": "Date",

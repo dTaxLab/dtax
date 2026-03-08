@@ -12,6 +12,7 @@ interface TransactionFormProps {
 
 export function TransactionForm({ onCreated, onCancel }: TransactionFormProps) {
     const t = useTranslations('transactions');
+    const tType = useTranslations('txTypes');
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [form, setForm] = useState({
@@ -53,7 +54,7 @@ export function TransactionForm({ onCreated, onCancel }: TransactionFormProps) {
                     <label style={labelStyle}>{t('form.type')}</label>
                     <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} style={inputStyle}>
                         {TRANSACTION_TYPES.map(tp => (
-                            <option key={tp} value={tp}>{tp.replace(/_/g, ' ')}</option>
+                            <option key={tp} value={tp}>{tType(tp)}</option>
                         ))}
                     </select>
                 </div>

@@ -75,6 +75,8 @@ export function ImportPanel({ onImported }: ImportPanelProps) {
                         <option value="coinbase">Coinbase</option>
                         <option value="binance">Binance (International)</option>
                         <option value="binance_us">Binance US</option>
+                        <option value="etherscan">Etherscan (ETH Transactions)</option>
+                        <option value="etherscan_erc20">Etherscan (ERC-20 Tokens)</option>
                         <option value="generic">Generic CSV</option>
                     </select>
                 </div>
