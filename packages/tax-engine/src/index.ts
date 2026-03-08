@@ -80,3 +80,9 @@ export type {
   InternalTransferMatch,
   MatchResult,
 } from './normalizers/internal-transfer';
+
+export { isWrapPair, getUnderlyingAsset, processWrapUnwrap } from './normalizers/wrap-unwrap';
+export type {
+  WrapEvent,
+  WrapResult,
+} from './normalizers/wrap-unwrap';
