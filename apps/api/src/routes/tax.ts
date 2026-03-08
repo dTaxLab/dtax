@@ -7,8 +7,8 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { CostBasisCalculator, generateForm8949, form8949ToCsv, parse1099DA, reconcile } from '@dtax/tax-engine';
-import type { TaxLot, TaxableEvent, LotDateMap, DtaxDisposition } from '@dtax/tax-engine';
+import { CostBasisCalculator, generateForm8949, form8949ToCsv, generateScheduleD, detectWashSales, parse1099DA, reconcile } from '@dtax/tax-engine';
+import type { TaxLot, TaxableEvent, LotDateMap, DtaxDisposition, AcquisitionRecord } from '@dtax/tax-engine';
 
 const calculateSchema = z.object({
     taxYear: z.number().int().min(2009).max(2030),
@@ -143,6 +143,7 @@ export async function taxRoutes(app: FastifyInstance) {
             method: z.enum(['FIFO', 'LIFO', 'HIFO']).default('FIFO'),
             format: z.enum(['json', 'csv']).default('json'),
             strictSilo: z.coerce.boolean().default(false),
+            includeWashSales: z.coerce.boolean().default(false),
         }).parse(request.query);
 
         const yearStart = new Date(`${query.year}-01-01T00:00:00Z`);
@@ -191,10 +192,31 @@ export async function taxRoutes(app: FastifyInstance) {
         calculator.addLots(lots);
         const results = events.map(e => calculator.calculate(e, query.strictSilo));
 
+        // Wash sale detection (optional)
+        let washSaleAdjustments: Map<string, import('@dtax/tax-engine').WashSaleAdjustment> | undefined;
+        let washSaleSummary;
+
+        if (query.includeWashSales) {
+            const acqRecords: AcquisitionRecord[] = lots.map(l => ({
+                lotId: l.id,
+                asset: l.asset,
+                amount: l.amount,
+                acquiredAt: l.acquiredAt,
+            }));
+            const consumedLotIds = new Set(results.flatMap(r => r.matchedLots.map(m => m.lotId)));
+            const washResult = detectWashSales(results, acqRecords, consumedLotIds);
+            washSaleAdjustments = new Map(washResult.adjustments.map(a => [a.lossEventId, a]));
+            washSaleSummary = {
+                totalDisallowed: washResult.totalDisallowed,
+                adjustmentCount: washResult.adjustments.length,
+            };
+        }
+
         const report = generateForm8949(results, {
             taxYear: query.year,
             lotDates,
             reportingBasis: 'none',
+            washSaleAdjustments,
         });
 
         if (query.format === 'csv') {
@@ -205,7 +227,86 @@ export async function taxRoutes(app: FastifyInstance) {
                 .send(csv);
         }
 
-        return { data: report };
+        return { data: { ...report, washSaleSummary } };
+    });
+
+    // GET /tax/schedule-d — Generate Schedule D summary from Form 8949
+    app.get('/tax/schedule-d', async (request, reply) => {
+        const query = z.object({
+            year: z.coerce.number().int().min(2009).max(2030),
+            method: z.enum(['FIFO', 'LIFO', 'HIFO']).default('FIFO'),
+            strictSilo: z.coerce.boolean().default(false),
+            includeWashSales: z.coerce.boolean().default(false),
+            lossLimit: z.coerce.number().default(3000),
+        }).parse(request.query);
+
+        const yearStart = new Date(`${query.year}-01-01T00:00:00Z`);
+        const yearEnd = new Date(`${query.year + 1}-01-01T00:00:00Z`);
+
+        const acquisitions = await prisma.transaction.findMany({
+            where: {
+                userId: request.userId,
+                type: { in: ['BUY', 'TRADE', 'AIRDROP', 'STAKING_REWARD', 'MINING_REWARD', 'INTEREST', 'FORK', 'GIFT_RECEIVED', 'DEX_SWAP', 'LP_WITHDRAWAL', 'LP_REWARD', 'NFT_MINT'] },
+                timestamp: { lt: yearEnd },
+            },
+            orderBy: { timestamp: 'asc' },
+        });
+
+        const dispositions = await prisma.transaction.findMany({
+            where: {
+                userId: request.userId,
+                type: { in: ['SELL', 'TRADE', 'GIFT_SENT', 'LOST', 'STOLEN', 'DEX_SWAP', 'LP_DEPOSIT', 'NFT_PURCHASE', 'NFT_SALE'] },
+                timestamp: { gte: yearStart, lt: yearEnd },
+            },
+            orderBy: { timestamp: 'asc' },
+        });
+
+        const lots: TaxLot[] = acquisitions.map((tx) => ({
+            id: tx.id,
+            asset: tx.receivedAsset || '',
+            amount: Number(tx.receivedAmount || 0),
+            costBasisUsd: Number(tx.receivedValueUsd || 0),
+            acquiredAt: tx.timestamp,
+            sourceId: tx.sourceId || 'unknown',
+        }));
+
+        const lotDates: LotDateMap = new Map(lots.map(l => [l.id, l.acquiredAt]));
+
+        const events: TaxableEvent[] = dispositions.map((tx) => ({
+            id: tx.id,
+            asset: tx.sentAsset || '',
+            amount: Number(tx.sentAmount || 0),
+            proceedsUsd: Number(tx.sentValueUsd || 0),
+            date: tx.timestamp,
+            feeUsd: Number(tx.feeValueUsd || 0),
+            sourceId: tx.sourceId || 'unknown',
+        }));
+
+        const calculator = new CostBasisCalculator(query.method);
+        calculator.addLots(lots);
+        const results = events.map(e => calculator.calculate(e, query.strictSilo));
+
+        // Optional wash sale detection
+        let washSaleAdjustments: Map<string, import('@dtax/tax-engine').WashSaleAdjustment> | undefined;
+        if (query.includeWashSales) {
+            const acqRecords: AcquisitionRecord[] = lots.map(l => ({
+                lotId: l.id, asset: l.asset, amount: l.amount, acquiredAt: l.acquiredAt,
+            }));
+            const consumedLotIds = new Set(results.flatMap(r => r.matchedLots.map(m => m.lotId)));
+            const washResult = detectWashSales(results, acqRecords, consumedLotIds);
+            washSaleAdjustments = new Map(washResult.adjustments.map(a => [a.lossEventId, a]));
+        }
+
+        const form8949 = generateForm8949(results, {
+            taxYear: query.year,
+            lotDates,
+            reportingBasis: 'none',
+            washSaleAdjustments,
+        });
+
+        const scheduleD = generateScheduleD(form8949, { lossLimit: query.lossLimit });
+
+        return { data: scheduleD };
     });
 
     // GET /tax/summary — Get tax summary for a year
