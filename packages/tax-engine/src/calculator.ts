@@ -6,11 +6,13 @@
 import { calculateFIFO } from './methods/fifo';
 import { calculateLIFO } from './methods/lifo';
 import { calculateHIFO } from './methods/hifo';
+import { calculateSpecificId } from './methods/specific-id';
 import type {
     TaxLot,
     TaxableEvent,
     CalculationResult,
     CostBasisMethod,
+    LotSelection,
 } from './types';
 
 export class CostBasisCalculator {
@@ -35,9 +37,16 @@ export class CostBasisCalculator {
                 return calculateLIFO(this.lots, event, strictSilo);
             case 'HIFO':
                 return calculateHIFO(this.lots, event, strictSilo);
+            case 'SPECIFIC_ID':
+                throw new Error('SPECIFIC_ID requires lot selections — use calculateSpecificId()');
             default:
                 throw new Error(`Unknown method: ${this.method}`);
         }
+    }
+
+    /** Calculate using Specific ID with user-selected lots */
+    calculateSpecificId(event: TaxableEvent, selections: LotSelection[]): CalculationResult {
+        return calculateSpecificId(this.lots, event, selections);
     }
 
     /** Get current method */
