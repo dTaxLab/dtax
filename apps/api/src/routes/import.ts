@@ -48,6 +48,7 @@ const formatSchema = z
     "mexc",
     "htx",
     "solscan",
+    "solscan_defi",
   ])
   .optional();
 

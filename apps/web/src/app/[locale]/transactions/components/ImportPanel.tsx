@@ -116,7 +116,8 @@ export function ImportPanel({ onImported }: ImportPanelProps) {
             <option value="htx">HTX (Huobi)</option>
             <option value="etherscan">Etherscan (Transactions)</option>
             <option value="etherscan_erc20">Etherscan (ERC-20 Tokens)</option>
-            <option value="solscan">Solscan (Solana)</option>
+            <option value="solscan">Solscan (Solana Transfers)</option>
+            <option value="solscan_defi">Solscan (Solana DeFi)</option>
             <option value="generic">Generic CSV</option>
           </select>
         </div>
