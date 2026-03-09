@@ -487,6 +487,15 @@ export async function backfillPrices(limit = 50, dryRun = false) {
   });
 }
 
+export interface ExchangeRates {
+  rates: Record<string, number>;
+  baseCurrency: string;
+}
+
+export async function getExchangeRates() {
+  return apiFetch<{ data: ExchangeRates }>("/api/v1/prices/exchange-rates");
+}
+
 // ─── Portfolio Holdings ────────────────────────
 
 export interface LotHolding {

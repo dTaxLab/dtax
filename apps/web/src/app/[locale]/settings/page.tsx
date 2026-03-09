@@ -3,7 +3,12 @@
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/lib/auth-context";
-import { getPreferences, savePreferences } from "@/lib/preferences";
+import {
+  getPreferences,
+  savePreferences,
+  SUPPORTED_FIATS,
+} from "@/lib/preferences";
+import type { FiatCurrency } from "@/lib/preferences";
 import { getDataSources, renameDataSource, deleteDataSource } from "@/lib/api";
 import type { DataSource } from "@/lib/api";
 
@@ -19,6 +24,7 @@ export default function SettingsPage() {
 
   const [method, setMethod] = useState<string>("FIFO");
   const [year, setYear] = useState<number>(currentYear);
+  const [fiatCurrency, setFiatCurrency] = useState<FiatCurrency>("USD");
   const [saved, setSaved] = useState(false);
   const [sources, setSources] = useState<DataSource[]>([]);
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -28,6 +34,7 @@ export default function SettingsPage() {
     const prefs = getPreferences();
     setMethod(prefs.defaultMethod);
     setYear(prefs.defaultYear);
+    setFiatCurrency(prefs.fiatCurrency || "USD");
     loadSources();
   }, []);
 
@@ -65,6 +72,7 @@ export default function SettingsPage() {
     savePreferences({
       defaultMethod: method as "FIFO" | "LIFO" | "HIFO",
       defaultYear: year,
+      fiatCurrency,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -137,7 +145,7 @@ export default function SettingsPage() {
           </select>
         </div>
 
-        <div style={{ marginBottom: "24px" }}>
+        <div style={{ marginBottom: "20px" }}>
           <label style={labelStyle}>{t("defaultYear")}</label>
           <select
             style={inputStyle}
@@ -147,6 +155,21 @@ export default function SettingsPage() {
             {YEARS.map((y) => (
               <option key={y} value={y}>
                 {y}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ marginBottom: "24px" }}>
+          <label style={labelStyle}>{t("fiatCurrency")}</label>
+          <select
+            style={inputStyle}
+            value={fiatCurrency}
+            onChange={(e) => setFiatCurrency(e.target.value as FiatCurrency)}
+          >
+            {SUPPORTED_FIATS.map((f) => (
+              <option key={f.code} value={f.code}>
+                {f.code} — {f.label}
               </option>
             ))}
           </select>

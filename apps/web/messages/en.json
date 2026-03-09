@@ -344,6 +344,7 @@
     "subtitle": "Configure your tax calculation preferences",
     "defaultMethod": "Default Cost Basis Method",
     "defaultYear": "Default Tax Year",
+    "fiatCurrency": "Display Currency",
     "saved": "Settings saved",
     "save": "Save Settings"
   },

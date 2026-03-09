@@ -206,3 +206,79 @@ export function getSupportedTickers(): string[] {
 export function clearPriceCache(): void {
   priceCache = null;
 }
+
+// ─── Exchange Rates ──────────────────────────────
+
+const EXCHANGE_RATE_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+let exchangeRateCache: {
+  rates: Record<string, number>;
+  fetchedAt: number;
+} | null = null;
+
+const SUPPORTED_FIATS = [
+  "usd",
+  "eur",
+  "gbp",
+  "jpy",
+  "cny",
+  "cad",
+  "aud",
+  "chf",
+  "krw",
+  "twd",
+];
+
+/**
+ * Fetch exchange rates (USD to other fiats) using CoinGecko.
+ *
+ * Uses BTC as a pivot: fetch BTC price in all fiats, then compute
+ * cross-rates relative to USD.
+ *
+ * @returns Map of fiat code → rate relative to USD (e.g., EUR: 0.92)
+ */
+export async function fetchExchangeRates(): Promise<Record<string, number>> {
+  // Check cache
+  if (
+    exchangeRateCache &&
+    Date.now() - exchangeRateCache.fetchedAt < EXCHANGE_RATE_CACHE_TTL_MS
+  ) {
+    return exchangeRateCache.rates;
+  }
+
+  const fiats = SUPPORTED_FIATS.join(",");
+  const url = `${COINGECKO_API}/simple/price?ids=bitcoin&vs_currencies=${fiats}`;
+
+  const res = await fetch(url, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(10000),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Exchange rate fetch failed: ${res.status}`);
+  }
+
+  const data = (await res.json()) as { bitcoin?: Record<string, number> };
+  const btcPrices = data.bitcoin;
+  if (!btcPrices || !btcPrices.usd) {
+    throw new Error("Invalid exchange rate response");
+  }
+
+  const usdPrice = btcPrices.usd;
+  const rates: Record<string, number> = { USD: 1 };
+
+  for (const fiat of SUPPORTED_FIATS) {
+    if (fiat === "usd") continue;
+    const price = btcPrices[fiat];
+    if (price !== undefined) {
+      rates[fiat.toUpperCase()] = price / usdPrice;
+    }
+  }
+
+  exchangeRateCache = { rates, fetchedAt: Date.now() };
+  return rates;
+}
+
+/** Clear the exchange rate cache (for testing). */
+export function clearExchangeRateCache(): void {
+  exchangeRateCache = null;
+}

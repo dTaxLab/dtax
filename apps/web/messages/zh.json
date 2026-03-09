@@ -344,6 +344,7 @@
     "subtitle": "配置您的税务计算偏好",
     "defaultMethod": "默认成本计算方法",
     "defaultYear": "默认纳税年度",
+    "fiatCurrency": "显示货币",
     "saved": "设置已保存",
     "save": "保存设置"
   },

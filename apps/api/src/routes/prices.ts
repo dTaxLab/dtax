@@ -12,6 +12,7 @@ import {
   fetchPrices,
   fetchHistoricalPrice,
   getSupportedTickers,
+  fetchExchangeRates,
 } from "../lib/prices";
 import { prisma } from "../lib/prisma";
 
@@ -55,6 +56,20 @@ export async function priceRoutes(app: FastifyInstance) {
   // GET /prices/supported
   app.get("/prices/supported", async () => {
     return { data: { tickers: getSupportedTickers() } };
+  });
+
+  // GET /prices/exchange-rates — USD-relative exchange rates for supported fiats
+  app.get("/prices/exchange-rates", async (_request, reply) => {
+    try {
+      const rates = await fetchExchangeRates();
+      return { data: { rates, baseCurrency: "USD" } };
+    } catch (e) {
+      const message =
+        e instanceof Error ? e.message : "Exchange rate fetch failed";
+      return reply.status(502).send({
+        error: { message, code: "EXCHANGE_RATE_ERROR" },
+      });
+    }
   });
 
   // GET /prices/history?asset=BTC&date=2024-06-15
