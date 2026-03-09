@@ -77,6 +77,7 @@ function printCalculateHelp(): void {
   console.log("  dtax calculate coinbase.csv --method HIFO --year 2025");
   console.log("  dtax calculate trades.csv --output form8949.csv");
   console.log("  dtax calculate trades.csv --include-wash-sales --schedule-d");
+  console.log("  dtax calculate coinbase.csv binance.csv kraken.csv");
 }
 
 function calculate(files: string[], flags: Record<string, string>): void {
@@ -120,6 +121,14 @@ function calculate(files: string[], flags: Record<string, string>): void {
         `  ${file}: ${result.transactions.length} transactions (${result.summary.format})`,
       );
     }
+  }
+
+  // Sort by timestamp for correct lot ordering across files
+  if (files.length > 1) {
+    allTransactions.sort(
+      (a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    );
   }
 
   // Build merged parse result
