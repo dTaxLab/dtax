@@ -615,6 +615,109 @@ describe("Price Backfill Routes", () => {
     expect(body.data.message).toContain("No transactions");
   });
 
+  it("POST /prices/backfill updates transactions with missing prices", async () => {
+    // Return transactions missing USD values
+    mockPrisma.transaction.findMany.mockResolvedValueOnce([
+      {
+        id: "tx-backfill-001",
+        receivedAsset: "BTC",
+        receivedAmount: "0.5",
+        receivedValueUsd: null,
+        sentAsset: null,
+        sentAmount: null,
+        sentValueUsd: null,
+        timestamp: new Date("2024-01-15T00:00:00Z"),
+      },
+      {
+        id: "tx-backfill-002",
+        receivedAsset: null,
+        receivedAmount: null,
+        receivedValueUsd: null,
+        sentAsset: "ETH",
+        sentAmount: "10",
+        sentValueUsd: null,
+        timestamp: new Date("2024-02-20T00:00:00Z"),
+      },
+    ]);
+    mockPrisma.transaction.update.mockResolvedValue({});
+
+    // Mock historical price fetches
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          market_data: { current_price: { usd: 43000 } },
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          market_data: { current_price: { usd: 2800 } },
+        }),
+      } as Response);
+
+    // Clear price cache
+    const { clearPriceCache } = await import("../lib/prices");
+    if (typeof clearPriceCache === "function") clearPriceCache();
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/prices/backfill",
+      payload: { limit: 10 },
+    });
+
+    globalThis.fetch = originalFetch;
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data.updated).toBe(2);
+    expect(body.data.total).toBe(2);
+    expect(body.data.skipped).toBe(0);
+  });
+
+  it("POST /prices/backfill dry run does not update DB", async () => {
+    mockPrisma.transaction.findMany.mockResolvedValueOnce([
+      {
+        id: "tx-dry-001",
+        receivedAsset: "SOL",
+        receivedAmount: "100",
+        receivedValueUsd: null,
+        sentAsset: null,
+        sentAmount: null,
+        sentValueUsd: null,
+        timestamp: new Date("2024-03-01T00:00:00Z"),
+      },
+    ]);
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        market_data: { current_price: { usd: 150 } },
+      }),
+    } as Response);
+
+    const { clearPriceCache } = await import("../lib/prices");
+    if (typeof clearPriceCache === "function") clearPriceCache();
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/prices/backfill",
+      payload: { limit: 10, dryRun: true },
+    });
+
+    globalThis.fetch = originalFetch;
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data.updated).toBe(1);
+    expect(body.data.message).toContain("Dry run");
+    // DB update should NOT have been called
+    expect(mockPrisma.transaction.update).not.toHaveBeenCalled();
+  });
+
   it("GET /prices/history validates date format", async () => {
     const res = await app.inject({
       method: "GET",
