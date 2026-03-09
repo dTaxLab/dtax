@@ -34,8 +34,10 @@ import { parseHtxCsv, isHtxCsv } from "./htx";
 import {
   parseSolscanCsv,
   parseSolscanSplCsv,
+  parseSolscanDefiCsv,
   isSolscanCsv,
   isSolscanSplCsv,
+  isSolscanDefiCsv,
 } from "./solscan";
 import type { CsvParseResult, CsvFormat, GenericColumnMap } from "./types";
 
@@ -47,6 +49,7 @@ export function detectCsvFormat(csv: string): CsvFormat {
   if (isBinanceCsv(csv)) return "binance";
   if (isBinanceUsCsv(csv)) return "binance_us";
   if (isKrakenCsv(csv)) return "kraken";
+  if (isSolscanDefiCsv(csv)) return "solscan_defi";
   if (isSolscanSplCsv(csv)) return "solscan";
   if (isSolscanCsv(csv)) return "solscan";
   if (isEtherscanErc20Csv(csv)) return "etherscan_erc20";
@@ -120,6 +123,8 @@ export function parseCsv(
       return isSolscanSplCsv(csv)
         ? parseSolscanSplCsv(csv, options?.userAddress || "")
         : parseSolscanCsv(csv, options?.userAddress || "");
+    case "solscan_defi":
+      return parseSolscanDefiCsv(csv);
     case "generic":
     default:
       return parseGenericCsv(csv, options?.columnMap);
@@ -154,8 +159,10 @@ export { parseHtxCsv, isHtxCsv } from "./htx";
 export {
   parseSolscanCsv,
   parseSolscanSplCsv,
+  parseSolscanDefiCsv,
   isSolscanCsv,
   isSolscanSplCsv,
+  isSolscanDefiCsv,
 } from "./solscan";
 export { parseCsvRows, parseCsvToObjects } from "./csv-core";
 export type {

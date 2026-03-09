@@ -1,7 +1,7 @@
 /**
  * CSV Parser Integration Tests (parseCsv unified entry)
  *
- * Includes cross-format detection matrix to verify all 16 formats
+ * Includes cross-format detection matrix to verify all 18 formats
  * are correctly detected without conflicts.
  *
  * @license AGPL-3.0
@@ -65,6 +65,10 @@ const FORMAT_HEADERS: [CsvFormat, string][] = [
   ["mexc", "Pairs,Time,Side,Filled Price,Executed Amount,Total,Fee,Role"],
   ["htx", "Time,Pair,Side,Price,Amount,Total,Fee,Fee Currency,Role"],
   ["solscan", "Signature,Block,Timestamp,From,To,Amount(SOL),Fee(SOL)"],
+  [
+    "solscan_defi",
+    "Signature,Timestamp,Platform,Activity,TokenIn,AmountIn,TokenOut,AmountOut,Fee",
+  ],
 ];
 
 describe("detectCsvFormat — cross-format matrix", () => {
