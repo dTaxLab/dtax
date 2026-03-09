@@ -65,6 +65,10 @@ function printCalculateHelp(): void {
   console.log("  --output <file>            Write Form 8949 CSV to file");
   console.log("  --include-wash-sales       Detect and report wash sales");
   console.log("  --schedule-d               Show Schedule D summary");
+  console.log("  --currency <CODE>          Display currency (default: USD)");
+  console.log(
+    "  --rate <number>            Exchange rate vs USD (e.g. 0.92 for EUR)",
+  );
   console.log("  --json                     Output report as JSON");
   console.log("");
   console.log("Supported formats:");
@@ -78,6 +82,7 @@ function printCalculateHelp(): void {
   console.log("  dtax calculate trades.csv --output form8949.csv");
   console.log("  dtax calculate trades.csv --include-wash-sales --schedule-d");
   console.log("  dtax calculate coinbase.csv binance.csv kraken.csv");
+  console.log("  dtax calculate trades.csv --currency EUR --rate 0.92");
 }
 
 function calculate(files: string[], flags: Record<string, string>): void {
@@ -86,6 +91,14 @@ function calculate(files: string[], flags: Record<string, string>): void {
     console.error(
       `Error: Invalid method "${method}". Use FIFO, LIFO, or HIFO.`,
     );
+    process.exit(1);
+  }
+
+  // Currency conversion
+  const currency = (flags.currency || "USD").toUpperCase();
+  const rate = flags.rate ? parseFloat(flags.rate) : 1;
+  if (flags.rate && (isNaN(rate) || rate <= 0)) {
+    console.error(`Error: Invalid exchange rate "${flags.rate}".`);
     process.exit(1);
   }
 
@@ -255,11 +268,13 @@ function calculate(files: string[], flags: Record<string, string>): void {
     const output: Record<string, unknown> = {
       method,
       taxYear: yearFilter || "all",
-      shortTermGains,
-      shortTermLosses,
-      longTermGains,
-      longTermLosses,
-      netGainLoss,
+      currency,
+      rate,
+      shortTermGains: shortTermGains * rate,
+      shortTermLosses: shortTermLosses * rate,
+      longTermGains: longTermGains * rate,
+      longTermLosses: longTermLosses * rate,
+      netGainLoss: netGainLoss * rate,
       totalDispositions: events.length,
       results,
     };
@@ -267,8 +282,18 @@ function calculate(files: string[], flags: Record<string, string>): void {
     if (scheduleDReport) output.scheduleD = scheduleDReport;
     console.log(JSON.stringify(output, null, 2));
   } else {
-    const fmt = (n: number) =>
-      n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+    const fmt = (n: number) => {
+      const converted = n * rate;
+      try {
+        return converted.toLocaleString("en-US", {
+          style: "currency",
+          currency,
+        });
+      } catch {
+        // Fallback for unknown currency codes
+        return `${currency} ${converted.toFixed(2)}`;
+      }
+    };
 
     console.log("=".repeat(39));
     console.log("        DTax Tax Calculation Report");
