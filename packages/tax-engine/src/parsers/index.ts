@@ -16,6 +16,7 @@ import { parseGeminiCsv, isGeminiCsv } from './gemini';
 import { parseCryptoComCsv, isCryptoComCsv } from './crypto-com';
 import { parseKuCoinCsv, isKuCoinCsv } from './kucoin';
 import { parseOkxCsv, isOkxCsv } from './okx';
+import { parseBybitCsv, isBybitCsv } from './bybit';
 import type { CsvParseResult, CsvFormat, GenericColumnMap } from './types';
 
 /**
@@ -32,6 +33,7 @@ export function detectCsvFormat(csv: string): CsvFormat {
     if (isCryptoComCsv(csv)) return 'crypto_com';
     if (isKuCoinCsv(csv)) return 'kucoin';
     if (isOkxCsv(csv)) return 'okx';
+    if (isBybitCsv(csv)) return 'bybit';
     return 'generic';
 }
 
@@ -73,6 +75,8 @@ export function parseCsv(
             return parseKuCoinCsv(csv);
         case 'okx':
             return parseOkxCsv(csv);
+        case 'bybit':
+            return parseBybitCsv(csv);
         case 'generic':
         default:
             return parseGenericCsv(csv, options?.columnMap);
@@ -89,6 +93,7 @@ export { parseGeminiCsv, isGeminiCsv } from './gemini';
 export { parseCryptoComCsv, isCryptoComCsv } from './crypto-com';
 export { parseKuCoinCsv, isKuCoinCsv } from './kucoin';
 export { parseOkxCsv, isOkxCsv } from './okx';
+export { parseBybitCsv, isBybitCsv } from './bybit';
 export { parseCsvRows, parseCsvToObjects } from './csv-core';
 export type {
     CsvFormat,

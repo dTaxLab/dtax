@@ -29,7 +29,7 @@ function txFingerprint(tx: ParsedTransaction): string {
     return 'csv:' + createHash('sha256').update(key).digest('hex').slice(0, 16);
 }
 
-const formatSchema = z.enum(['generic', 'coinbase', 'binance', 'binance_us', 'kraken', 'etherscan', 'etherscan_erc20', 'gemini', 'crypto_com', 'kucoin', 'okx']).optional();
+const formatSchema = z.enum(['generic', 'coinbase', 'binance', 'binance_us', 'kraken', 'etherscan', 'etherscan_erc20', 'gemini', 'crypto_com', 'kucoin', 'okx', 'bybit']).optional();
 
 export async function importRoutes(app: FastifyInstance) {
 
