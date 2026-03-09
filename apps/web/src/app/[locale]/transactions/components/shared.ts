@@ -1,13 +1,5 @@
 /** Shared utilities and styles for transaction components */
 
-export function formatUsd(v: string | null) {
-  if (!v) return "—";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(parseFloat(v));
-}
-
 export function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
     year: "numeric",

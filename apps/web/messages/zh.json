@@ -118,7 +118,7 @@
       "asset": "资产",
       "assetPlaceholder": "BTC, ETH, SOL...",
       "amount": "数量",
-      "valueUsd": "价值 (USD)",
+      "valueUsd": "价值",
       "feeUsd": "手续费 (USD)",
       "notes": "备注",
       "sentAsset": "支付资产",
@@ -319,7 +319,7 @@
     "type": "类型",
     "asset": "资产",
     "amount": "数量",
-    "valueUsd": "价值（美元）",
+    "valueUsd": "价值",
     "fee": "手续费",
     "gainLoss": "收益/亏损",
     "notes": "备注"

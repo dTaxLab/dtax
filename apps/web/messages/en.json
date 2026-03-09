@@ -118,7 +118,7 @@
       "asset": "Asset",
       "assetPlaceholder": "BTC, ETH, SOL...",
       "amount": "Amount",
-      "valueUsd": "Value (USD)",
+      "valueUsd": "Value",
       "feeUsd": "Fee (USD)",
       "notes": "Notes",
       "sentAsset": "Sent Asset",
@@ -319,7 +319,7 @@
     "type": "Type",
     "asset": "Asset",
     "amount": "Amount",
-    "valueUsd": "Value (USD)",
+    "valueUsd": "Value",
     "fee": "Fee",
     "gainLoss": "Gain/Loss",
     "notes": "Notes"
