@@ -1,0 +1,17 @@
+# DTax Code Owners
+# These owners are automatically requested for review on PRs.
+
+# Core tax engine — requires careful review
+packages/tax-engine/ @Phosmax
+
+# CLI tool
+packages/cli/ @Phosmax
+
+# Shared types — changes affect all packages
+packages/shared-types/ @Phosmax
+
+# Infrastructure
+.github/ @Phosmax
+docker-compose.yml @Phosmax
+apps/api/Dockerfile @Phosmax
+apps/web/Dockerfile @Phosmax
