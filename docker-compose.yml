@@ -1,0 +1,80 @@
+# DTax Self-Hosted — Production Docker Compose
+# Start with: docker compose up -d
+# Access: http://localhost:3000
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dtax
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dtax_secure_password}
+      POSTGRES_DB: dtax
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dtax"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://dtax:${POSTGRES_PASSWORD:-dtax_secure_password}@postgres:5432/dtax?schema=public"
+      HOST: "0.0.0.0"
+      PORT: "3001"
+      NODE_ENV: "production"
+      CORS_ORIGIN: "http://localhost:3000"
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
+    ports:
+      - "3001:3001"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:3001"
+    ports:
+      - "3000:3000"
+
+  # Run database migrations on first start
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://dtax:${POSTGRES_PASSWORD:-dtax_secure_password}@postgres:5432/dtax?schema=public"
+    command: ["npx", "prisma", "migrate", "deploy", "--schema", "apps/api/prisma/schema.prisma"]
+    restart: "no"
+
+volumes:
+  postgres-data:
+  redis-data:
