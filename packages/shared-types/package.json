@@ -1,17 +1,17 @@
 {
-    "name": "@dtax/shared-types",
-    "version": "0.1.0",
-    "description": "Shared TypeScript type definitions for DTax",
-    "license": "AGPL-3.0",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "scripts": {
-        "build": "tsup",
-        "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
-        "clean": "rm -rf dist"
-    },
-    "devDependencies": {
-        "tsup": "^8.5.1",
-        "typescript": "^5.9.3"
-    }
+  "name": "@dtax/shared-types",
+  "version": "0.1.0",
+  "description": "Shared TypeScript type definitions for DTax",
+  "license": "AGPL-3.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  }
 }

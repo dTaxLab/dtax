@@ -9,19 +9,19 @@
  */
 
 import type {
-    TaxLot,
-    TaxableEvent,
-    CalculationResult,
-    MatchedLot,
-    HoldingPeriod,
-    LotSelection,
-} from '../types';
+  TaxLot,
+  TaxableEvent,
+  CalculationResult,
+  MatchedLot,
+  HoldingPeriod,
+  LotSelection,
+} from "../types";
 
 const ONE_YEAR_MS = 365.25 * 24 * 60 * 60 * 1000;
 
 function getHoldingPeriod(acquiredAt: Date, soldAt: Date): HoldingPeriod {
-    const holdingMs = soldAt.getTime() - acquiredAt.getTime();
-    return holdingMs >= ONE_YEAR_MS ? 'LONG_TERM' : 'SHORT_TERM';
+  const holdingMs = soldAt.getTime() - acquiredAt.getTime();
+  return holdingMs >= ONE_YEAR_MS ? "LONG_TERM" : "SHORT_TERM";
 }
 
 /**
@@ -33,67 +33,72 @@ function getHoldingPeriod(acquiredAt: Date, soldAt: Date): HoldingPeriod {
  * @returns CalculationResult with gains/losses and matched lots
  */
 export function calculateSpecificId(
-    lots: TaxLot[],
-    event: TaxableEvent,
-    selections: LotSelection[],
+  lots: TaxLot[],
+  event: TaxableEvent,
+  selections: LotSelection[],
 ): CalculationResult {
-    const lotMap = new Map(lots.map(l => [l.id, l]));
-    const matchedLots: MatchedLot[] = [];
-    let totalCostBasis = 0;
-    let totalSelected = 0;
-    let earliestLotDate: Date | null = null;
+  const lotMap = new Map(lots.map((l) => [l.id, l]));
+  const matchedLots: MatchedLot[] = [];
+  let totalCostBasis = 0;
+  let totalSelected = 0;
+  let earliestLotDate: Date | null = null;
 
-    for (const sel of selections) {
-        const lot = lotMap.get(sel.lotId);
-        if (!lot) {
-            throw new Error(`Lot ${sel.lotId} not found`);
-        }
-        if (lot.asset !== event.asset) {
-            throw new Error(`Lot ${sel.lotId} asset ${lot.asset} does not match event asset ${event.asset}`);
-        }
-        if (sel.amount > lot.amount + 0.00000001) {
-            throw new Error(`Lot ${sel.lotId} has ${lot.amount} available, requested ${sel.amount}`);
-        }
-
-        const consumeAmount = Math.min(sel.amount, lot.amount);
-        const costPerUnit = lot.amount > 0.00000001 ? lot.costBasisUsd / lot.amount : 0;
-        const consumedCostBasis = costPerUnit * consumeAmount;
-        const fullyConsumed = consumeAmount >= lot.amount - 0.00000001;
-
-        matchedLots.push({
-            lotId: lot.id,
-            amountConsumed: consumeAmount,
-            costBasisUsd: consumedCostBasis,
-            fullyConsumed,
-        });
-
-        lot.amount -= consumeAmount;
-        lot.costBasisUsd -= consumedCostBasis;
-        totalCostBasis += consumedCostBasis;
-        totalSelected += consumeAmount;
-
-        if (!earliestLotDate || lot.acquiredAt < earliestLotDate) {
-            earliestLotDate = lot.acquiredAt;
-        }
+  for (const sel of selections) {
+    const lot = lotMap.get(sel.lotId);
+    if (!lot) {
+      throw new Error(`Lot ${sel.lotId} not found`);
+    }
+    if (lot.asset !== event.asset) {
+      throw new Error(
+        `Lot ${sel.lotId} asset ${lot.asset} does not match event asset ${event.asset}`,
+      );
+    }
+    if (sel.amount > lot.amount + 0.00000001) {
+      throw new Error(
+        `Lot ${sel.lotId} has ${lot.amount} available, requested ${sel.amount}`,
+      );
     }
 
-    if (Math.abs(totalSelected - event.amount) > 0.00000001) {
-        throw new Error(
-            `Selected amount ${totalSelected} does not match event amount ${event.amount}`
-        );
+    const consumeAmount = Math.min(sel.amount, lot.amount);
+    const costPerUnit =
+      lot.amount > 0.00000001 ? lot.costBasisUsd / lot.amount : 0;
+    const consumedCostBasis = costPerUnit * consumeAmount;
+    const fullyConsumed = consumeAmount >= lot.amount - 0.00000001;
+
+    matchedLots.push({
+      lotId: lot.id,
+      amountConsumed: consumeAmount,
+      costBasisUsd: consumedCostBasis,
+      fullyConsumed,
+    });
+
+    lot.amount -= consumeAmount;
+    lot.costBasisUsd -= consumedCostBasis;
+    totalCostBasis += consumedCostBasis;
+    totalSelected += consumeAmount;
+
+    if (!earliestLotDate || lot.acquiredAt < earliestLotDate) {
+      earliestLotDate = lot.acquiredAt;
     }
+  }
 
-    const feeUsd = event.feeUsd ?? 0;
-    const gainLoss = event.proceedsUsd - totalCostBasis - feeUsd;
-    const holdingPeriod = earliestLotDate
-        ? getHoldingPeriod(earliestLotDate, event.date)
-        : 'SHORT_TERM';
+  if (Math.abs(totalSelected - event.amount) > 0.00000001) {
+    throw new Error(
+      `Selected amount ${totalSelected} does not match event amount ${event.amount}`,
+    );
+  }
 
-    return {
-        event,
-        matchedLots,
-        gainLoss,
-        holdingPeriod,
-        method: 'SPECIFIC_ID',
-    };
+  const feeUsd = event.feeUsd ?? 0;
+  const gainLoss = event.proceedsUsd - totalCostBasis - feeUsd;
+  const holdingPeriod = earliestLotDate
+    ? getHoldingPeriod(earliestLotDate, event.date)
+    : "SHORT_TERM";
+
+  return {
+    event,
+    matchedLots,
+    gainLoss,
+    holdingPeriod,
+    method: "SPECIFIC_ID",
+  };
 }

@@ -101,33 +101,33 @@ Visit [getdtax.com](https://getdtax.com) for the full-featured cloud version wit
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Language | TypeScript (full-stack) |
-| Frontend | Next.js 14 (App Router) |
-| Backend | Node.js + Fastify |
-| Database | PostgreSQL |
-| Cache | Redis |
-| ORM | Prisma |
-| Queue | BullMQ |
-| AI | OpenAI API (GPT-4o-mini) |
-| Data | CCXT (100+ exchanges) |
-| On-chain | Alchemy SDK / ethers.js |
-| Testing | Vitest + Playwright |
+| Layer    | Technology               |
+| -------- | ------------------------ |
+| Language | TypeScript (full-stack)  |
+| Frontend | Next.js 14 (App Router)  |
+| Backend  | Node.js + Fastify        |
+| Database | PostgreSQL               |
+| Cache    | Redis                    |
+| ORM      | Prisma                   |
+| Queue    | BullMQ                   |
+| AI       | OpenAI API (GPT-4o-mini) |
+| Data     | CCXT (100+ exchanges)    |
+| On-chain | Alchemy SDK / ethers.js  |
+| Testing  | Vitest + Playwright      |
 
 ## Open Source vs Cloud
 
-| Feature | Open Source (Free) | Cloud (Paid) |
-|---------|-------------------|--------------|
-| Tax Calculation (FIFO/LIFO/HIFO) | ✅ | ✅ |
-| CLI Tool | ✅ | ✅ |
-| Basic Web UI | ✅ | ✅ |
-| CSV Import (10 exchanges) | ✅ | ✅ |
-| AI Transaction Classification | — | ✅ |
-| Tax-Loss Harvesting | — | ✅ |
-| Multi-chain Tracking | — | ✅ |
-| Compliance Reports (Form 8949) | — | ✅ |
-| Enterprise Features | — | ✅ |
+| Feature                          | Open Source (Free) | Cloud (Paid) |
+| -------------------------------- | ------------------ | ------------ |
+| Tax Calculation (FIFO/LIFO/HIFO) | ✅                 | ✅           |
+| CLI Tool                         | ✅                 | ✅           |
+| Basic Web UI                     | ✅                 | ✅           |
+| CSV Import (10 exchanges)        | ✅                 | ✅           |
+| AI Transaction Classification    | —                  | ✅           |
+| Tax-Loss Harvesting              | —                  | ✅           |
+| Multi-chain Tracking             | —                  | ✅           |
+| Compliance Reports (Form 8949)   | —                  | ✅           |
+| Enterprise Features              | —                  | ✅           |
 
 ## Contributing
 
