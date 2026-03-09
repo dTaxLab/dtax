@@ -64,6 +64,7 @@ const FORMAT_HEADERS: [CsvFormat, string][] = [
   ],
   ["mexc", "Pairs,Time,Side,Filled Price,Executed Amount,Total,Fee,Role"],
   ["htx", "Time,Pair,Side,Price,Amount,Total,Fee,Fee Currency,Role"],
+  ["solscan", "Signature,Block,Timestamp,From,To,Amount(SOL),Fee(SOL)"],
 ];
 
 describe("detectCsvFormat — cross-format matrix", () => {
