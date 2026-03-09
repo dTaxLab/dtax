@@ -472,6 +472,21 @@ export async function getSupportedTickers() {
   return apiFetch<{ data: { tickers: string[] } }>("/api/v1/prices/supported");
 }
 
+export interface BackfillResult {
+  message: string;
+  updated: number;
+  skipped: number;
+  total: number;
+  errors?: string[];
+}
+
+export async function backfillPrices(limit = 50, dryRun = false) {
+  return apiFetch<{ data: BackfillResult }>("/api/v1/prices/backfill", {
+    method: "POST",
+    body: JSON.stringify({ limit, dryRun }),
+  });
+}
+
 // ─── Portfolio Holdings ────────────────────────
 
 export interface LotHolding {

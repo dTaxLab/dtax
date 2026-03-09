@@ -6,6 +6,7 @@ import {
   getTransactions,
   getTransactionExportUrl,
   downloadJsonBackup,
+  backfillPrices,
 } from "@/lib/api";
 import type {
   Transaction,
@@ -37,6 +38,8 @@ export default function TransactionsPage() {
   const filtersRef = useRef<TransactionFilters>({});
   const [sortField, setSortField] = useState<SortField>("timestamp");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+  const [backfillMsg, setBackfillMsg] = useState<string | null>(null);
+  const [backfillLoading, setBackfillLoading] = useState(false);
 
   useEffect(() => {
     loadPage(1);
@@ -73,6 +76,28 @@ export default function TransactionsPage() {
     loadPage(1, filters);
   }
 
+  async function handleBackfill() {
+    setBackfillLoading(true);
+    setBackfillMsg(null);
+    try {
+      const res = await backfillPrices(50);
+      if (res.data.updated === 0 && res.data.total === 0) {
+        setBackfillMsg(t("backfillNone"));
+      } else {
+        setBackfillMsg(
+          t("backfillSuccess", {
+            updated: res.data.updated,
+            total: res.data.total,
+          }),
+        );
+        if (res.data.updated > 0) loadPage(meta.page);
+      }
+    } catch (e) {
+      setBackfillMsg(e instanceof Error ? e.message : "Price backfill failed");
+    }
+    setBackfillLoading(false);
+  }
+
   function handleSort(field: SortField) {
     const newOrder: SortOrder =
       field === sortField && sortOrder === "desc" ? "asc" : "desc";
@@ -91,6 +116,13 @@ export default function TransactionsPage() {
           </p>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
+          <button
+            className="btn btn-secondary"
+            onClick={handleBackfill}
+            disabled={backfillLoading}
+          >
+            {backfillLoading ? t("backfilling") : t("backfillPrices")}
+          </button>
           <button
             className="btn btn-secondary"
             onClick={() => downloadJsonBackup().catch(() => {})}
@@ -127,6 +159,35 @@ export default function TransactionsPage() {
       </div>
 
       <FilterBar onApply={handleFilter} />
+
+      {backfillMsg && (
+        <div
+          className="card"
+          style={{
+            padding: "12px 16px",
+            marginBottom: "12px",
+            background: "var(--card-bg)",
+            borderRadius: "var(--radius-sm)",
+            fontSize: "14px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <span>{backfillMsg}</span>
+          <button
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--text-muted)",
+              cursor: "pointer",
+            }}
+            onClick={() => setBackfillMsg(null)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {activePanel === "import" && (
         <ImportPanel onImported={() => loadPage(1)} />
