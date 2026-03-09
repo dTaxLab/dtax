@@ -47,6 +47,8 @@ export {
   isOkxCsv,
   parseBybitCsv,
   isBybitCsv,
+  parseGateCsv,
+  isGateCsv,
   detectCsvFormat,
   parseCsvRows,
   parseCsvToObjects,
