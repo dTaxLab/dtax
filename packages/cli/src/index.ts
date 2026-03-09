@@ -41,6 +41,7 @@ function printUsage(): void {
     "  calculate <csv-file>  Calculate capital gains from a CSV file",
   );
   console.log("  help                  Show this help message");
+  console.log("  version               Show version number");
   console.log("");
   console.log("Options for calculate:");
   console.log("  --method <FIFO|LIFO|HIFO>  Cost basis method (default: FIFO)");
@@ -278,6 +279,11 @@ function calculate(file: string, flags: Record<string, string>): void {
 // Main
 const args = process.argv.slice(2);
 const { command, file, flags } = parseArgs(args);
+
+if (flags.version === "true" || command === "version") {
+  console.log(VERSION);
+  process.exit(0);
+}
 
 if (!command || command === "help" || flags.help === "true") {
   printUsage();
