@@ -21,7 +21,8 @@ export type CsvFormat =
   | "bitget"
   | "mexc"
   | "htx"
-  | "solscan";
+  | "solscan"
+  | "solscan_defi";
 
 /** A parsed transaction row from CSV */
 export interface ParsedTransaction {
