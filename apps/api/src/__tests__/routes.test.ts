@@ -635,6 +635,69 @@ describe("Price Backfill Routes", () => {
     expect(body.data.tickers).toContain("BTC");
     expect(body.data.tickers).toContain("SOL");
   });
+
+  it("GET /prices/exchange-rates returns rates with USD base", async () => {
+    // Mock global fetch for CoinGecko API
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        bitcoin: {
+          usd: 60000,
+          eur: 55200,
+          gbp: 47400,
+          jpy: 9000000,
+          cny: 432000,
+          cad: 81600,
+          aud: 91800,
+          chf: 52800,
+          krw: 82200000,
+          twd: 1920000,
+        },
+      }),
+    } as Response);
+
+    // Clear any cached rates
+    const { clearExchangeRateCache } = await import("../lib/prices");
+    clearExchangeRateCache();
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/prices/exchange-rates",
+    });
+
+    globalThis.fetch = originalFetch;
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data.baseCurrency).toBe("USD");
+    expect(body.data.rates.USD).toBe(1);
+    expect(body.data.rates.EUR).toBeCloseTo(0.92, 1);
+    expect(body.data.rates.JPY).toBeCloseTo(150, 0);
+    expect(Object.keys(body.data.rates).length).toBeGreaterThanOrEqual(9);
+  });
+
+  it("GET /prices/exchange-rates handles API failure gracefully", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      status: 429,
+    } as Response);
+
+    const { clearExchangeRateCache } = await import("../lib/prices");
+    clearExchangeRateCache();
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/prices/exchange-rates",
+    });
+
+    globalThis.fetch = originalFetch;
+
+    expect(res.statusCode).toBe(502);
+    const body = JSON.parse(res.body);
+    expect(body.error.code).toBe("EXCHANGE_RATE_ERROR");
+  });
 });
 
 describe("Connection Routes", () => {
