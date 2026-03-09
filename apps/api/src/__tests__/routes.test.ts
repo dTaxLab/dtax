@@ -585,6 +585,58 @@ describe("Portfolio Routes", () => {
   });
 });
 
+describe("Price Backfill Routes", () => {
+  let app: ReturnType<typeof buildApp>;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    app = buildApp();
+    const { priceRoutes } = await import("../routes/prices");
+    await app.register(priceRoutes, { prefix: "/api/v1" });
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it("POST /prices/backfill returns 0 when no transactions need backfill", async () => {
+    mockPrisma.transaction.findMany.mockResolvedValueOnce([]);
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/prices/backfill",
+      payload: { limit: 10 },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data.updated).toBe(0);
+    expect(body.data.total).toBe(0);
+    expect(body.data.message).toContain("No transactions");
+  });
+
+  it("GET /prices/history validates date format", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/prices/history?asset=BTC&date=invalid",
+    });
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("GET /prices/supported returns ticker list", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/prices/supported",
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data.tickers).toContain("BTC");
+    expect(body.data.tickers).toContain("SOL");
+  });
+});
+
 describe("Connection Routes", () => {
   let app: ReturnType<typeof buildApp>;
 

@@ -126,6 +126,75 @@ export async function fetchPrices(
   return prices;
 }
 
+// ─── Historical Price Cache ──────────────────────────
+
+const HISTORICAL_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours (historical data doesn't change)
+const historicalCache = new Map<string, { price: number; fetchedAt: number }>();
+
+/**
+ * Format a Date to DD-MM-YYYY for CoinGecko history API.
+ */
+function formatDateForCoinGecko(date: Date): string {
+  const d = date.getUTCDate().toString().padStart(2, "0");
+  const m = (date.getUTCMonth() + 1).toString().padStart(2, "0");
+  const y = date.getUTCFullYear();
+  return `${d}-${m}-${y}`;
+}
+
+/**
+ * Fetch historical USD price for a single asset on a specific date.
+ *
+ * Uses CoinGecko `/coins/{id}/history` endpoint.
+ * Free tier: up to 1 year of historical data, ~30 req/min.
+ *
+ * @returns USD price or null if not available
+ */
+export async function fetchHistoricalPrice(
+  ticker: string,
+  date: Date,
+): Promise<number | null> {
+  const upper = ticker.toUpperCase();
+  const cgId = TICKER_TO_COINGECKO[upper] || upper.toLowerCase();
+  const dateStr = formatDateForCoinGecko(date);
+  const cacheKey = `${cgId}:${dateStr}`;
+
+  // Check cache
+  const cached = historicalCache.get(cacheKey);
+  if (cached && Date.now() - cached.fetchedAt < HISTORICAL_CACHE_TTL_MS) {
+    return cached.price;
+  }
+
+  const url = `${COINGECKO_API}/coins/${encodeURIComponent(cgId)}/history?date=${dateStr}&localization=false`;
+
+  const res = await fetch(url, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(10000),
+  });
+
+  if (!res.ok) {
+    if (res.status === 429) {
+      throw new Error("CoinGecko rate limit exceeded. Please try again later.");
+    }
+    return null;
+  }
+
+  const data = (await res.json()) as {
+    market_data?: { current_price?: { usd?: number } };
+  };
+
+  const price = data.market_data?.current_price?.usd;
+  if (price === undefined) return null;
+
+  // Cache result
+  historicalCache.set(cacheKey, { price, fetchedAt: Date.now() });
+  return price;
+}
+
+/** Clear historical price cache (for testing). */
+export function clearHistoricalPriceCache(): void {
+  historicalCache.clear();
+}
+
 /**
  * Get the list of supported tickers with CoinGecko IDs.
  */

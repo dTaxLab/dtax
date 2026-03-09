@@ -1,7 +1,7 @@
 /**
  * Tests for price service utility functions.
- * Note: fetchPrices() is not tested here since it calls external API.
- * Only pure functions are unit-tested.
+ * Note: fetchPrices()/fetchHistoricalPrice() are not tested here since they
+ * call external API. Only pure functions are unit-tested.
  */
 
 import { describe, it, expect } from "vitest";
@@ -9,6 +9,7 @@ import {
   resolveCoingeckoIds,
   getSupportedTickers,
   clearPriceCache,
+  clearHistoricalPriceCache,
 } from "../lib/prices";
 
 describe("Price Service", () => {
@@ -60,5 +61,9 @@ describe("Price Service", () => {
 
   it("should clear cache without error", () => {
     expect(() => clearPriceCache()).not.toThrow();
+  });
+
+  it("should clear historical cache without error", () => {
+    expect(() => clearHistoricalPriceCache()).not.toThrow();
   });
 });
