@@ -20,6 +20,7 @@ import { parseBybitCsv, isBybitCsv } from './bybit';
 import { parseGateCsv, isGateCsv } from './gate';
 import { parseBitgetCsv, isBitgetCsv } from './bitget';
 import { parseMexcCsv, isMexcCsv } from './mexc';
+import { parseHtxCsv, isHtxCsv } from './htx';
 import type { CsvParseResult, CsvFormat, GenericColumnMap } from './types';
 
 /**
@@ -38,6 +39,7 @@ export function detectCsvFormat(csv: string): CsvFormat {
     if (isMexcCsv(csv)) return 'mexc';
     if (isGateCsv(csv)) return 'gate';
     if (isBitgetCsv(csv)) return 'bitget';
+    if (isHtxCsv(csv)) return 'htx';
     if (isOkxCsv(csv)) return 'okx';
     if (isBybitCsv(csv)) return 'bybit';
     return 'generic';
@@ -89,6 +91,8 @@ export function parseCsv(
             return parseBitgetCsv(csv);
         case 'mexc':
             return parseMexcCsv(csv);
+        case 'htx':
+            return parseHtxCsv(csv);
         case 'generic':
         default:
             return parseGenericCsv(csv, options?.columnMap);
@@ -109,6 +113,7 @@ export { parseBybitCsv, isBybitCsv } from './bybit';
 export { parseGateCsv, isGateCsv } from './gate';
 export { parseBitgetCsv, isBitgetCsv } from './bitget';
 export { parseMexcCsv, isMexcCsv } from './mexc';
+export { parseHtxCsv, isHtxCsv } from './htx';
 export { parseCsvRows, parseCsvToObjects } from './csv-core';
 export type {
     CsvFormat,
