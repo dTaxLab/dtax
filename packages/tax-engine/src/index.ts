@@ -45,6 +45,8 @@ export {
   isKuCoinCsv,
   parseOkxCsv,
   isOkxCsv,
+  parseBybitCsv,
+  isBybitCsv,
   detectCsvFormat,
   parseCsvRows,
   parseCsvToObjects,
