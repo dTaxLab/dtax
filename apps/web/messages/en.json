@@ -91,7 +91,8 @@
       "errors": "{count} rows had errors",
       "skipped": "{count} duplicates skipped",
       "noFile": "Please select a file first",
-      "walletAddress": "Wallet Address"
+      "walletAddress": "Wallet Address",
+      "chain": "Blockchain"
     },
     "apiSync": {
       "title": "Connect Exchange API",

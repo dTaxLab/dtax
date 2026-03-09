@@ -17,6 +17,7 @@ export function ImportPanel({ onImported }: ImportPanelProps) {
   const [importFormat, setImportFormat] = useState("");
   const [sourceName, setSourceName] = useState("");
   const [walletAddress, setWalletAddress] = useState("");
+  const [chain, setChain] = useState("ETH");
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -30,11 +31,14 @@ export function ImportPanel({ onImported }: ImportPanelProps) {
     setImportError(null);
     setImportResult(null);
     try {
+      const isEtherscan =
+        importFormat === "etherscan" || importFormat === "etherscan_erc20";
       const res = await importCsv(
         importFile,
         importFormat || undefined,
         sourceName || undefined,
         walletAddress || undefined,
+        isEtherscan && chain !== "ETH" ? chain : undefined,
       );
       setImportResult(res.data);
       onImported();
@@ -110,22 +114,40 @@ export function ImportPanel({ onImported }: ImportPanelProps) {
             <option value="bitget">Bitget</option>
             <option value="mexc">MEXC</option>
             <option value="htx">HTX (Huobi)</option>
-            <option value="etherscan">Etherscan (ETH Transactions)</option>
+            <option value="etherscan">Etherscan (Transactions)</option>
             <option value="etherscan_erc20">Etherscan (ERC-20 Tokens)</option>
             <option value="generic">Generic CSV</option>
           </select>
         </div>
         {(importFormat === "etherscan" ||
           importFormat === "etherscan_erc20") && (
-          <div style={{ minWidth: "200px" }}>
-            <label style={labelStyle}>{t("import.walletAddress")}</label>
-            <input
-              placeholder="0x..."
-              value={walletAddress}
-              onChange={(e) => setWalletAddress(e.target.value)}
-              style={inputStyle}
-            />
-          </div>
+          <>
+            <div style={{ minWidth: "200px" }}>
+              <label style={labelStyle}>{t("import.walletAddress")}</label>
+              <input
+                placeholder="0x..."
+                value={walletAddress}
+                onChange={(e) => setWalletAddress(e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ minWidth: "130px" }}>
+              <label style={labelStyle}>{t("import.chain")}</label>
+              <select
+                value={chain}
+                onChange={(e) => setChain(e.target.value)}
+                style={inputStyle}
+              >
+                <option value="ETH">
+                  Ethereum / Arbitrum / Optimism (ETH)
+                </option>
+                <option value="BNB">BSC (BNB)</option>
+                <option value="MATIC">Polygon (MATIC)</option>
+                <option value="AVAX">Avalanche (AVAX)</option>
+                <option value="FTM">Fantom (FTM)</option>
+              </select>
+            </div>
+          </>
         )}
         <button
           className="btn btn-primary"

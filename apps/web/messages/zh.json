@@ -91,7 +91,8 @@
       "errors": "{count} 行存在错误",
       "skipped": "{count} 条重复已跳过",
       "noFile": "请先选择文件",
-      "walletAddress": "钱包地址"
+      "walletAddress": "钱包地址",
+      "chain": "区块链"
     },
     "apiSync": {
       "title": "连接交易所 API",

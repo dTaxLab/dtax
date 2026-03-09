@@ -178,6 +178,7 @@ export async function importCsv(
   format?: string,
   source?: string,
   userAddress?: string,
+  nativeAsset?: string,
 ): Promise<{ data: ImportResult }> {
   const formData = new FormData();
   formData.append("file", file);
@@ -186,6 +187,7 @@ export async function importCsv(
   if (format) params.set("format", format);
   if (source) params.set("source", source);
   if (userAddress) params.set("userAddress", userAddress);
+  if (nativeAsset) params.set("nativeAsset", nativeAsset);
   const qs = params.toString();
   const url = qs
     ? `${API_BASE}/api/v1/transactions/import?${qs}`

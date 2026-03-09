@@ -58,6 +58,7 @@ export async function importRoutes(app: FastifyInstance) {
     const formatParam = formatSchema.parse(query.format);
     const sourceName = query.source || undefined;
     const userAddress = query.userAddress || undefined;
+    const nativeAsset = query.nativeAsset || undefined;
 
     let csvContent: string;
 
@@ -103,6 +104,7 @@ export async function importRoutes(app: FastifyInstance) {
     const parseResult = parseCsv(csvContent, {
       format: formatParam as CsvFormat | undefined,
       userAddress,
+      nativeAsset,
     });
 
     if (parseResult.transactions.length === 0) {
