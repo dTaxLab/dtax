@@ -19,6 +19,7 @@ import { parseOkxCsv, isOkxCsv } from './okx';
 import { parseBybitCsv, isBybitCsv } from './bybit';
 import { parseGateCsv, isGateCsv } from './gate';
 import { parseBitgetCsv, isBitgetCsv } from './bitget';
+import { parseMexcCsv, isMexcCsv } from './mexc';
 import type { CsvParseResult, CsvFormat, GenericColumnMap } from './types';
 
 /**
@@ -34,6 +35,7 @@ export function detectCsvFormat(csv: string): CsvFormat {
     if (isGeminiCsv(csv)) return 'gemini';
     if (isCryptoComCsv(csv)) return 'crypto_com';
     if (isKuCoinCsv(csv)) return 'kucoin';
+    if (isMexcCsv(csv)) return 'mexc';
     if (isGateCsv(csv)) return 'gate';
     if (isBitgetCsv(csv)) return 'bitget';
     if (isOkxCsv(csv)) return 'okx';
@@ -85,6 +87,8 @@ export function parseCsv(
             return parseGateCsv(csv);
         case 'bitget':
             return parseBitgetCsv(csv);
+        case 'mexc':
+            return parseMexcCsv(csv);
         case 'generic':
         default:
             return parseGenericCsv(csv, options?.columnMap);
@@ -104,6 +108,7 @@ export { parseOkxCsv, isOkxCsv } from './okx';
 export { parseBybitCsv, isBybitCsv } from './bybit';
 export { parseGateCsv, isGateCsv } from './gate';
 export { parseBitgetCsv, isBitgetCsv } from './bitget';
+export { parseMexcCsv, isMexcCsv } from './mexc';
 export { parseCsvRows, parseCsvToObjects } from './csv-core';
 export type {
     CsvFormat,
