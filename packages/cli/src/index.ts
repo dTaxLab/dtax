@@ -24,6 +24,9 @@ import type {
   LotDateMap,
   CostBasisMethod,
   CsvFormat,
+  CsvParseResult,
+  ParsedTransaction,
+  CsvParseError,
   AcquisitionRecord,
   WashSaleAdjustment,
 } from "@dtax/tax-engine";
@@ -51,7 +54,7 @@ function printUsage(): void {
 function printCalculateHelp(): void {
   console.log(`DTax CLI v${VERSION} — calculate`);
   console.log("");
-  console.log("Usage: dtax calculate <csv-file> [options]");
+  console.log("Usage: dtax calculate <csv-file> [csv-file2 ...] [options]");
   console.log("");
   console.log("Options:");
   console.log("  --method <FIFO|LIFO|HIFO>  Cost basis method (default: FIFO)");
@@ -76,7 +79,7 @@ function printCalculateHelp(): void {
   console.log("  dtax calculate trades.csv --include-wash-sales --schedule-d");
 }
 
-function calculate(file: string, flags: Record<string, string>): void {
+function calculate(files: string[], flags: Record<string, string>): void {
   const method = (flags.method?.toUpperCase() || "FIFO") as CostBasisMethod;
   if (!["FIFO", "LIFO", "HIFO"].includes(method)) {
     console.error(
@@ -91,25 +94,53 @@ function calculate(file: string, flags: Record<string, string>): void {
     process.exit(1);
   }
 
-  // Read and parse CSV
-  let csvContent: string;
-  try {
-    csvContent = readFileSync(file, "utf-8");
-  } catch {
-    console.error(`Error: Cannot read file "${file}"`);
-    process.exit(1);
+  // Read and parse all CSV files, merge transactions
+  const format = flags.format as CsvFormat | undefined;
+  const allTransactions: ParsedTransaction[] = [];
+  const allErrors: CsvParseError[] = [];
+  let lastFormat: string = "generic";
+  let parsed: CsvParseResult;
+
+  for (const file of files) {
+    let csvContent: string;
+    try {
+      csvContent = readFileSync(file, "utf-8");
+    } catch {
+      console.error(`Error: Cannot read file "${file}"`);
+      process.exit(1);
+    }
+
+    const result = parseCsv(csvContent, format ? { format } : undefined);
+    allTransactions.push(...result.transactions);
+    allErrors.push(...result.errors);
+    lastFormat = result.summary.format;
+
+    if (files.length > 1) {
+      console.log(
+        `  ${file}: ${result.transactions.length} transactions (${result.summary.format})`,
+      );
+    }
   }
 
-  const format = flags.format as CsvFormat | undefined;
-  const parsed = parseCsv(csvContent, format ? { format } : undefined);
+  // Build merged parse result
+  parsed = {
+    transactions: allTransactions,
+    errors: allErrors,
+    summary: {
+      format: (files.length > 1 ? "generic" : lastFormat) as CsvFormat,
+      totalRows: allTransactions.length + allErrors.length,
+      parsed: allTransactions.length,
+      failed: allErrors.length,
+    },
+  };
 
-  if (parsed.errors.length > 0) {
-    console.error(`${parsed.errors.length} parse errors:`);
-    for (const err of parsed.errors.slice(0, 5)) {
+  if (allErrors.length > 0) {
+    console.error(`${allErrors.length} parse errors:`);
+    for (const err of allErrors.slice(0, 5)) {
       console.error(`   Row ${err.row}: ${err.message}`);
     }
-    if (parsed.errors.length > 5) {
-      console.error(`   ... and ${parsed.errors.length - 5} more`);
+    if (allErrors.length > 5) {
+      console.error(`   ... and ${allErrors.length - 5} more`);
     }
   }
 
@@ -119,7 +150,7 @@ function calculate(file: string, flags: Record<string, string>): void {
   }
 
   console.log(
-    `Parsed ${parsed.transactions.length} transactions (format: ${parsed.summary.format})`,
+    `Parsed ${parsed.transactions.length} transactions${files.length > 1 ? ` from ${files.length} files` : ` (format: ${parsed.summary.format})`}`,
   );
 
   // Separate into lots (acquisitions) and events (dispositions)
@@ -291,7 +322,7 @@ function calculate(file: string, flags: Record<string, string>): void {
 
 // Main
 const args = process.argv.slice(2);
-const { command, file, flags } = parseArgs(args);
+const { command, files, flags } = parseArgs(args);
 
 if (flags.version === "true" || command === "version") {
   console.log(VERSION);
@@ -312,12 +343,14 @@ if (command === "calculate") {
     printCalculateHelp();
     process.exit(0);
   }
-  if (!file) {
+  if (files.length === 0) {
     console.error("Error: Please provide a CSV file path.");
-    console.error("Usage: dtax calculate <csv-file> [--method FIFO]");
+    console.error(
+      "Usage: dtax calculate <csv-file> [csv-file2 ...] [--method FIFO]",
+    );
     process.exit(1);
   }
-  calculate(file, flags);
+  calculate(files, flags);
 } else {
   console.error(`Unknown command: "${command}"`);
   printUsage();
