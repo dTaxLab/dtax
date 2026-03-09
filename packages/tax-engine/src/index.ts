@@ -41,6 +41,8 @@ export {
   isGeminiCsv,
   parseCryptoComCsv,
   isCryptoComCsv,
+  parseKuCoinCsv,
+  isKuCoinCsv,
   detectCsvFormat,
   parseCsvRows,
   parseCsvToObjects,

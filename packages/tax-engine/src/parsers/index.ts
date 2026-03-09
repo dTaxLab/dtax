@@ -14,6 +14,7 @@ import { parseKrakenCsv, isKrakenCsv } from './kraken';
 import { parseEtherscanCsv, parseEtherscanErc20Csv, isEtherscanCsv, isEtherscanErc20Csv } from './etherscan';
 import { parseGeminiCsv, isGeminiCsv } from './gemini';
 import { parseCryptoComCsv, isCryptoComCsv } from './crypto-com';
+import { parseKuCoinCsv, isKuCoinCsv } from './kucoin';
 import type { CsvParseResult, CsvFormat, GenericColumnMap } from './types';
 
 /**
@@ -28,6 +29,7 @@ export function detectCsvFormat(csv: string): CsvFormat {
     if (isEtherscanCsv(csv)) return 'etherscan';
     if (isGeminiCsv(csv)) return 'gemini';
     if (isCryptoComCsv(csv)) return 'crypto_com';
+    if (isKuCoinCsv(csv)) return 'kucoin';
     return 'generic';
 }
 
@@ -65,6 +67,8 @@ export function parseCsv(
             return parseGeminiCsv(csv);
         case 'crypto_com':
             return parseCryptoComCsv(csv);
+        case 'kucoin':
+            return parseKuCoinCsv(csv);
         case 'generic':
         default:
             return parseGenericCsv(csv, options?.columnMap);
@@ -79,6 +83,7 @@ export { parseKrakenCsv, isKrakenCsv } from './kraken';
 export { parseEtherscanCsv, parseEtherscanErc20Csv, isEtherscanCsv, isEtherscanErc20Csv } from './etherscan';
 export { parseGeminiCsv, isGeminiCsv } from './gemini';
 export { parseCryptoComCsv, isCryptoComCsv } from './crypto-com';
+export { parseKuCoinCsv, isKuCoinCsv } from './kucoin';
 export { parseCsvRows, parseCsvToObjects } from './csv-core';
 export type {
     CsvFormat,
