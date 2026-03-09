@@ -122,21 +122,21 @@ Visit [getdtax.com](https://getdtax.com) for the full-featured cloud version wit
 
 ## Open Source vs Cloud
 
-| Feature                          | Open Source (Free) | Cloud (Paid) |
-| -------------------------------- | ------------------ | ------------ |
-| Tax Calculation (FIFO/LIFO/HIFO/Specific ID) | ✅      | ✅           |
-| CLI Tool                         | ✅                 | ✅           |
-| Web UI (Dashboard + Reports)     | ✅                 | ✅           |
-| CSV Import (16 exchanges)        | ✅                 | ✅           |
-| Form 8949 + Schedule D           | ✅                 | ✅           |
-| Wash Sale Detection              | ✅                 | ✅           |
-| Tax-Loss Harvesting              | ✅                 | ✅           |
-| Portfolio Holdings Analysis      | ✅                 | ✅           |
-| DeFi/NFT Transaction Support     | ✅                 | ✅           |
-| 1099-DA Reconciliation           | ✅                 | ✅           |
-| AI Transaction Classification    | —                  | ✅           |
-| Multi-chain Auto-Tracking        | —                  | ✅           |
-| Enterprise Features              | —                  | ✅           |
+| Feature                                      | Open Source (Free) | Cloud (Paid) |
+| -------------------------------------------- | ------------------ | ------------ |
+| Tax Calculation (FIFO/LIFO/HIFO/Specific ID) | ✅                 | ✅           |
+| CLI Tool                                     | ✅                 | ✅           |
+| Web UI (Dashboard + Reports)                 | ✅                 | ✅           |
+| CSV Import (16 exchanges)                    | ✅                 | ✅           |
+| Form 8949 + Schedule D                       | ✅                 | ✅           |
+| Wash Sale Detection                          | ✅                 | ✅           |
+| Tax-Loss Harvesting                          | ✅                 | ✅           |
+| Portfolio Holdings Analysis                  | ✅                 | ✅           |
+| DeFi/NFT Transaction Support                 | ✅                 | ✅           |
+| 1099-DA Reconciliation                       | ✅                 | ✅           |
+| AI Transaction Classification                | —                  | ✅           |
+| Multi-chain Auto-Tracking                    | —                  | ✅           |
+| Enterprise Features                          | —                  | ✅           |
 
 ## Supported Exchanges (CSV Import)
 
