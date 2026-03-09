@@ -223,3 +223,48 @@ describe("parseEtherscanErc20Csv", () => {
     expect(result.transactions[0].notes).toBe("txhash:0xfff456");
   });
 });
+
+// ─── Multi-Chain (nativeAsset) ──────────────────
+
+describe("parseEtherscanCsv — multi-chain nativeAsset", () => {
+  it("should use BNB as native asset for BSCScan CSV", () => {
+    const csv = [
+      '"Txhash","Blockno","UnixTimestamp","DateTime (UTC)","From","To","ContractAddress","Value_IN(ETH)","Value_OUT(ETH)","CurrentValue","TxnFee(ETH)","TxnFee(USD)","Historical $Price/Eth","Status","ErrCode"',
+      `"0xbnb1","99999","1704067200","2024-01-01","0xsender","${USER_ADDR}","","5.0","0","","0.0005","0.15","300","","0"`,
+    ].join("\n");
+
+    const result = parseEtherscanCsv(csv, USER_ADDR, "BNB");
+    expect(result.transactions).toHaveLength(1);
+    expect(result.transactions[0].receivedAsset).toBe("BNB");
+    expect(result.transactions[0].receivedAmount).toBe(5.0);
+    expect(result.transactions[0].receivedValueUsd).toBe(1500); // 5 * 300
+  });
+
+  it("should use MATIC as native asset for PolygonScan CSV", () => {
+    const csv = [
+      '"Txhash","Blockno","UnixTimestamp","DateTime (UTC)","From","To","ContractAddress","Value_IN(ETH)","Value_OUT(ETH)","CurrentValue","TxnFee(ETH)","TxnFee(USD)","Historical $Price/Eth","Status","ErrCode"',
+      `"0xpoly1","88888","1704067200","2024-01-01","${USER_ADDR}","0xrecipient","","0","100.0","","0.01","0.01","0.85","","0"`,
+    ].join("\n");
+
+    const result = parseEtherscanCsv(csv, USER_ADDR, "MATIC");
+    expect(result.transactions).toHaveLength(1);
+    expect(result.transactions[0].sentAsset).toBe("MATIC");
+    expect(result.transactions[0].sentAmount).toBe(100.0);
+    expect(result.transactions[0].feeAsset).toBe("MATIC");
+  });
+
+  it("should pass nativeAsset through parseCsv options", async () => {
+    const { parseCsv } = await import("../parsers");
+    const csv = [
+      '"Txhash","Blockno","UnixTimestamp","DateTime (UTC)","From","To","ContractAddress","Value_IN(ETH)","Value_OUT(ETH)","CurrentValue","TxnFee(ETH)","TxnFee(USD)","Historical $Price/Eth","Status","ErrCode"',
+      `"0xavax1","77777","1704067200","2024-01-01","0xsender","${USER_ADDR}","","10.0","0","","0.001","0.02","20","","0"`,
+    ].join("\n");
+
+    const result = parseCsv(csv, {
+      format: "etherscan",
+      userAddress: USER_ADDR,
+      nativeAsset: "AVAX",
+    });
+    expect(result.transactions[0].receivedAsset).toBe("AVAX");
+  });
+});
