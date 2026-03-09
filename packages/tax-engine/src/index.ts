@@ -53,6 +53,8 @@ export {
   isBitgetCsv,
   parseMexcCsv,
   isMexcCsv,
+  parseHtxCsv,
+  isHtxCsv,
   detectCsvFormat,
   parseCsvRows,
   parseCsvToObjects,
