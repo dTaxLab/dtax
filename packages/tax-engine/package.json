@@ -1,10 +1,41 @@
 {
   "name": "@dtax/tax-engine",
   "version": "0.1.0",
-  "description": "Open source crypto tax calculation engine - FIFO, LIFO, HIFO",
+  "description": "Open source crypto tax calculation engine - FIFO, LIFO, HIFO, Specific ID",
   "license": "AGPL-3.0",
+  "homepage": "https://github.com/Phosmax/dtax/tree/main/packages/tax-engine",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Phosmax/dtax.git",
+    "directory": "packages/tax-engine"
+  },
+  "keywords": [
+    "crypto",
+    "tax",
+    "bitcoin",
+    "fifo",
+    "lifo",
+    "hifo",
+    "cost-basis",
+    "form-8949",
+    "schedule-d",
+    "wash-sale",
+    "csv-parser"
+  ],
   "main": "dist/index.js",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
