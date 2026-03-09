@@ -1110,4 +1110,52 @@ BUY,2024-01-15T00:00:00Z,BTC,0.5`;
     const body = JSON.parse(res.body);
     expect(body.data.sourceName).toBe("My Coinbase 2024");
   });
+
+  it("POST /transactions/import parses Solscan DeFi CSV", async () => {
+    const solscanDefiCsv = `Signature,Timestamp,Platform,Activity,TokenIn,AmountIn,TokenOut,AmountOut,Fee
+abc123def,2024-03-15T14:30:00Z,Jupiter,Swap,USDC,100,SOL,1.5,0.00001`;
+
+    mockPrisma.transaction.findMany.mockResolvedValueOnce([]);
+    mockPrisma.dataSource.create.mockResolvedValueOnce({
+      id: "ds-import-defi",
+      name: "SOLSCAN_DEFI Import",
+    });
+    mockPrisma.transaction.createMany.mockResolvedValueOnce({ count: 1 });
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/transactions/import?format=solscan_defi",
+      headers: { "content-type": "text/csv" },
+      payload: solscanDefiCsv,
+    });
+
+    expect(res.statusCode).toBe(201);
+    const body = JSON.parse(res.body);
+    expect(body.data.summary.format).toBe("solscan_defi");
+    expect(body.data.imported).toBe(1);
+  });
+
+  it("POST /transactions/import auto-detects Solscan DeFi format", async () => {
+    const solscanDefiCsv = `Signature,Timestamp,Platform,Activity,TokenIn,AmountIn,TokenOut,AmountOut
+xyz789,2024-06-01T10:00:00Z,Raydium,Swap,SOL,2.0,USDT,300`;
+
+    mockPrisma.transaction.findMany.mockResolvedValueOnce([]);
+    mockPrisma.dataSource.create.mockResolvedValueOnce({
+      id: "ds-import-defi2",
+      name: "SOLSCAN_DEFI Import",
+    });
+    mockPrisma.transaction.createMany.mockResolvedValueOnce({ count: 1 });
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/transactions/import",
+      headers: { "content-type": "text/csv" },
+      payload: solscanDefiCsv,
+    });
+
+    expect(res.statusCode).toBe(201);
+    const body = JSON.parse(res.body);
+    expect(body.data.summary.format).toBe("solscan_defi");
+    expect(body.data.imported).toBe(1);
+  });
 });
