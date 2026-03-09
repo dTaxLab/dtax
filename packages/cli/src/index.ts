@@ -43,7 +43,17 @@ function printUsage(): void {
   console.log("  help                  Show this help message");
   console.log("  version               Show version number");
   console.log("");
-  console.log("Options for calculate:");
+  console.log("Run 'dtax calculate --help' for calculate-specific options.");
+  console.log("");
+  console.log("https://dtax.dev");
+}
+
+function printCalculateHelp(): void {
+  console.log(`DTax CLI v${VERSION} — calculate`);
+  console.log("");
+  console.log("Usage: dtax calculate <csv-file> [options]");
+  console.log("");
+  console.log("Options:");
   console.log("  --method <FIFO|LIFO|HIFO>  Cost basis method (default: FIFO)");
   console.log("  --year <YYYY>              Tax year to report (default: all)");
   console.log(
@@ -54,13 +64,16 @@ function printUsage(): void {
   console.log("  --schedule-d               Show Schedule D summary");
   console.log("  --json                     Output report as JSON");
   console.log("");
+  console.log("Supported formats:");
+  console.log("  coinbase, binance, binance_us, kraken, gemini, crypto_com,");
+  console.log("  kucoin, okx, bybit, gate, bitget, mexc, htx,");
+  console.log("  etherscan, etherscan_erc20, generic");
+  console.log("");
   console.log("Examples:");
   console.log("  dtax calculate transactions.csv");
   console.log("  dtax calculate coinbase.csv --method HIFO --year 2025");
   console.log("  dtax calculate trades.csv --output form8949.csv");
   console.log("  dtax calculate trades.csv --include-wash-sales --schedule-d");
-  console.log("");
-  console.log("https://dtax.dev");
 }
 
 function calculate(file: string, flags: Record<string, string>): void {
@@ -285,12 +298,20 @@ if (flags.version === "true" || command === "version") {
   process.exit(0);
 }
 
-if (!command || command === "help" || flags.help === "true") {
+if (
+  !command ||
+  command === "help" ||
+  (flags.help === "true" && command !== "calculate")
+) {
   printUsage();
   process.exit(0);
 }
 
 if (command === "calculate") {
+  if (flags.help === "true") {
+    printCalculateHelp();
+    process.exit(0);
+  }
   if (!file) {
     console.error("Error: Please provide a CSV file path.");
     console.error("Usage: dtax calculate <csv-file> [--method FIFO]");

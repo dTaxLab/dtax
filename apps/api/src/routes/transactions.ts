@@ -173,7 +173,7 @@ export async function transactionRoutes(app: FastifyInstance) {
 
   // GET /transactions/export-json — Export all data as JSON backup
   app.get("/transactions/export-json", async (request, reply) => {
-    const [transactions, dataSources] = await Promise.all([
+    const [transactions, dataSources, taxReports, user] = await Promise.all([
       prisma.transaction.findMany({
         where: { userId: request.userId },
         orderBy: { timestamp: "asc" },
@@ -181,16 +181,27 @@ export async function transactionRoutes(app: FastifyInstance) {
       prisma.dataSource.findMany({
         where: { userId: request.userId },
       }),
+      prisma.taxReport.findMany({
+        where: { userId: request.userId },
+        orderBy: { taxYear: "desc" },
+      }),
+      prisma.user.findUnique({
+        where: { id: request.userId },
+        select: { email: true, name: true, createdAt: true },
+      }),
     ]);
 
     const backup = {
-      version: "1.0",
+      version: "1.1",
       exportedAt: new Date().toISOString(),
+      user: user || undefined,
       transactions,
       dataSources,
+      taxReports,
       meta: {
         transactionCount: transactions.length,
         dataSourceCount: dataSources.length,
+        taxReportCount: taxReports.length,
       },
     };
 
