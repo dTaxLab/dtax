@@ -48,6 +48,7 @@
         "addTransaction": "+ 添加交易",
         "importCsv": "📁 导入 CSV",
         "exportCsv": "📥 导出 CSV",
+        "exportJson": "💾 备份 JSON",
         "connectApi": "🔌 连接 API",
         "cancel": "✕ 取消",
         "save": "保存交易",
@@ -60,6 +61,10 @@
         "deleting": "删除中...",
         "updating": "更新中...",
         "actions": "操作",
+        "selectedCount": "已选 {count} 项",
+        "bulkDelete": "批量删除",
+        "bulkDeleteConfirm": "确定删除 {count} 笔交易？此操作不可撤销。",
+        "clearSelection": "取消选择",
         "filter": {
             "asset": "资产",
             "assetPlaceholder": "BTC, ETH...",

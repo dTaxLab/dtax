@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { updateTransaction, deleteTransaction } from '@/lib/api';
+import { updateTransaction, deleteTransaction, bulkDeleteTransactions } from '@/lib/api';
 import type { Transaction, SortField, SortOrder } from '@/lib/api';
 import { formatUsd, formatDate, getBadgeClass, inputStyle, TRANSACTION_TYPES, BUY_TYPES } from './shared';
 
@@ -41,6 +41,42 @@ export function TransactionTable({ transactions, meta, onPageChange, onRefresh, 
     const [submitting, setSubmitting] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
+    const [selected, setSelected] = useState<Set<string>>(new Set());
+    const [bulkDeleting, setBulkDeleting] = useState(false);
+
+    const allSelected = transactions.length > 0 && transactions.every(tx => selected.has(tx.id));
+
+    function toggleSelect(id: string) {
+        setSelected(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    }
+
+    function toggleSelectAll() {
+        if (allSelected) {
+            setSelected(new Set());
+        } else {
+            setSelected(new Set(transactions.map(tx => tx.id)));
+        }
+    }
+
+    async function handleBulkDelete() {
+        if (selected.size === 0) return;
+        if (!confirm(t('bulkDeleteConfirm', { count: selected.size }))) return;
+        setBulkDeleting(true);
+        setActionError(null);
+        try {
+            await bulkDeleteTransactions([...selected]);
+            setSelected(new Set());
+            onRefresh();
+        } catch (e) {
+            setActionError(e instanceof Error ? e.message : 'Bulk delete failed');
+        }
+        setBulkDeleting(false);
+    }
 
     function startEdit(tx: Transaction) {
         const isBuy = BUY_TYPES.includes(tx.type);
@@ -121,10 +157,26 @@ export function TransactionTable({ transactions, meta, onPageChange, onRefresh, 
                     {actionError}
                 </div>
             )}
+            {selected.size > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', padding: '8px 16px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)' }}>
+                    <span style={{ fontSize: '14px' }}>{t('selectedCount', { count: selected.size })}</span>
+                    <button className="btn btn-secondary" onClick={handleBulkDelete} disabled={bulkDeleting}
+                        style={{ padding: '4px 12px', fontSize: '13px', color: 'var(--red)' }}>
+                        {bulkDeleting ? t('deleting') : t('bulkDelete')}
+                    </button>
+                    <button className="btn btn-secondary" onClick={() => setSelected(new Set())}
+                        style={{ padding: '4px 12px', fontSize: '13px' }}>
+                        {t('clearSelection')}
+                    </button>
+                </div>
+            )}
             <div className="table-container">
                 <table>
                     <thead>
                         <tr>
+                            <th style={{ width: '36px' }}>
+                                <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} />
+                            </th>
                             {thSort('timestamp', tt('date'))}
                             {thSort('type', tt('type'))}
                             <th>{tt('asset')}</th>
@@ -144,6 +196,7 @@ export function TransactionTable({ transactions, meta, onPageChange, onRefresh, 
                             if (editingId === tx.id) {
                                 return (
                                     <tr key={tx.id} style={{ background: 'var(--bg-secondary)' }}>
+                                        <td><input type="checkbox" checked={selected.has(tx.id)} onChange={() => toggleSelect(tx.id)} /></td>
                                         <td>
                                             <input type="datetime-local" value={editForm.timestamp}
                                                 onChange={e => setEditForm({ ...editForm, timestamp: e.target.value })}
@@ -201,6 +254,7 @@ export function TransactionTable({ transactions, meta, onPageChange, onRefresh, 
 
                             return (
                                 <tr key={tx.id}>
+                                    <td><input type="checkbox" checked={selected.has(tx.id)} onChange={() => toggleSelect(tx.id)} /></td>
                                     <td style={{ fontVariantNumeric: 'tabular-nums' }}>{formatDate(tx.timestamp)}</td>
                                     <td><span className={getBadgeClass(tx.type)}>{tType(tx.type)}</span></td>
                                     <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{asset}</td>

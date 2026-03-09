@@ -125,6 +125,35 @@ export async function transactionRoutes(app: FastifyInstance) {
         };
     });
 
+    // GET /transactions/export-json — Export all data as JSON backup
+    app.get('/transactions/export-json', async (request, reply) => {
+        const [transactions, dataSources] = await Promise.all([
+            prisma.transaction.findMany({
+                where: { userId: request.userId },
+                orderBy: { timestamp: 'asc' },
+            }),
+            prisma.dataSource.findMany({
+                where: { userId: request.userId },
+            }),
+        ]);
+
+        const backup = {
+            version: '1.0',
+            exportedAt: new Date().toISOString(),
+            transactions,
+            dataSources,
+            meta: {
+                transactionCount: transactions.length,
+                dataSourceCount: dataSources.length,
+            },
+        };
+
+        return reply
+            .header('Content-Type', 'application/json')
+            .header('Content-Disposition', 'attachment; filename="dtax-backup.json"')
+            .send(JSON.stringify(backup, null, 2));
+    });
+
     // GET /transactions/export — Export all transactions as CSV
     app.get('/transactions/export', async (request, reply) => {
         const query = z.object({
@@ -223,6 +252,22 @@ export async function transactionRoutes(app: FastifyInstance) {
         });
 
         return { data: updated };
+    });
+
+    // DELETE /transactions/bulk — Bulk delete transactions
+    app.delete('/transactions/bulk', async (request, reply) => {
+        const body = z.object({
+            ids: z.array(z.string().uuid()).min(1).max(500),
+        }).parse(request.body);
+
+        const deleted = await prisma.transaction.deleteMany({
+            where: {
+                id: { in: body.ids },
+                userId: request.userId,
+            },
+        });
+
+        return { data: { deleted: deleted.count } };
     });
 
     // DELETE /transactions/:id — Delete transaction

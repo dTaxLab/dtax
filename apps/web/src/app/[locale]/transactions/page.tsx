@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { getTransactions, getTransactionExportUrl } from '@/lib/api';
+import { getTransactions, getTransactionExportUrl, downloadJsonBackup } from '@/lib/api';
 import type { Transaction, TransactionFilters, SortField, SortOrder } from '@/lib/api';
 import { ImportPanel } from './components/ImportPanel';
 import { ApiSyncPanel } from './components/ApiSyncPanel';
@@ -63,6 +63,9 @@ export default function TransactionsPage() {
                     <p className="page-subtitle">{t('totalCount', { count: meta.total })}</p>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn btn-secondary" onClick={() => downloadJsonBackup().catch(() => {})}>
+                        {t('exportJson')}
+                    </button>
                     <a href={getTransactionExportUrl()} download className="btn btn-secondary" style={{ textDecoration: 'none' }}>
                         {t('exportCsv')}
                     </a>

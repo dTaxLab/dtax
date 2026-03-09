@@ -123,6 +123,13 @@ export async function deleteTransaction(id: string) {
     return apiFetch<void>(`/api/v1/transactions/${id}`, { method: 'DELETE' });
 }
 
+export async function bulkDeleteTransactions(ids: string[]): Promise<{ data: { deleted: number } }> {
+    return apiFetch('/api/v1/transactions/bulk', {
+        method: 'DELETE',
+        body: JSON.stringify({ ids }),
+    });
+}
+
 export interface ImportResult {
     imported: number;
     skipped?: number;
@@ -220,6 +227,23 @@ export function getForm8949CsvUrl(year: number, method = 'FIFO', includeWashSale
 export function getForm8949PdfUrl(year: number, method = 'FIFO', includeWashSales = false) {
     const ws = includeWashSales ? '&includeWashSales=true' : '';
     return `${API_BASE}/api/v1/tax/form8949?year=${year}&method=${method}&format=pdf${ws}`;
+}
+
+export async function downloadJsonBackup(): Promise<void> {
+    const token = getStoredToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/api/v1/transactions/export-json`, { headers });
+    if (!res.ok) throw new Error('Export failed');
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'dtax-backup.json';
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 // ─── Schedule D ─────────────────────────────────

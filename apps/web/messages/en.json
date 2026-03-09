@@ -48,6 +48,7 @@
         "addTransaction": "+ Add Transaction",
         "importCsv": "📁 Import CSV",
         "exportCsv": "📥 Export CSV",
+        "exportJson": "💾 Backup JSON",
         "connectApi": "🔌 Connect API",
         "cancel": "✕ Cancel",
         "save": "Save Transaction",
@@ -60,6 +61,10 @@
         "deleting": "Deleting...",
         "updating": "Updating...",
         "actions": "Actions",
+        "selectedCount": "{count} selected",
+        "bulkDelete": "Delete Selected",
+        "bulkDeleteConfirm": "Delete {count} selected transactions? This cannot be undone.",
+        "clearSelection": "Clear",
         "filter": {
             "asset": "Asset",
             "assetPlaceholder": "BTC, ETH...",
