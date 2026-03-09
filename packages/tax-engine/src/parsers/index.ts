@@ -68,6 +68,7 @@ export function parseCsv(
     format?: CsvFormat;
     columnMap?: Partial<GenericColumnMap>;
     userAddress?: string;
+    nativeAsset?: string;
   },
 ): CsvParseResult {
   const format = options?.format ?? detectCsvFormat(csv);
@@ -82,7 +83,11 @@ export function parseCsv(
     case "kraken":
       return parseKrakenCsv(csv);
     case "etherscan":
-      return parseEtherscanCsv(csv, options?.userAddress || "");
+      return parseEtherscanCsv(
+        csv,
+        options?.userAddress || "",
+        options?.nativeAsset,
+      );
     case "etherscan_erc20":
       return parseEtherscanErc20Csv(csv, options?.userAddress || "");
     case "gemini":
