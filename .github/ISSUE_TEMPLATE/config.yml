@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Discussions
+    url: https://github.com/Phosmax/dtax/discussions
+    about: Ask questions or share ideas
+  - name: Documentation
+    url: https://dtax.dev
+    about: Check the docs first
