@@ -62,10 +62,7 @@ const FORMAT_HEADERS: [CsvFormat, string][] = [
     "bitget",
     "Order ID,Trading Pair,Side,Filled Price,Filled Amount,Total,Fee,Fee Currency,Order Time,Order Type",
   ],
-  [
-    "mexc",
-    "Pairs,Time,Side,Filled Price,Executed Amount,Total,Fee,Role",
-  ],
+  ["mexc", "Pairs,Time,Side,Filled Price,Executed Amount,Total,Fee,Role"],
   ["htx", "Time,Pair,Side,Price,Amount,Total,Fee,Fee Currency,Role"],
 ];
 
