@@ -7,6 +7,11 @@
     <em>Tax clarity in a decentralized world | 链上税务，智能了然</em>
   </p>
   <p align="center">
+    <a href="https://github.com/Phosmax/dtax/actions/workflows/ci.yml"><img src="https://github.com/Phosmax/dtax/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="License"></a>
+    <a href="https://github.com/Phosmax/dtax"><img src="https://img.shields.io/github/stars/Phosmax/dtax?style=social" alt="Stars"></a>
+  </p>
+  <p align="center">
     <a href="https://getdtax.com">Website</a> ·
     <a href="https://dtax.dev">Docs</a> ·
     <a href="#quick-start">Quick Start</a> ·
@@ -119,15 +124,25 @@ Visit [getdtax.com](https://getdtax.com) for the full-featured cloud version wit
 
 | Feature                          | Open Source (Free) | Cloud (Paid) |
 | -------------------------------- | ------------------ | ------------ |
-| Tax Calculation (FIFO/LIFO/HIFO) | ✅                 | ✅           |
+| Tax Calculation (FIFO/LIFO/HIFO/Specific ID) | ✅      | ✅           |
 | CLI Tool                         | ✅                 | ✅           |
-| Basic Web UI                     | ✅                 | ✅           |
-| CSV Import (10 exchanges)        | ✅                 | ✅           |
+| Web UI (Dashboard + Reports)     | ✅                 | ✅           |
+| CSV Import (16 exchanges)        | ✅                 | ✅           |
+| Form 8949 + Schedule D           | ✅                 | ✅           |
+| Wash Sale Detection              | ✅                 | ✅           |
+| Tax-Loss Harvesting              | ✅                 | ✅           |
+| Portfolio Holdings Analysis      | ✅                 | ✅           |
+| DeFi/NFT Transaction Support     | ✅                 | ✅           |
+| 1099-DA Reconciliation           | ✅                 | ✅           |
 | AI Transaction Classification    | —                  | ✅           |
-| Tax-Loss Harvesting              | —                  | ✅           |
-| Multi-chain Tracking             | —                  | ✅           |
-| Compliance Reports (Form 8949)   | —                  | ✅           |
+| Multi-chain Auto-Tracking        | —                  | ✅           |
 | Enterprise Features              | —                  | ✅           |
+
+## Supported Exchanges (CSV Import)
+
+Coinbase · Binance · Binance US · Kraken · Gemini · Crypto.com · KuCoin · OKX · Bybit · Gate.io · Bitget · MEXC · HTX (Huobi) · Etherscan (ETH + ERC-20) · Generic CSV
+
+Auto-detection identifies your exchange format automatically. Manual format selection also available.
 
 ## Contributing
 
