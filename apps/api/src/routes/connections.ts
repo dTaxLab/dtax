@@ -22,11 +22,15 @@ export async function connectionRoutes(app: FastifyInstance) {
     const body = ConnectionSchema.parse(request.body);
 
     // Test the connection via CCXT first
-    const isValid = await CcxtService.testConnection(body.exchangeId, {
-      apiKey: body.apiKey,
-      secret: body.apiSecret,
-      password: body.apiPassword,
-    });
+    const isValid = await CcxtService.testConnection(
+      body.exchangeId,
+      {
+        apiKey: body.apiKey,
+        secret: body.apiSecret,
+        password: body.apiPassword,
+      },
+      request.log,
+    );
 
     if (!isValid) {
       return reply.status(400).send({

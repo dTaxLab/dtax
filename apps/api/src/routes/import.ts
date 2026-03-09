@@ -100,6 +100,17 @@ export async function importRoutes(app: FastifyInstance) {
       });
     }
 
+    // Reject excessively large CSV bodies (10MB limit, matching multipart)
+    const MAX_CSV_BYTES = 10 * 1024 * 1024;
+    if (Buffer.byteLength(csvContent, "utf-8") > MAX_CSV_BYTES) {
+      return reply.status(413).send({
+        error: {
+          code: "FILE_TOO_LARGE",
+          message: "CSV file exceeds 10MB limit",
+        },
+      });
+    }
+
     // Parse CSV
     const parseResult = parseCsv(csvContent, {
       format: formatParam as CsvFormat | undefined,

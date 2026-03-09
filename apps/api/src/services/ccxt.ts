@@ -40,6 +40,17 @@ export interface ExchangeCredentials {
   password?: string; // For KuCoin, OKX, etc.
 }
 
+/** Minimal logger interface compatible with Fastify's request.log */
+interface Logger {
+  error(msg: string, ...args: unknown[]): void;
+  warn(msg: string, ...args: unknown[]): void;
+}
+
+const defaultLogger: Logger = {
+  error: (msg, ...args) => console.error(msg, ...args),
+  warn: (msg, ...args) => console.warn(msg, ...args),
+};
+
 export class CcxtService {
   /**
    * Get an initialized CCXT exchange instance
@@ -66,13 +77,14 @@ export class CcxtService {
   static async testConnection(
     exchangeId: string,
     creds: ExchangeCredentials,
+    log: Logger = defaultLogger,
   ): Promise<boolean> {
     try {
       const exchange = this.getExchange(exchangeId, creds);
       await exchange.fetchBalance();
       return true;
     } catch (error) {
-      console.error(`[CCXT] Connection test failed for ${exchangeId}:`, error);
+      log.error(`[CCXT] Connection test failed for ${exchangeId}:`, error);
       return false;
     }
   }
@@ -81,37 +93,28 @@ export class CcxtService {
    * Fetch all historical trades for a user from a specific exchange
    * Note: This loops through pagination to get all data.
    */
-  static async fetchMyTrades(exchangeId: string, creds: ExchangeCredentials) {
+  static async fetchMyTrades(
+    exchangeId: string,
+    creds: ExchangeCredentials,
+    log: Logger = defaultLogger,
+  ) {
     const exchange = this.getExchange(exchangeId, creds);
     let allTrades: Trade[] = [];
 
     try {
-      // ccxt fetchMyTrades signature varies by exchange for pagination.
-      // A robust implementation would handle specifics for top exchanges.
-      // For MVP, we test the standard fetchMyTrades behavior.
       if (exchange.has["fetchMyTrades"]) {
-        // Warning: some exchanges require a symbol (e.g., 'BTC/USDT') to fetch trades.
-        // If the exchange requires symbol, we must first fetch the user's balances or markets.
-
-        // For simplicity in this demo implementation, we assume we fetch recent global trades
-        // if symbol isn't strictly required, or we could fetch markets first.
-        // Many major exchanges (Binance) allow fetching without symbol if we use specific endpoints,
-        // but standard ccxt fetchMyTrades on Binance requires symbol.
-
-        // As a fallback for prototyping, we just fetch one popular pair if it's required.
         const symbol = "BTC/USDT";
-        // Log level: debug (visible in dev via pino-pretty, silent in production)
         const trades = await exchange.fetchMyTrades(symbol, undefined, 100);
         allTrades = allTrades.concat(trades);
       } else {
-        console.warn(
+        log.warn(
           `[CCXT] ${exchangeId} does not support fetchMyTrades directly via CCXT.`,
         );
       }
 
       return allTrades;
     } catch (error) {
-      console.error(`[CCXT] Failed to fetch trades for ${exchangeId}:`, error);
+      log.error(`[CCXT] Failed to fetch trades for ${exchangeId}:`, error);
       throw error;
     }
   }
