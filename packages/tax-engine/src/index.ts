@@ -43,6 +43,8 @@ export {
   isCryptoComCsv,
   parseKuCoinCsv,
   isKuCoinCsv,
+  parseOkxCsv,
+  isOkxCsv,
   detectCsvFormat,
   parseCsvRows,
   parseCsvToObjects,
