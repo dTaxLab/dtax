@@ -51,6 +51,8 @@ export {
   isGateCsv,
   parseBitgetCsv,
   isBitgetCsv,
+  parseMexcCsv,
+  isMexcCsv,
   detectCsvFormat,
   parseCsvRows,
   parseCsvToObjects,
