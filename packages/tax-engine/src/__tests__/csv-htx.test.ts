@@ -2,233 +2,248 @@
  * HTX (Huobi) CSV Parser Tests
  */
 
-import { describe, it, expect } from 'vitest';
-import { parseHtxCsv, isHtxCsv } from '../parsers/htx';
-import { parseCsv, detectCsvFormat } from '../parsers';
+import { describe, it, expect } from "vitest";
+import { parseHtxCsv, isHtxCsv } from "../parsers/htx";
+import { parseCsv, detectCsvFormat } from "../parsers";
 
-describe('isHtxCsv', () => {
-    it('detects HTX format by header (standard)', () => {
-        const csv = 'Time,Pair,Side,Price,Amount,Total,Fee,Fee Currency,Role\n';
-        expect(isHtxCsv(csv)).toBe(true);
-    });
+describe("isHtxCsv", () => {
+  it("detects HTX format by header (standard)", () => {
+    const csv = "Time,Pair,Side,Price,Amount,Total,Fee,Fee Currency,Role\n";
+    expect(isHtxCsv(csv)).toBe(true);
+  });
 
-    it('detects HTX format by header (API-style filled-amount)', () => {
-        const csv = 'order-id,symbol,type,price,filled-amount,filled-fees,fee-deduct-currency,role,created-at\n';
-        expect(isHtxCsv(csv)).toBe(true);
-    });
+  it("detects HTX format by header (API-style filled-amount)", () => {
+    const csv =
+      "order-id,symbol,type,price,filled-amount,filled-fees,fee-deduct-currency,role,created-at\n";
+    expect(isHtxCsv(csv)).toBe(true);
+  });
 
-    it('detects HTX format by fee-deduct-currency', () => {
-        const csv = 'id,symbol,type,price,amount,fee-deduct-currency,created-at\n';
-        expect(isHtxCsv(csv)).toBe(true);
-    });
+  it("detects HTX format by fee-deduct-currency", () => {
+    const csv = "id,symbol,type,price,amount,fee-deduct-currency,created-at\n";
+    expect(isHtxCsv(csv)).toBe(true);
+  });
 
-    it('rejects non-HTX format', () => {
-        expect(isHtxCsv('Timestamp,Transaction Type,Asset,Quantity Transacted')).toBe(false);
-    });
+  it("rejects non-HTX format", () => {
+    expect(
+      isHtxCsv("Timestamp,Transaction Type,Asset,Quantity Transacted"),
+    ).toBe(false);
+  });
 
-    it('rejects Gate.io format (currency_pair)', () => {
-        expect(isHtxCsv('No,Currency Pair,Side,Role,Filled Price,Filled Amount,Total,Fee,Fee Currency,Date')).toBe(false);
-    });
+  it("rejects Gate.io format (currency_pair)", () => {
+    expect(
+      isHtxCsv(
+        "No,Currency Pair,Side,Role,Filled Price,Filled Amount,Total,Fee,Fee Currency,Date",
+      ),
+    ).toBe(false);
+  });
 
-    it('rejects MEXC format (Pairs plural)', () => {
-        expect(isHtxCsv('Pairs,Time,Side,Filled Price,Executed Amount,Total,Fee,Role')).toBe(false);
-    });
+  it("rejects MEXC format (Pairs plural)", () => {
+    expect(
+      isHtxCsv("Pairs,Time,Side,Filled Price,Executed Amount,Total,Fee,Role"),
+    ).toBe(false);
+  });
 
-    it('rejects Bitget format (Trading Pair)', () => {
-        expect(isHtxCsv('Order ID,Trading Pair,Side,Filled Price,Filled Amount,Total,Fee,Fee Currency,Order Time')).toBe(false);
-    });
+  it("rejects Bitget format (Trading Pair)", () => {
+    expect(
+      isHtxCsv(
+        "Order ID,Trading Pair,Side,Filled Price,Filled Amount,Total,Fee,Fee Currency,Order Time",
+      ),
+    ).toBe(false);
+  });
 });
 
-describe('detectCsvFormat', () => {
-    it('auto-detects HTX', () => {
-        const csv = 'Time,Pair,Side,Price,Amount,Total,Fee,Fee Currency,Role\n';
-        expect(detectCsvFormat(csv)).toBe('htx');
-    });
+describe("detectCsvFormat", () => {
+  it("auto-detects HTX", () => {
+    const csv = "Time,Pair,Side,Price,Amount,Total,Fee,Fee Currency,Role\n";
+    expect(detectCsvFormat(csv)).toBe("htx");
+  });
 
-    it('auto-detects HTX API format', () => {
-        const csv = 'order-id,symbol,type,price,filled-amount,filled-fees,fee-deduct-currency,role,created-at\n';
-        expect(detectCsvFormat(csv)).toBe('htx');
-    });
+  it("auto-detects HTX API format", () => {
+    const csv =
+      "order-id,symbol,type,price,filled-amount,filled-fees,fee-deduct-currency,role,created-at\n";
+    expect(detectCsvFormat(csv)).toBe("htx");
+  });
 });
 
-describe('parseHtxCsv', () => {
-    const HEADER = 'Time,Pair,Side,Price,Amount,Total,Fee,Fee Currency,Role';
+describe("parseHtxCsv", () => {
+  const HEADER = "Time,Pair,Side,Price,Amount,Total,Fee,Fee Currency,Role";
 
-    it('parses a buy trade', () => {
-        const csv = `${HEADER}\n2025-01-15 10:30:00,btcusdt,Buy,50000,1.0,50000,50,USDT,Taker`;
-        const result = parseHtxCsv(csv);
+  it("parses a buy trade", () => {
+    const csv = `${HEADER}\n2025-01-15 10:30:00,btcusdt,Buy,50000,1.0,50000,50,USDT,Taker`;
+    const result = parseHtxCsv(csv);
 
-        expect(result.transactions).toHaveLength(1);
-        const tx = result.transactions[0];
-        expect(tx.type).toBe('BUY');
-        expect(tx.receivedAsset).toBe('BTC');
-        expect(tx.receivedAmount).toBe(1);
-        expect(tx.sentAsset).toBe('USDT');
-        expect(tx.sentAmount).toBe(50000);
-        expect(tx.receivedValueUsd).toBe(50000);
-        expect(tx.feeAmount).toBe(50);
-        expect(tx.feeAsset).toBe('USDT');
-    });
+    expect(result.transactions).toHaveLength(1);
+    const tx = result.transactions[0];
+    expect(tx.type).toBe("BUY");
+    expect(tx.receivedAsset).toBe("BTC");
+    expect(tx.receivedAmount).toBe(1);
+    expect(tx.sentAsset).toBe("USDT");
+    expect(tx.sentAmount).toBe(50000);
+    expect(tx.receivedValueUsd).toBe(50000);
+    expect(tx.feeAmount).toBe(50);
+    expect(tx.feeAsset).toBe("USDT");
+  });
 
-    it('parses a sell trade', () => {
-        const csv = `${HEADER}\n2025-02-20 14:00:00,ethusdt,Sell,3000,2.0,6000,6,USDT,Maker`;
-        const result = parseHtxCsv(csv);
+  it("parses a sell trade", () => {
+    const csv = `${HEADER}\n2025-02-20 14:00:00,ethusdt,Sell,3000,2.0,6000,6,USDT,Maker`;
+    const result = parseHtxCsv(csv);
 
-        expect(result.transactions).toHaveLength(1);
-        const tx = result.transactions[0];
-        expect(tx.type).toBe('SELL');
-        expect(tx.sentAsset).toBe('ETH');
-        expect(tx.sentAmount).toBe(2);
-        expect(tx.receivedAsset).toBe('USDT');
-        expect(tx.receivedAmount).toBe(6000);
-        expect(tx.sentValueUsd).toBe(6000);
-    });
+    expect(result.transactions).toHaveLength(1);
+    const tx = result.transactions[0];
+    expect(tx.type).toBe("SELL");
+    expect(tx.sentAsset).toBe("ETH");
+    expect(tx.sentAmount).toBe(2);
+    expect(tx.receivedAsset).toBe("USDT");
+    expect(tx.receivedAmount).toBe(6000);
+    expect(tx.sentValueUsd).toBe(6000);
+  });
 
-    it('classifies crypto-to-crypto as TRADE', () => {
-        const csv = `${HEADER}\n2025-03-01 12:00:00,ethbtc,Buy,0.05,10.0,0.5,0.0005,BTC,Taker`;
-        const result = parseHtxCsv(csv);
+  it("classifies crypto-to-crypto as TRADE", () => {
+    const csv = `${HEADER}\n2025-03-01 12:00:00,ethbtc,Buy,0.05,10.0,0.5,0.0005,BTC,Taker`;
+    const result = parseHtxCsv(csv);
 
-        expect(result.transactions).toHaveLength(1);
-        const tx = result.transactions[0];
-        expect(tx.type).toBe('TRADE');
-        expect(tx.receivedAsset).toBe('ETH');
-        expect(tx.sentAsset).toBe('BTC');
-    });
+    expect(result.transactions).toHaveLength(1);
+    const tx = result.transactions[0];
+    expect(tx.type).toBe("TRADE");
+    expect(tx.receivedAsset).toBe("ETH");
+    expect(tx.sentAsset).toBe("BTC");
+  });
 
-    it('handles slash-separated symbol', () => {
-        const csv = `${HEADER}\n2025-04-01 08:00:00,BTC/USDT,Buy,50000,0.5,25000,25,USDT,Taker`;
-        const result = parseHtxCsv(csv);
+  it("handles slash-separated symbol", () => {
+    const csv = `${HEADER}\n2025-04-01 08:00:00,BTC/USDT,Buy,50000,0.5,25000,25,USDT,Taker`;
+    const result = parseHtxCsv(csv);
 
-        expect(result.transactions).toHaveLength(1);
-        expect(result.transactions[0].receivedAsset).toBe('BTC');
-        expect(result.transactions[0].sentAsset).toBe('USDT');
-    });
+    expect(result.transactions).toHaveLength(1);
+    expect(result.transactions[0].receivedAsset).toBe("BTC");
+    expect(result.transactions[0].sentAsset).toBe("USDT");
+  });
 
-    it('handles API-style columns with type field', () => {
-        const ts = new Date('2025-01-15T10:30:00Z').getTime();
-        const csv = `order-id,symbol,type,price,filled-amount,filled-fees,fee-deduct-currency,role,created-at\n1001,btcusdt,buy-limit,50000,1.0,50,USDT,taker,${ts}`;
-        const result = parseHtxCsv(csv);
+  it("handles API-style columns with type field", () => {
+    const ts = new Date("2025-01-15T10:30:00Z").getTime();
+    const csv = `order-id,symbol,type,price,filled-amount,filled-fees,fee-deduct-currency,role,created-at\n1001,btcusdt,buy-limit,50000,1.0,50,USDT,taker,${ts}`;
+    const result = parseHtxCsv(csv);
 
-        expect(result.transactions).toHaveLength(1);
-        expect(result.transactions[0].type).toBe('BUY');
-        expect(result.transactions[0].receivedAsset).toBe('BTC');
-        expect(result.transactions[0].feeAmount).toBe(50);
-        expect(result.transactions[0].feeAsset).toBe('USDT');
-    });
+    expect(result.transactions).toHaveLength(1);
+    expect(result.transactions[0].type).toBe("BUY");
+    expect(result.transactions[0].receivedAsset).toBe("BTC");
+    expect(result.transactions[0].feeAmount).toBe(50);
+    expect(result.transactions[0].feeAsset).toBe("USDT");
+  });
 
-    it('handles sell-market type', () => {
-        const csv = `order-id,symbol,type,price,filled-amount,filled-fees,fee-deduct-currency,role,created-at\n1002,ethusdt,sell-market,3000,2.0,6,USDT,taker,2025-02-20 14:00:00`;
-        const result = parseHtxCsv(csv);
+  it("handles sell-market type", () => {
+    const csv = `order-id,symbol,type,price,filled-amount,filled-fees,fee-deduct-currency,role,created-at\n1002,ethusdt,sell-market,3000,2.0,6,USDT,taker,2025-02-20 14:00:00`;
+    const result = parseHtxCsv(csv);
 
-        expect(result.transactions).toHaveLength(1);
-        expect(result.transactions[0].type).toBe('SELL');
-        expect(result.transactions[0].sentAsset).toBe('ETH');
-    });
+    expect(result.transactions).toHaveLength(1);
+    expect(result.transactions[0].type).toBe("SELL");
+    expect(result.transactions[0].sentAsset).toBe("ETH");
+  });
 
-    it('computes total from price * qty when total is missing', () => {
-        const header = 'Time,Pair,Side,Price,Amount,Fee,Fee Currency';
-        const csv = `${header}\n2025-06-01 12:00:00,ethusdt,Buy,3000,2.0,3,USDT`;
-        const result = parseHtxCsv(csv);
+  it("computes total from price * qty when total is missing", () => {
+    const header = "Time,Pair,Side,Price,Amount,Fee,Fee Currency";
+    const csv = `${header}\n2025-06-01 12:00:00,ethusdt,Buy,3000,2.0,3,USDT`;
+    const result = parseHtxCsv(csv);
 
-        expect(result.transactions).toHaveLength(1);
-        expect(result.transactions[0].sentAmount).toBe(6000);
-    });
+    expect(result.transactions).toHaveLength(1);
+    expect(result.transactions[0].sentAmount).toBe(6000);
+  });
 
-    it('handles invalid symbol', () => {
-        const csv = `${HEADER}\n2025-01-01 00:00:00,X,Buy,100,1.0,100,0.1,USDT,Taker`;
-        const result = parseHtxCsv(csv);
+  it("handles invalid symbol", () => {
+    const csv = `${HEADER}\n2025-01-01 00:00:00,X,Buy,100,1.0,100,0.1,USDT,Taker`;
+    const result = parseHtxCsv(csv);
 
-        expect(result.transactions).toHaveLength(0);
-        expect(result.errors).toHaveLength(1);
-        expect(result.errors[0].message).toContain('Invalid symbol');
-    });
+    expect(result.transactions).toHaveLength(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].message).toContain("Invalid symbol");
+  });
 
-    it('handles invalid date', () => {
-        const csv = `${HEADER}\nbad_date,btcusdt,Buy,50000,1.0,50000,50,USDT,Taker`;
-        const result = parseHtxCsv(csv);
+  it("handles invalid date", () => {
+    const csv = `${HEADER}\nbad_date,btcusdt,Buy,50000,1.0,50000,50,USDT,Taker`;
+    const result = parseHtxCsv(csv);
 
-        expect(result.transactions).toHaveLength(0);
-        expect(result.errors).toHaveLength(1);
-        expect(result.errors[0].message).toContain('Invalid date');
-    });
+    expect(result.transactions).toHaveLength(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].message).toContain("Invalid date");
+  });
 
-    it('handles invalid quantity', () => {
-        const csv = `${HEADER}\n2025-01-01 00:00:00,btcusdt,Buy,50000,0,0,50,USDT,Taker`;
-        const result = parseHtxCsv(csv);
+  it("handles invalid quantity", () => {
+    const csv = `${HEADER}\n2025-01-01 00:00:00,btcusdt,Buy,50000,0,0,50,USDT,Taker`;
+    const result = parseHtxCsv(csv);
 
-        expect(result.transactions).toHaveLength(0);
-        expect(result.errors).toHaveLength(1);
-        expect(result.errors[0].message).toContain('Invalid quantity');
-    });
+    expect(result.transactions).toHaveLength(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].message).toContain("Invalid quantity");
+  });
 
-    it('handles missing side', () => {
-        const csv = 'Time,Pair,Price,Amount,Total\n2025-01-01 00:00:00,btcusdt,50000,1.0,50000';
-        const result = parseHtxCsv(csv);
+  it("handles missing side", () => {
+    const csv =
+      "Time,Pair,Price,Amount,Total\n2025-01-01 00:00:00,btcusdt,50000,1.0,50000";
+    const result = parseHtxCsv(csv);
 
-        expect(result.transactions).toHaveLength(0);
-        expect(result.errors).toHaveLength(1);
-        expect(result.errors[0].message).toContain('Missing side');
-    });
+    expect(result.transactions).toHaveLength(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].message).toContain("Missing side");
+  });
 
-    it('handles empty CSV', () => {
-        const result = parseHtxCsv('');
-        expect(result.transactions).toHaveLength(0);
-        expect(result.summary.format).toBe('htx');
-    });
+  it("handles empty CSV", () => {
+    const result = parseHtxCsv("");
+    expect(result.transactions).toHaveLength(0);
+    expect(result.summary.format).toBe("htx");
+  });
 
-    it('sorts by timestamp', () => {
-        const csv = `${HEADER}
+  it("sorts by timestamp", () => {
+    const csv = `${HEADER}
 2025-03-01 12:00:00,btcusdt,Buy,50000,1.0,50000,50,USDT,Taker
 2025-01-01 08:00:00,ethusdt,Sell,3000,2.0,6000,6,USDT,Maker`;
-        const result = parseHtxCsv(csv);
+    const result = parseHtxCsv(csv);
 
-        expect(result.transactions).toHaveLength(2);
-        expect(result.transactions[0].type).toBe('SELL');
-        expect(result.transactions[1].type).toBe('BUY');
-    });
+    expect(result.transactions).toHaveLength(2);
+    expect(result.transactions[0].type).toBe("SELL");
+    expect(result.transactions[1].type).toBe("BUY");
+  });
 
-    it('handles zero fee', () => {
-        const csv = `${HEADER}\n2025-01-15 10:30:00,btcusdt,Buy,50000,1.0,50000,0,USDT,Taker`;
-        const result = parseHtxCsv(csv);
+  it("handles zero fee", () => {
+    const csv = `${HEADER}\n2025-01-15 10:30:00,btcusdt,Buy,50000,1.0,50000,0,USDT,Taker`;
+    const result = parseHtxCsv(csv);
 
-        expect(result.transactions).toHaveLength(1);
-        expect(result.transactions[0].feeAmount).toBeUndefined();
-    });
+    expect(result.transactions).toHaveLength(1);
+    expect(result.transactions[0].feeAmount).toBeUndefined();
+  });
 
-    it('handles negative fee', () => {
-        const csv = `${HEADER}\n2025-01-15 10:30:00,btcusdt,Buy,50000,1.0,50000,-50,USDT,Taker`;
-        const result = parseHtxCsv(csv);
+  it("handles negative fee", () => {
+    const csv = `${HEADER}\n2025-01-15 10:30:00,btcusdt,Buy,50000,1.0,50000,-50,USDT,Taker`;
+    const result = parseHtxCsv(csv);
 
-        expect(result.transactions).toHaveLength(1);
-        expect(result.transactions[0].feeAmount).toBe(50);
-    });
+    expect(result.transactions).toHaveLength(1);
+    expect(result.transactions[0].feeAmount).toBe(50);
+  });
 
-    it('provides correct summary', () => {
-        const csv = `${HEADER}
+  it("provides correct summary", () => {
+    const csv = `${HEADER}
 2025-01-15 10:30:00,btcusdt,Buy,50000,1.0,50000,50,USDT,Taker
 2025-01-15 10:35:00,ethusdt,Sell,3000,2.0,6000,6,USDT,Maker`;
-        const result = parseHtxCsv(csv);
+    const result = parseHtxCsv(csv);
 
-        expect(result.summary.totalRows).toBe(2);
-        expect(result.summary.parsed).toBe(2);
-        expect(result.summary.failed).toBe(0);
-        expect(result.summary.format).toBe('htx');
-    });
+    expect(result.summary.totalRows).toBe(2);
+    expect(result.summary.parsed).toBe(2);
+    expect(result.summary.failed).toBe(0);
+    expect(result.summary.format).toBe("htx");
+  });
 
-    it('handles USDC as fiat-like quote', () => {
-        const csv = `${HEADER}\n2025-05-01 00:00:00,solusdc,Buy,150,10.0,1500,1.5,USDC,Taker`;
-        const result = parseHtxCsv(csv);
+  it("handles USDC as fiat-like quote", () => {
+    const csv = `${HEADER}\n2025-05-01 00:00:00,solusdc,Buy,150,10.0,1500,1.5,USDC,Taker`;
+    const result = parseHtxCsv(csv);
 
-        expect(result.transactions).toHaveLength(1);
-        expect(result.transactions[0].type).toBe('BUY');
-        expect(result.transactions[0].receivedValueUsd).toBe(1500);
-    });
+    expect(result.transactions).toHaveLength(1);
+    expect(result.transactions[0].type).toBe("BUY");
+    expect(result.transactions[0].receivedValueUsd).toBe(1500);
+  });
 
-    it('works via unified parseCsv', () => {
-        const csv = `${HEADER}\n2025-01-15 10:30:00,btcusdt,Buy,50000,1.0,50000,50,USDT,Taker`;
-        const result = parseCsv(csv);
+  it("works via unified parseCsv", () => {
+    const csv = `${HEADER}\n2025-01-15 10:30:00,btcusdt,Buy,50000,1.0,50000,50,USDT,Taker`;
+    const result = parseCsv(csv);
 
-        expect(result.summary.format).toBe('htx');
-        expect(result.transactions).toHaveLength(1);
-    });
+    expect(result.summary.format).toBe("htx");
+    expect(result.transactions).toHaveLength(1);
+  });
 });

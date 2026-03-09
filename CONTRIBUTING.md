@@ -91,12 +91,17 @@ When contributing to the tax engine, please:
 ### Example Test
 
 ```typescript
-describe('FIFO Calculator', () => {
-  it('should handle partial lot consumption', () => {
+describe("FIFO Calculator", () => {
+  it("should handle partial lot consumption", () => {
     const lots = [
-      { asset: 'BTC', amount: 1.0, costBasis: 30000, date: '2024-01-01' },
+      { asset: "BTC", amount: 1.0, costBasis: 30000, date: "2024-01-01" },
     ];
-    const sale = { asset: 'BTC', amount: 0.3, proceeds: 12000, date: '2025-06-01' };
+    const sale = {
+      asset: "BTC",
+      amount: 0.3,
+      proceeds: 12000,
+      date: "2025-06-01",
+    };
 
     const result = calculateFIFO(lots, sale);
 

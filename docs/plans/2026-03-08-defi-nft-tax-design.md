@@ -14,13 +14,13 @@
 
 ### 关键法规时间线
 
-| 生效日期 | 法规 | 影响 |
-|----------|------|------|
-| 2025.1.1 | IRS 最终规则：逐钱包/逐账户成本基础追踪 | DTax 已实现（Task J: wallet-siloed strict cost basis） |
-| 2025.1.1 | Form 1099-DA 启动（仅 gross proceeds） | DTax 已实现（1099-DA reconciliation） |
-| 2025.4.10 | **国会废除 DeFi 券商报告义务**（特朗普签署） | DeFi 平台无需提交 1099-DA |
-| 2026.1.1 | 1099-DA 必须包含 cost basis（covered securities） | DTax Form 8949 Box A-F 已就绪 |
-| 2024.12.31 | Rev. Proc. 2024-28 截止：跨钱包 basis 重分配窗口关闭 | 用户锁定在当前分配 |
+| 生效日期   | 法规                                                 | 影响                                                   |
+| ---------- | ---------------------------------------------------- | ------------------------------------------------------ |
+| 2025.1.1   | IRS 最终规则：逐钱包/逐账户成本基础追踪              | DTax 已实现（Task J: wallet-siloed strict cost basis） |
+| 2025.1.1   | Form 1099-DA 启动（仅 gross proceeds）               | DTax 已实现（1099-DA reconciliation）                  |
+| 2025.4.10  | **国会废除 DeFi 券商报告义务**（特朗普签署）         | DeFi 平台无需提交 1099-DA                              |
+| 2026.1.1   | 1099-DA 必须包含 cost basis（covered securities）    | DTax Form 8949 Box A-F 已就绪                          |
+| 2024.12.31 | Rev. Proc. 2024-28 截止：跨钱包 basis 重分配窗口关闭 | 用户锁定在当前分配                                     |
 
 ### 核心法规要点
 
@@ -46,13 +46,13 @@
 
 ### 已有能力（无需修改）
 
-| 能力 | 现有实现 | 备注 |
-|------|---------|------|
-| DEX 代币交换 | `TRADE` 类型（sent/received 双侧） | 完全适用 |
-| Wallet-siloed 成本基础 | `sourceId` + `strictSilo` 模式 | IRS 2025 合规 |
-| 内部转账匹配 | `matchInternalTransfers()` | 跨钱包 basis 传递 |
-| 1099-DA 对账 | 3-phase reconciliation engine | 可扩展至 DeFi |
-| 多资产费用 | `feeAsset/feeAmount/feeValueUsd` | Gas 费直接适用 |
+| 能力                   | 现有实现                           | 备注              |
+| ---------------------- | ---------------------------------- | ----------------- |
+| DEX 代币交换           | `TRADE` 类型（sent/received 双侧） | 完全适用          |
+| Wallet-siloed 成本基础 | `sourceId` + `strictSilo` 模式     | IRS 2025 合规     |
+| 内部转账匹配           | `matchInternalTransfers()`         | 跨钱包 basis 传递 |
+| 1099-DA 对账           | 3-phase reconciliation engine      | 可扩展至 DeFi     |
+| 多资产费用             | `feeAsset/feeAmount/feeValueUsd`   | Gas 费直接适用    |
 
 ### 需要扩展的部分
 
@@ -69,18 +69,18 @@
 
 ```typescript
 // 在 Prisma schema 的 TxType enum 中新增：
-DEX_SWAP           // DEX 代币交换（语义等同 TRADE，但标记来源为 DEX）
-LP_DEPOSIT         // 向流动性池存入代币
-LP_WITHDRAWAL      // 从流动性池取出代币
-LP_REWARD          // 流动性挖矿奖励
-WRAP               // 包装代币（ETH → WETH）
-UNWRAP             // 解包装代币（WETH → ETH）
-BRIDGE_OUT         // 跨链桥转出
-BRIDGE_IN          // 跨链桥转入
-CONTRACT_APPROVAL  // 合约授权（gas 费用，无税务事件）
-NFT_MINT           // NFT 铸造
-NFT_PURCHASE       // NFT 购买
-NFT_SALE           // NFT 出售
+DEX_SWAP; // DEX 代币交换（语义等同 TRADE，但标记来源为 DEX）
+LP_DEPOSIT; // 向流动性池存入代币
+LP_WITHDRAWAL; // 从流动性池取出代币
+LP_REWARD; // 流动性挖矿奖励
+WRAP; // 包装代币（ETH → WETH）
+UNWRAP; // 解包装代币（WETH → ETH）
+BRIDGE_OUT; // 跨链桥转出
+BRIDGE_IN; // 跨链桥转入
+CONTRACT_APPROVAL; // 合约授权（gas 费用，无税务事件）
+NFT_MINT; // NFT 铸造
+NFT_PURCHASE; // NFT 购买
+NFT_SALE; // NFT 出售
 
 // 在 shared-types TxType 中同步新增
 // 在 parsers/types.ts ParsedTransaction.type 中同步新增
@@ -88,18 +88,18 @@ NFT_SALE           // NFT 出售
 
 ### 税务处理规则
 
-| 类型 | 税务事件？ | 处理方式 |
-|------|-----------|---------|
-| DEX_SWAP | 是 | 等同 TRADE，sent 侧为 disposal，received 侧创建新 lot |
-| LP_DEPOSIT | 是（有争议） | 保守处理：视为 disposal of deposited tokens，创建 LP token lot |
-| LP_WITHDRAWAL | 是 | LP token disposal，创建取回的 token lots |
-| LP_REWARD | 是（收入） | FMV 在收到时作为普通收入，创建新 lot |
-| WRAP/UNWRAP | 否 | 不触发税务事件，basis 1:1 传递（like-kind within same asset） |
-| BRIDGE_OUT/IN | 否 | 类似 TRANSFER，basis 传递（可能有 gas 费加入 basis） |
-| CONTRACT_APPROVAL | 否 | 仅 gas 费用，可选计入后续交易的 basis |
-| NFT_MINT | 视情况 | 如支付 ETH 铸造 → 创建 NFT lot（cost basis = ETH 支出 + gas） |
-| NFT_PURCHASE | 是 | 支付代币的 disposal + 创建 NFT lot |
-| NFT_SALE | 是 | NFT lot disposal，proceeds = 收到的代币 FMV |
+| 类型              | 税务事件？   | 处理方式                                                       |
+| ----------------- | ------------ | -------------------------------------------------------------- |
+| DEX_SWAP          | 是           | 等同 TRADE，sent 侧为 disposal，received 侧创建新 lot          |
+| LP_DEPOSIT        | 是（有争议） | 保守处理：视为 disposal of deposited tokens，创建 LP token lot |
+| LP_WITHDRAWAL     | 是           | LP token disposal，创建取回的 token lots                       |
+| LP_REWARD         | 是（收入）   | FMV 在收到时作为普通收入，创建新 lot                           |
+| WRAP/UNWRAP       | 否           | 不触发税务事件，basis 1:1 传递（like-kind within same asset）  |
+| BRIDGE_OUT/IN     | 否           | 类似 TRANSFER，basis 传递（可能有 gas 费加入 basis）           |
+| CONTRACT_APPROVAL | 否           | 仅 gas 费用，可选计入后续交易的 basis                          |
+| NFT_MINT          | 视情况       | 如支付 ETH 铸造 → 创建 NFT lot（cost basis = ETH 支出 + gas）  |
+| NFT_PURCHASE      | 是           | 支付代币的 disposal + 创建 NFT lot                             |
+| NFT_SALE          | 是           | NFT lot disposal，proceeds = 收到的代币 FMV                    |
 
 ### Schema 扩展
 
@@ -133,6 +133,7 @@ NFT_SALE           // NFT 出售
 ```
 
 还有 ERC-20 Token 转账格式：
+
 ```csv
 "Txhash","Blockno","UnixTimestamp","DateTime (UTC)","From","To","Value","TokenName","TokenSymbol","TokenDecimal"
 ```
@@ -180,6 +181,7 @@ packages/tax-engine/src/__tests__/csv-etherscan.test.ts  // 测试
 ### IRS 立场（当前指南）
 
 IRS 尚未发布 LP 专门指南。保守立场：
+
 - 向池子存入代币 = disposal（触发资本利得/损失）
 - 获得的 LP token = 新 lot（basis = 存入代币的 FMV）
 - 从池子取回 = LP token disposal + 新 lots 创建
@@ -188,6 +190,7 @@ IRS 尚未发布 LP 专门指南。保守立场：
 ### 实现方式
 
 LP_DEPOSIT 和 LP_WITHDRAWAL 作为特殊的 TRADE 处理：
+
 - LP_DEPOSIT：sent 侧 = 存入的代币（disposal），received 侧 = LP token
 - LP_WITHDRAWAL：sent 侧 = LP token（disposal），received 侧 = 取回的代币
 - 税务引擎使用现有 TRADE 处理逻辑，无需额外计算器
@@ -212,6 +215,7 @@ LP_DEPOSIT 和 LP_WITHDRAWAL 作为特殊的 TRADE 处理：
 ### Schema 考虑
 
 NFT 的唯一性（每个 token ID 不同）与 fungible token 的批量 lot 管理不同。设计选择：
+
 - 每个 NFT = 一个独立 TaxLot（amount = 1）
 - `asset` 编码包含 collection + tokenId
 - 支持按 collection 聚合查看
@@ -222,16 +226,16 @@ NFT 的唯一性（每个 token ID 不同）与 fungible token 的批量 lot 管
 
 基于市场影响和技术依赖：
 
-| 优先级 | 任务 | 预估复杂度 | 依赖 |
-|--------|------|-----------|------|
-| P0 | 新增 TxType 枚举值（schema + shared-types + parsers） | 低 | 无 |
-| P0 | WRAP/UNWRAP 非课税处理 | 中 | P0 枚举 |
-| P1 | Etherscan CSV 解析器 | 高 | P0 枚举 |
-| P1 | BRIDGE 非课税处理（复用 transfer matcher） | 中 | P0 枚举 |
-| P2 | LP_DEPOSIT/LP_WITHDRAWAL 税务处理 | 中 | P0 枚举 |
-| P2 | NFT 交易类型 + lot 管理 | 高 | P0 枚举 |
-| P3 | UI：DeFi 交易分类标签 + 协议图标 | 中 | P1 解析器 |
-| P3 | UI：NFT 画廊视图 + 成本基础追踪 | 高 | P2 NFT |
+| 优先级 | 任务                                                  | 预估复杂度 | 依赖      |
+| ------ | ----------------------------------------------------- | ---------- | --------- |
+| P0     | 新增 TxType 枚举值（schema + shared-types + parsers） | 低         | 无        |
+| P0     | WRAP/UNWRAP 非课税处理                                | 中         | P0 枚举   |
+| P1     | Etherscan CSV 解析器                                  | 高         | P0 枚举   |
+| P1     | BRIDGE 非课税处理（复用 transfer matcher）            | 中         | P0 枚举   |
+| P2     | LP_DEPOSIT/LP_WITHDRAWAL 税务处理                     | 中         | P0 枚举   |
+| P2     | NFT 交易类型 + lot 管理                               | 高         | P0 枚举   |
+| P3     | UI：DeFi 交易分类标签 + 协议图标                      | 中         | P1 解析器 |
+| P3     | UI：NFT 画廊视图 + 成本基础追踪                       | 高         | P2 NFT    |
 
 ---
 
