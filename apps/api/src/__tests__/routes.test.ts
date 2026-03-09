@@ -25,6 +25,10 @@ const mockPrisma = {
   taxReport: {
     upsert: vi.fn(),
     findUnique: vi.fn(),
+    findMany: vi.fn(),
+  },
+  user: {
+    findUnique: vi.fn(),
   },
   dataSource: {
     create: vi.fn(),
@@ -295,6 +299,54 @@ describe("Transaction Routes", () => {
     expect(res.headers["content-type"]).toContain("text/csv");
     expect(res.body).toContain("Date,Type");
     expect(res.body).toContain("BUY");
+  });
+
+  // ─── GET /transactions/export-json ─────────────
+
+  it("GET /transactions/export-json returns full backup with tax reports", async () => {
+    const txs = [mockTransaction()];
+    const sources = [
+      { id: "ds-1", name: "Coinbase Import", type: "CSV_IMPORT" },
+    ];
+    const reports = [
+      {
+        id: "rpt-1",
+        taxYear: 2025,
+        method: "FIFO",
+        shortTermGains: 1000,
+        longTermGains: 2000,
+      },
+    ];
+    const user = {
+      email: "test@example.com",
+      name: "Test User",
+      createdAt: new Date(),
+    };
+
+    mockPrisma.transaction.findMany.mockResolvedValueOnce(txs);
+    mockPrisma.dataSource.findMany.mockResolvedValueOnce(sources);
+    mockPrisma.taxReport.findMany.mockResolvedValueOnce(reports);
+    mockPrisma.user.findUnique.mockResolvedValueOnce(user);
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/transactions/export-json",
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-type"]).toContain("application/json");
+    expect(res.headers["content-disposition"]).toContain("dtax-backup.json");
+
+    const backup = JSON.parse(res.body);
+    expect(backup.version).toBe("1.1");
+    expect(backup.transactions).toHaveLength(1);
+    expect(backup.dataSources).toHaveLength(1);
+    expect(backup.taxReports).toHaveLength(1);
+    expect(backup.taxReports[0].taxYear).toBe(2025);
+    expect(backup.user.email).toBe("test@example.com");
+    expect(backup.meta.transactionCount).toBe(1);
+    expect(backup.meta.dataSourceCount).toBe(1);
+    expect(backup.meta.taxReportCount).toBe(1);
   });
 });
 
