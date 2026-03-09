@@ -7,15 +7,16 @@
 
 import type { TaxLot, TaxableEvent, ParsedTransaction } from "@dtax/tax-engine";
 
-/** Parse CLI arguments into command, file, and flags */
+/** Parse CLI arguments into command, files, and flags */
 export function parseArgs(args: string[]): {
   command: string;
   file?: string;
+  files: string[];
   flags: Record<string, string>;
 } {
   const flags: Record<string, string> = {};
   let command = "";
-  let file: string | undefined;
+  const files: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -30,12 +31,12 @@ export function parseArgs(args: string[]): {
       }
     } else if (!command) {
       command = arg;
-    } else if (!file) {
-      file = arg;
+    } else {
+      files.push(arg);
     }
   }
 
-  return { command, file, flags };
+  return { command, file: files[0], files, flags };
 }
 
 /** Map a ParsedTransaction to a TaxLot if it's an acquisition */
