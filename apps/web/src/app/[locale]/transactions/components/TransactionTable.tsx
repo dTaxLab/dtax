@@ -250,6 +250,7 @@ export function TransactionTable({
                   type="checkbox"
                   checked={allSelected}
                   onChange={toggleSelectAll}
+                  aria-label="Select all transactions"
                 />
               </th>
               {thSort("timestamp", tt("date"))}
@@ -276,6 +277,7 @@ export function TransactionTable({
                         type="checkbox"
                         checked={selected.has(tx.id)}
                         onChange={() => toggleSelect(tx.id)}
+                        aria-label={`Select transaction ${tx.id.slice(0, 8)}`}
                       />
                     </td>
                     <td>

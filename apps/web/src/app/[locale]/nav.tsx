@@ -13,9 +13,15 @@ export function LocaleNav({ locale }: { locale: string }) {
   const { user, logout } = useAuth();
 
   return (
-    <nav className="nav">
-      <Link href="/" className="nav-brand">
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+    <nav className="nav" aria-label="Main navigation">
+      <Link href="/" className="nav-brand" aria-label="DTax Home">
+        <svg
+          width="28"
+          height="28"
+          viewBox="0 0 28 28"
+          fill="none"
+          aria-hidden="true"
+        >
           <rect width="28" height="28" rx="8" fill="#6366f1" />
           <text
             x="6"
@@ -80,6 +86,8 @@ export function LocaleNav({ locale }: { locale: string }) {
           {t("settings")}
         </Link>
         <span
+          role="separator"
+          aria-hidden="true"
           className="nav-divider"
           style={{
             width: "1px",
@@ -93,6 +101,7 @@ export function LocaleNav({ locale }: { locale: string }) {
           href={pathname}
           locale={otherLocale}
           className="nav-link locale-switch"
+          aria-label={`Switch to ${otherLocale === "en" ? "English" : "中文"}`}
         >
           {otherLabel}
         </Link>

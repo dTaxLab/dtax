@@ -329,6 +329,12 @@ function calculate(files: string[], flags: Record<string, string>): void {
   }
 }
 
+// Graceful Ctrl+C handling
+process.on("SIGINT", () => {
+  console.log("\nInterrupted.");
+  process.exit(130);
+});
+
 // Main
 const args = process.argv.slice(2);
 const { command, files, flags } = parseArgs(args);
