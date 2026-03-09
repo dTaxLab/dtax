@@ -3,9 +3,27 @@
   "version": "0.1.0",
   "description": "DTax CLI - Crypto tax calculator command-line tool",
   "license": "AGPL-3.0",
+  "homepage": "https://github.com/Phosmax/dtax/tree/main/packages/cli",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Phosmax/dtax.git",
+    "directory": "packages/cli"
+  },
+  "keywords": [
+    "crypto",
+    "tax",
+    "cli",
+    "bitcoin",
+    "calculator",
+    "form-8949"
+  ],
   "bin": {
     "dtax": "./dist/index.js"
   },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format cjs --dts",
     "dev": "tsup src/index.ts --format cjs --watch",
