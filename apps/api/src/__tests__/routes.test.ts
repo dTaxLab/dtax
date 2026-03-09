@@ -1261,4 +1261,29 @@ xyz789,2024-06-01T10:00:00Z,Raydium,Swap,SOL,2.0,USDT,300`;
     expect(body.data.summary.format).toBe("solscan_defi");
     expect(body.data.imported).toBe(1);
   });
+
+  it("POST /transactions/import parses Solscan SOL transfer CSV with userAddress", async () => {
+    const userAddr = "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU";
+    const solscanCsv = `Signature,Block,Timestamp,From,To,Amount(SOL),Fee(SOL)
+abc123,100,2024-01-15T10:00:00Z,${userAddr},xyz789,1.5,0.000005`;
+
+    mockPrisma.transaction.findMany.mockResolvedValueOnce([]);
+    mockPrisma.dataSource.create.mockResolvedValueOnce({
+      id: "ds-import-sol",
+      name: "SOLSCAN Import",
+    });
+    mockPrisma.transaction.createMany.mockResolvedValueOnce({ count: 1 });
+
+    const res = await app.inject({
+      method: "POST",
+      url: `/api/v1/transactions/import?format=solscan&userAddress=${userAddr}`,
+      headers: { "content-type": "text/csv" },
+      payload: solscanCsv,
+    });
+
+    expect(res.statusCode).toBe(201);
+    const body = JSON.parse(res.body);
+    expect(body.data.summary.format).toBe("solscan");
+    expect(body.data.imported).toBe(1);
+  });
 });
