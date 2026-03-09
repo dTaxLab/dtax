@@ -23,7 +23,7 @@ const ACQUISITION_TYPES = [
   "NFT_MINT",
   "MARGIN_TRADE",
   "LIQUIDATION",
-];
+] as const;
 
 /** Transaction types that trigger dispositions (taxable events) */
 const DISPOSITION_TYPES = [
@@ -38,7 +38,7 @@ const DISPOSITION_TYPES = [
   "NFT_SALE",
   "MARGIN_TRADE",
   "LIQUIDATION",
-];
+] as const;
 
 /** Transaction types that count as ordinary income */
 const INCOME_TYPES = [
@@ -47,7 +47,7 @@ const INCOME_TYPES = [
   "AIRDROP",
   "INTEREST",
   "LP_REWARD",
-];
+] as const;
 
 export interface TaxDataParams {
   userId: string;
@@ -83,7 +83,7 @@ export async function fetchTaxData({
     prisma.transaction.findMany({
       where: {
         userId,
-        type: { in: ACQUISITION_TYPES },
+        type: { in: [...ACQUISITION_TYPES] },
         timestamp: { lt: yearEnd },
       },
       orderBy: { timestamp: "asc" },
@@ -91,7 +91,7 @@ export async function fetchTaxData({
     prisma.transaction.findMany({
       where: {
         userId,
-        type: { in: DISPOSITION_TYPES },
+        type: { in: [...DISPOSITION_TYPES] },
         timestamp: { gte: yearStart, lt: yearEnd },
       },
       orderBy: { timestamp: "asc" },
@@ -133,7 +133,7 @@ export async function calculateIncome({
   const incomeItems = await prisma.transaction.findMany({
     where: {
       userId,
-      type: { in: INCOME_TYPES },
+      type: { in: [...INCOME_TYPES] },
       timestamp: { gte: yearStart, lt: yearEnd },
     },
   });

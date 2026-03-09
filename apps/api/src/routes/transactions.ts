@@ -330,7 +330,7 @@ export async function transactionRoutes(app: FastifyInstance) {
   });
 
   // DELETE /transactions/bulk — Bulk delete transactions
-  app.delete("/transactions/bulk", async (request, reply) => {
+  app.delete("/transactions/bulk", async (request, _reply) => {
     const body = z
       .object({
         ids: z.array(z.string().uuid()).min(1).max(500),

@@ -215,7 +215,7 @@ export async function taxRoutes(app: FastifyInstance) {
   });
 
   // GET /tax/schedule-d — Generate Schedule D summary from Form 8949
-  app.get("/tax/schedule-d", async (request, reply) => {
+  app.get("/tax/schedule-d", async (request, _reply) => {
     const query = z
       .object({
         year: z.coerce.number().int().min(2009).max(2030),

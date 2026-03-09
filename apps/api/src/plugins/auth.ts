@@ -50,7 +50,10 @@ async function authPlugin(app: FastifyInstance) {
       }
 
       try {
-        const decoded = await request.jwtVerify();
+        const decoded = (await request.jwtVerify()) as {
+          sub: string;
+          role: string;
+        };
         request.userId = decoded.sub;
         request.userRole = decoded.role;
       } catch {
