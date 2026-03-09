@@ -1,0 +1,64 @@
+name: Bug Report
+description: Report a bug in DTax tax engine, CLI, or self-hosted deployment
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - tax-engine (calculation logic)
+        - cli (command-line tool)
+        - web (frontend UI)
+        - api (backend server)
+        - docker (self-hosted deployment)
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened? What did you expect?
+      placeholder: |
+        **What happened:** ...
+        **Expected:** ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps to trigger the bug
+      placeholder: |
+        1. Import CSV with ...
+        2. Run calculate with FIFO ...
+        3. See incorrect gain of ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: method
+    attributes:
+      label: Cost basis method (if applicable)
+      options:
+        - FIFO
+        - LIFO
+        - HIFO
+        - Specific ID
+        - N/A
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "Output of: dtax --version or commit hash"
+      placeholder: "0.1.0 / abc1234"
+
+  - type: textarea
+    id: csv-sample
+    attributes:
+      label: Sample CSV (if applicable)
+      description: Anonymized CSV snippet that triggers the issue
+      render: csv
