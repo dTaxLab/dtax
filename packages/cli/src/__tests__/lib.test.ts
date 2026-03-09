@@ -97,6 +97,19 @@ describe("parseArgs", () => {
     expect(result.flags["schedule-d"]).toBe("true");
     expect(result.flags.year).toBe("2025");
   });
+
+  it("parses --currency and --rate flags", () => {
+    const result = parseArgs([
+      "calculate",
+      "f.csv",
+      "--currency",
+      "EUR",
+      "--rate",
+      "0.92",
+    ]);
+    expect(result.flags.currency).toBe("EUR");
+    expect(result.flags.rate).toBe("0.92");
+  });
 });
 
 // ─── toTaxLot ───────────────────────────────────
