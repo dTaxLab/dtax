@@ -63,6 +63,21 @@ describe("parseArgs", () => {
     expect(result.flags.method).toBe("LIFO");
   });
 
+  it("collects multiple files in files array", () => {
+    const result = parseArgs([
+      "calculate",
+      "coinbase.csv",
+      "binance.csv",
+      "kraken.csv",
+      "--method",
+      "HIFO",
+    ]);
+    expect(result.command).toBe("calculate");
+    expect(result.file).toBe("coinbase.csv");
+    expect(result.files).toEqual(["coinbase.csv", "binance.csv", "kraken.csv"]);
+    expect(result.flags.method).toBe("HIFO");
+  });
+
   it("treats consecutive flags without values as boolean", () => {
     const result = parseArgs(["calculate", "f.csv", "--json", "--verbose"]);
     expect(result.flags.json).toBe("true");
