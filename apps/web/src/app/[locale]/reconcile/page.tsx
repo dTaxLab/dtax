@@ -4,13 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { reconcile1099DA } from "@/lib/api";
 import type { ReconciliationReport } from "@/lib/api";
-
-function formatUsd(v: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(v);
-}
+import { useFiatFormatter } from "@/lib/use-fiat";
 
 const STATUS_COLORS: Record<string, string> = {
   matched: "var(--green)",
@@ -42,6 +36,7 @@ const labelStyle = {
 
 export default function ReconcilePage() {
   const t = useTranslations("reconcile");
+  const { formatFiat } = useFiatFormatter();
 
   const [year, setYear] = useState(2025);
   const [method, setMethod] = useState("FIFO");
@@ -215,7 +210,7 @@ export default function ReconcilePage() {
                         : "var(--yellow, #eab308)",
                 }}
               >
-                {formatUsd(report.summary.netGainLossDiff)}
+                {formatFiat(report.summary.netGainLossDiff)}
               </span>
             </div>
           </div>
@@ -297,12 +292,12 @@ export default function ReconcilePage() {
                       {item.brokerEntry ? (
                         <div style={{ color: "var(--text-primary)" }}>
                           {t("proceeds")}:{" "}
-                          {formatUsd(item.brokerEntry.grossProceeds)}
+                          {formatFiat(item.brokerEntry.grossProceeds)}
                           {item.brokerEntry.costBasis !== undefined && (
                             <>
                               {" "}
                               | {t("basis")}:{" "}
-                              {formatUsd(item.brokerEntry.costBasis)}
+                              {formatFiat(item.brokerEntry.costBasis)}
                             </>
                           )}
                         </div>
@@ -330,9 +325,9 @@ export default function ReconcilePage() {
                       </div>
                       {item.dtaxEntry ? (
                         <div style={{ color: "var(--text-primary)" }}>
-                          {t("proceeds")}: {formatUsd(item.dtaxEntry.proceeds)}
+                          {t("proceeds")}: {formatFiat(item.dtaxEntry.proceeds)}
                           {" | "}
-                          {t("basis")}: {formatUsd(item.dtaxEntry.costBasis)}
+                          {t("basis")}: {formatFiat(item.dtaxEntry.costBasis)}
                         </div>
                       ) : (
                         <div

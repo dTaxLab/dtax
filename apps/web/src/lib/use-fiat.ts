@@ -68,9 +68,12 @@ export function useFiatFormatter() {
   }, []);
 
   const formatFiat = useCallback(
-    (usdValue: number | undefined | null): string => {
+    (usdValue: number | string | undefined | null): string => {
       if (usdValue === undefined || usdValue === null) return "—";
-      const converted = usdValue * state.rate;
+      const num =
+        typeof usdValue === "string" ? parseFloat(usdValue) : usdValue;
+      if (isNaN(num)) return "—";
+      const converted = num * state.rate;
       const locale = FIAT_LOCALES[state.currency] || "en-US";
 
       // JPY and KRW have no decimal places

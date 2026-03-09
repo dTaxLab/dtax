@@ -9,13 +9,13 @@ import {
 } from "@/lib/api";
 import type { Transaction, SortField, SortOrder } from "@/lib/api";
 import {
-  formatUsd,
   formatDate,
   getBadgeClass,
   inputStyle,
   TRANSACTION_TYPES,
   BUY_TYPES,
 } from "./shared";
+import { useFiatFormatter } from "@/lib/use-fiat";
 
 /** Build truncated page numbers: 1 ... 4 5 [6] 7 8 ... 20 */
 function getPageNumbers(current: number, total: number): (number | "...")[] {
@@ -52,6 +52,7 @@ export function TransactionTable({
   const t = useTranslations("transactions");
   const tt = useTranslations("table");
   const tType = useTranslations("txTypes");
+  const { formatFiat } = useFiatFormatter();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
@@ -419,10 +420,10 @@ export function TransactionTable({
                       : "—"}
                   </td>
                   <td style={{ textAlign: "right" }} className="mono">
-                    {formatUsd(value)}
+                    {formatFiat(value)}
                   </td>
                   <td style={{ textAlign: "right" }} className="mono">
-                    {formatUsd(tx.feeValueUsd)}
+                    {formatFiat(tx.feeValueUsd)}
                   </td>
                   <td style={{ color: "var(--text-muted)", fontSize: "13px" }}>
                     {tx.notes || "—"}

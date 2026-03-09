@@ -4,14 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { getPortfolioHoldings, getPrices } from "@/lib/api";
 import type { PortfolioAnalysis } from "@/lib/api";
-
-function formatUsd(value: number | undefined | null): string {
-  if (value === null || value === undefined) return "—";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(value);
-}
+import { useFiatFormatter } from "@/lib/use-fiat";
 
 function formatAmount(value: number, asset: string): string {
   return `${value.toLocaleString("en-US", { maximumFractionDigits: 8 })} ${asset}`;
@@ -25,6 +18,7 @@ function formatPct(value: number | undefined): string {
 export default function PortfolioPage() {
   const t = useTranslations("portfolio");
   const tc = useTranslations("common");
+  const { formatFiat } = useFiatFormatter();
 
   const [analysis, setAnalysis] = useState<PortfolioAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
@@ -167,13 +161,13 @@ export default function PortfolioPage() {
           <div className="stat-card">
             <span className="stat-label">{t("totalCostBasis")}</span>
             <span className="stat-value neutral">
-              {formatUsd(analysis.totalCostBasis)}
+              {formatFiat(analysis.totalCostBasis)}
             </span>
           </div>
           <div className="stat-card">
             <span className="stat-label">{t("totalValue")}</span>
             <span className="stat-value neutral">
-              {hasPrices ? formatUsd(analysis.totalCurrentValue) : "—"}
+              {hasPrices ? formatFiat(analysis.totalCurrentValue) : "—"}
             </span>
           </div>
           <div className="stat-card">
@@ -187,7 +181,7 @@ export default function PortfolioPage() {
                   : "neutral"
               }`}
             >
-              {hasPrices ? formatUsd(analysis.totalUnrealizedGainLoss) : "—"}
+              {hasPrices ? formatFiat(analysis.totalUnrealizedGainLoss) : "—"}
             </span>
           </div>
           <div className="stat-card">
@@ -345,19 +339,19 @@ export default function PortfolioPage() {
                       })}
                     </td>
                     <td className="mono" style={{ textAlign: "right" }}>
-                      {formatUsd(pos.avgCostPerUnit)}
+                      {formatFiat(pos.avgCostPerUnit)}
                     </td>
                     {hasPrices && (
                       <td className="mono" style={{ textAlign: "right" }}>
-                        {formatUsd(pos.currentPrice)}
+                        {formatFiat(pos.currentPrice)}
                       </td>
                     )}
                     <td className="mono" style={{ textAlign: "right" }}>
-                      {formatUsd(pos.totalCostBasis)}
+                      {formatFiat(pos.totalCostBasis)}
                     </td>
                     {hasPrices && (
                       <td className="mono" style={{ textAlign: "right" }}>
-                        {formatUsd(pos.currentValueUsd)}
+                        {formatFiat(pos.currentValueUsd)}
                       </td>
                     )}
                     {hasPrices && (
@@ -370,7 +364,7 @@ export default function PortfolioPage() {
                                 : "var(--red)",
                           }}
                         >
-                          {formatUsd(pos.unrealizedGainLoss)}
+                          {formatFiat(pos.unrealizedGainLoss)}
                           <span
                             style={{
                               fontSize: "12px",
@@ -428,7 +422,7 @@ export default function PortfolioPage() {
               >
                 <span className="stat-label">{t("tlh.totalAvailable")}</span>
                 <span className="stat-value negative">
-                  {formatUsd(analysis.totalTlhAvailable)}
+                  {formatFiat(analysis.totalTlhAvailable)}
                 </span>
               </div>
 
@@ -463,7 +457,7 @@ export default function PortfolioPage() {
                           fontSize: "16px",
                         }}
                       >
-                        {formatUsd(opp.unrealizedLoss)}
+                        {formatFiat(opp.unrealizedLoss)}
                       </span>
                     </div>
                     <div
@@ -497,7 +491,7 @@ export default function PortfolioPage() {
                           {t("tlh.costBasis")}
                         </span>
                         <div className="mono">
-                          {formatUsd(opp.totalCostBasis)}
+                          {formatFiat(opp.totalCostBasis)}
                         </div>
                       </div>
                       <div>
@@ -510,7 +504,7 @@ export default function PortfolioPage() {
                           {t("tlh.currentValue")}
                         </span>
                         <div className="mono">
-                          {formatUsd(opp.currentValue)}
+                          {formatFiat(opp.currentValue)}
                         </div>
                       </div>
                     </div>

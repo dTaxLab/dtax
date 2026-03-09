@@ -11,13 +11,7 @@ import {
 } from "@/lib/api";
 import type { TaxSummary, Form8949Report, ScheduleDReport } from "@/lib/api";
 import { getPreferences } from "@/lib/preferences";
-
-function formatUsd(v: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(v);
-}
+import { useFiatFormatter } from "@/lib/use-fiat";
 
 const selectStyle = {
   padding: "10px 16px",
@@ -39,6 +33,7 @@ const labelStyle = {
 
 export default function TaxPage() {
   const t = useTranslations("tax");
+  const { formatFiat } = useFiatFormatter();
 
   const prefs = typeof window !== "undefined" ? getPreferences() : null;
   const currentYear = new Date().getFullYear();
@@ -169,7 +164,7 @@ export default function TaxPage() {
               <span
                 className={`stat-value ${report.netGainLoss >= 0 ? "positive" : "negative"}`}
               >
-                {formatUsd(report.netGainLoss)}
+                {formatFiat(report.netGainLoss)}
               </span>
             </div>
             <div className="stat-card">
@@ -213,16 +208,16 @@ export default function TaxPage() {
                       {t("shortTerm")}
                     </td>
                     <td style={{ textAlign: "right", color: "var(--green)" }}>
-                      {formatUsd(report.shortTermGains)}
+                      {formatFiat(report.shortTermGains)}
                     </td>
                     <td style={{ textAlign: "right", color: "var(--red)" }}>
-                      ({formatUsd(report.shortTermLosses)})
+                      ({formatFiat(report.shortTermLosses)})
                     </td>
                     <td
                       style={{ textAlign: "right", fontWeight: 600 }}
                       className="mono"
                     >
-                      {formatUsd(
+                      {formatFiat(
                         report.shortTermGains - report.shortTermLosses,
                       )}
                     </td>
@@ -234,16 +229,16 @@ export default function TaxPage() {
                       {t("longTerm")}
                     </td>
                     <td style={{ textAlign: "right", color: "var(--green)" }}>
-                      {formatUsd(report.longTermGains)}
+                      {formatFiat(report.longTermGains)}
                     </td>
                     <td style={{ textAlign: "right", color: "var(--red)" }}>
-                      ({formatUsd(report.longTermLosses)})
+                      ({formatFiat(report.longTermLosses)})
                     </td>
                     <td
                       style={{ textAlign: "right", fontWeight: 600 }}
                       className="mono"
                     >
-                      {formatUsd(report.longTermGains - report.longTermLosses)}
+                      {formatFiat(report.longTermGains - report.longTermLosses)}
                     </td>
                   </tr>
                   <tr style={{ background: "var(--bg-surface)" }}>
@@ -259,7 +254,7 @@ export default function TaxPage() {
                         fontWeight: 600,
                       }}
                     >
-                      {formatUsd(report.shortTermGains + report.longTermGains)}
+                      {formatFiat(report.shortTermGains + report.longTermGains)}
                     </td>
                     <td
                       style={{
@@ -269,7 +264,7 @@ export default function TaxPage() {
                       }}
                     >
                       (
-                      {formatUsd(
+                      {formatFiat(
                         report.shortTermLosses + report.longTermLosses,
                       )}
                       )
@@ -286,7 +281,7 @@ export default function TaxPage() {
                       }}
                       className="mono"
                     >
-                      {formatUsd(report.netGainLoss)}
+                      {formatFiat(report.netGainLoss)}
                     </td>
                   </tr>
                 </tbody>
@@ -381,12 +376,12 @@ export default function TaxPage() {
                             <td
                               style={{ textAlign: "right", fontSize: "13px" }}
                             >
-                              {formatUsd(data.proceeds)}
+                              {formatFiat(data.proceeds)}
                             </td>
                             <td
                               style={{ textAlign: "right", fontSize: "13px" }}
                             >
-                              {formatUsd(data.costBasis)}
+                              {formatFiat(data.costBasis)}
                             </td>
                             <td
                               style={{
@@ -398,7 +393,7 @@ export default function TaxPage() {
                                     : "var(--red)",
                               }}
                             >
-                              {formatUsd(data.gainLoss)}
+                              {formatFiat(data.gainLoss)}
                             </td>
                           </tr>
                         ))}
@@ -444,7 +439,7 @@ export default function TaxPage() {
                     {t("washSale.totalDisallowed")}:{" "}
                   </span>
                   <span style={{ fontWeight: 600, color: "var(--yellow)" }}>
-                    {formatUsd(washSaleSummary.totalDisallowed)}
+                    {formatFiat(washSaleSummary.totalDisallowed)}
                   </span>
                 </div>
               </div>
@@ -512,10 +507,10 @@ export default function TaxPage() {
                         </td>
                         <td style={{ fontSize: "13px" }}>{line.description}</td>
                         <td style={{ textAlign: "right", fontSize: "13px" }}>
-                          {line.proceeds ? formatUsd(line.proceeds) : "—"}
+                          {line.proceeds ? formatFiat(line.proceeds) : "—"}
                         </td>
                         <td style={{ textAlign: "right", fontSize: "13px" }}>
-                          {line.costBasis ? formatUsd(line.costBasis) : "—"}
+                          {line.costBasis ? formatFiat(line.costBasis) : "—"}
                         </td>
                         <td
                           style={{
@@ -528,7 +523,7 @@ export default function TaxPage() {
                                 : "var(--red)",
                           }}
                         >
-                          {line.gainLoss ? formatUsd(line.gainLoss) : "—"}
+                          {line.gainLoss ? formatFiat(line.gainLoss) : "—"}
                         </td>
                       </tr>
                     ))}
@@ -546,7 +541,7 @@ export default function TaxPage() {
                               : "var(--red)",
                         }}
                       >
-                        {formatUsd(scheduleD.netShortTerm)}
+                        {formatFiat(scheduleD.netShortTerm)}
                       </td>
                     </tr>
                   </tbody>
@@ -592,10 +587,10 @@ export default function TaxPage() {
                         </td>
                         <td style={{ fontSize: "13px" }}>{line.description}</td>
                         <td style={{ textAlign: "right", fontSize: "13px" }}>
-                          {line.proceeds ? formatUsd(line.proceeds) : "—"}
+                          {line.proceeds ? formatFiat(line.proceeds) : "—"}
                         </td>
                         <td style={{ textAlign: "right", fontSize: "13px" }}>
-                          {line.costBasis ? formatUsd(line.costBasis) : "—"}
+                          {line.costBasis ? formatFiat(line.costBasis) : "—"}
                         </td>
                         <td
                           style={{
@@ -608,7 +603,7 @@ export default function TaxPage() {
                                 : "var(--red)",
                           }}
                         >
-                          {line.gainLoss ? formatUsd(line.gainLoss) : "—"}
+                          {line.gainLoss ? formatFiat(line.gainLoss) : "—"}
                         </td>
                       </tr>
                     ))}
@@ -626,7 +621,7 @@ export default function TaxPage() {
                               : "var(--red)",
                         }}
                       >
-                        {formatUsd(scheduleD.netLongTerm)}
+                        {formatFiat(scheduleD.netLongTerm)}
                       </td>
                     </tr>
                   </tbody>
@@ -661,7 +656,7 @@ export default function TaxPage() {
                           : "var(--red)",
                     }}
                   >
-                    {formatUsd(scheduleD.combinedNetGainLoss)}
+                    {formatFiat(scheduleD.combinedNetGainLoss)}
                   </span>
                 </div>
                 {scheduleD.capitalLossDeduction > 0 && (
@@ -678,7 +673,7 @@ export default function TaxPage() {
                         {t("scheduleD.lossDeduction")}
                       </span>
                       <span style={{ color: "var(--red)", fontWeight: 600 }}>
-                        ({formatUsd(scheduleD.capitalLossDeduction)})
+                        ({formatFiat(scheduleD.capitalLossDeduction)})
                       </span>
                     </div>
                     {scheduleD.carryoverLoss > 0 && (
@@ -695,7 +690,7 @@ export default function TaxPage() {
                         <span
                           style={{ color: "var(--yellow)", fontWeight: 600 }}
                         >
-                          {formatUsd(scheduleD.carryoverLoss)}
+                          {formatFiat(scheduleD.carryoverLoss)}
                         </span>
                       </div>
                     )}
@@ -772,7 +767,7 @@ export default function TaxPage() {
                               : "var(--red)",
                         }}
                       >
-                        {formatUsd(bs.totalGainLoss)}
+                        {formatFiat(bs.totalGainLoss)}
                       </div>
                     </div>
                   ))}
@@ -866,10 +861,10 @@ export default function TaxPage() {
                           {line.dateSold}
                         </td>
                         <td style={{ textAlign: "right", fontSize: "13px" }}>
-                          {formatUsd(line.proceeds)}
+                          {formatFiat(line.proceeds)}
                         </td>
                         <td style={{ textAlign: "right", fontSize: "13px" }}>
-                          {formatUsd(line.costBasis)}
+                          {formatFiat(line.costBasis)}
                         </td>
                         <td
                           style={{
@@ -882,7 +877,7 @@ export default function TaxPage() {
                                 : "var(--red)",
                           }}
                         >
-                          {formatUsd(line.gainLoss)}
+                          {formatFiat(line.gainLoss)}
                         </td>
                       </tr>
                     ))}

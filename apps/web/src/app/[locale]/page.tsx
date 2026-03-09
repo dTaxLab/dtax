@@ -6,15 +6,7 @@ import { getTransactions, getTaxSummary, calculateTax } from "@/lib/api";
 import type { Transaction, TaxSummary } from "@/lib/api";
 import { getBadgeClass } from "./transactions/components/shared";
 import { getPreferences } from "@/lib/preferences";
-
-function formatUsd(value: number | string | null): string {
-  if (value === null || value === undefined) return "—";
-  const num = typeof value === "string" ? parseFloat(value) : value;
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(num);
-}
+import { useFiatFormatter } from "@/lib/use-fiat";
 
 function formatAmount(value: string | null, asset: string | null): string {
   if (!value || !asset) return "—";
@@ -35,6 +27,7 @@ export default function Dashboard() {
   const tc = useTranslations("common");
   const tf = useTranslations("footer");
   const tType = useTranslations("txTypes");
+  const { formatFiat } = useFiatFormatter();
 
   const prefs = typeof window !== "undefined" ? getPreferences() : null;
   const currentYear = new Date().getFullYear();
@@ -181,7 +174,7 @@ export default function Dashboard() {
           <span
             className={`stat-value ${taxSummary && taxSummary.netGainLoss >= 0 ? "positive" : "negative"}`}
           >
-            {taxSummary ? formatUsd(taxSummary.netGainLoss) : "—"}
+            {taxSummary ? formatFiat(taxSummary.netGainLoss) : "—"}
           </span>
         </div>
         <div className="stat-card">
@@ -190,7 +183,7 @@ export default function Dashboard() {
             className={`stat-value ${taxSummary && taxSummary.longTermGains - taxSummary.longTermLosses >= 0 ? "positive" : "negative"}`}
           >
             {taxSummary
-              ? formatUsd(taxSummary.longTermGains - taxSummary.longTermLosses)
+              ? formatFiat(taxSummary.longTermGains - taxSummary.longTermLosses)
               : "—"}
           </span>
         </div>
@@ -200,7 +193,7 @@ export default function Dashboard() {
             className={`stat-value ${taxSummary && taxSummary.shortTermGains - taxSummary.shortTermLosses >= 0 ? "positive" : "negative"}`}
           >
             {taxSummary
-              ? formatUsd(
+              ? formatFiat(
                   taxSummary.shortTermGains - taxSummary.shortTermLosses,
                 )
               : "—"}
@@ -217,7 +210,7 @@ export default function Dashboard() {
           >
             <span className="stat-label">{t("ordinaryIncome")}</span>
             <span className="stat-value" style={{ color: "var(--accent)" }}>
-              {formatUsd(
+              {formatFiat(
                 taxSummary.income?.total ?? taxSummary.totalIncome ?? 0,
               )}
             </span>
@@ -232,24 +225,25 @@ export default function Dashboard() {
               >
                 {taxSummary.income.staking > 0 && (
                   <div>
-                    {t("stakingIncome")}: {formatUsd(taxSummary.income.staking)}
+                    {t("stakingIncome")}:{" "}
+                    {formatFiat(taxSummary.income.staking)}
                   </div>
                 )}
                 {taxSummary.income.mining > 0 && (
                   <div>
-                    {t("miningIncome")}: {formatUsd(taxSummary.income.mining)}
+                    {t("miningIncome")}: {formatFiat(taxSummary.income.mining)}
                   </div>
                 )}
                 {taxSummary.income.airdrops > 0 && (
                   <div>
                     {t("airdropIncome")}:{" "}
-                    {formatUsd(taxSummary.income.airdrops)}
+                    {formatFiat(taxSummary.income.airdrops)}
                   </div>
                 )}
                 {taxSummary.income.interest > 0 && (
                   <div>
                     {t("interestIncome")}:{" "}
-                    {formatUsd(taxSummary.income.interest)}
+                    {formatFiat(taxSummary.income.interest)}
                   </div>
                 )}
               </div>
@@ -327,7 +321,7 @@ export default function Dashboard() {
                     </td>
                     <td className="mono">{formatAmount(amount, asset)}</td>
                     <td style={{ textAlign: "right" }} className="mono">
-                      {formatUsd(value)}
+                      {formatFiat(value)}
                     </td>
                     <td style={{ textAlign: "right" }} className="mono">
                       {tx.gainLoss ? (
@@ -339,7 +333,7 @@ export default function Dashboard() {
                                 : "var(--red)",
                           }}
                         >
-                          {formatUsd(tx.gainLoss)}
+                          {formatFiat(tx.gainLoss)}
                         </span>
                       ) : (
                         <span style={{ color: "var(--text-muted)" }}>—</span>

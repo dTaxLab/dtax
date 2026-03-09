@@ -5,16 +5,10 @@ import { useTranslations } from "next-intl";
 import { getTaxSummary } from "@/lib/api";
 import type { TaxSummary } from "@/lib/api";
 import { getPreferences } from "@/lib/preferences";
+import { useFiatFormatter } from "@/lib/use-fiat";
 
 const currentYear = new Date().getFullYear();
 const ALL_YEARS = Array.from({ length: 10 }, (_, i) => currentYear - i);
-
-function formatUsd(v: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(v);
-}
 
 function colorClass(v: number): string {
   if (v > 0) return "var(--green-light, #22c55e)";
@@ -24,6 +18,7 @@ function colorClass(v: number): string {
 
 export default function ComparePage() {
   const t = useTranslations("compare");
+  const { formatFiat } = useFiatFormatter();
   const prefs = typeof window !== "undefined" ? getPreferences() : null;
   const [method, setMethod] = useState<string>(prefs?.defaultMethod ?? "FIFO");
   const [selectedYears, setSelectedYears] = useState<Set<number>>(
@@ -218,12 +213,12 @@ export default function ComparePage() {
                         color: "var(--green-light, #22c55e)",
                       }}
                     >
-                      {formatUsd(r.shortTermGains)}
+                      {formatFiat(r.shortTermGains)}
                     </td>
                     <td
                       style={{ ...tdStyle, color: "var(--red-light, #ef4444)" }}
                     >
-                      {formatUsd(r.shortTermLosses)}
+                      {formatFiat(r.shortTermLosses)}
                     </td>
                     <td
                       style={{
@@ -231,12 +226,12 @@ export default function ComparePage() {
                         color: "var(--green-light, #22c55e)",
                       }}
                     >
-                      {formatUsd(r.longTermGains)}
+                      {formatFiat(r.longTermGains)}
                     </td>
                     <td
                       style={{ ...tdStyle, color: "var(--red-light, #ef4444)" }}
                     >
-                      {formatUsd(r.longTermLosses)}
+                      {formatFiat(r.longTermLosses)}
                     </td>
                     <td
                       style={{
@@ -245,7 +240,7 @@ export default function ComparePage() {
                         color: colorClass(net),
                       }}
                     >
-                      {formatUsd(net)}
+                      {formatFiat(net)}
                     </td>
                     <td style={tdStyle}>{r.totalTransactions}</td>
                   </tr>
