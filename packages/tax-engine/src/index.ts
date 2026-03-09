@@ -49,6 +49,8 @@ export {
   isBybitCsv,
   parseGateCsv,
   isGateCsv,
+  parseBitgetCsv,
+  isBitgetCsv,
   detectCsvFormat,
   parseCsvRows,
   parseCsvToObjects,
