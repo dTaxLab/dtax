@@ -20,7 +20,8 @@ export type CsvFormat =
   | "gate"
   | "bitget"
   | "mexc"
-  | "htx";
+  | "htx"
+  | "solscan";
 
 /** A parsed transaction row from CSV */
 export interface ParsedTransaction {

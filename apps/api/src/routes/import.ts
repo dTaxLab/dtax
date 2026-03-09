@@ -47,6 +47,7 @@ const formatSchema = z
     "bitget",
     "mexc",
     "htx",
+    "solscan",
   ])
   .optional();
 
