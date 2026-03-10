@@ -508,6 +508,113 @@ describe("Tax Routes", () => {
 
     expect(res.statusCode).toBe(404);
   });
+
+  // ─── GET /tax/form8949 ──────────────────────
+
+  it("GET /tax/form8949 returns Form 8949 report as JSON", async () => {
+    const buyTx = mockTransaction({
+      id: "buy-8949",
+      type: "BUY",
+      receivedAsset: "BTC",
+      receivedAmount: 1,
+      receivedValueUsd: 30000,
+      timestamp: new Date("2024-01-15T00:00:00Z"),
+    });
+    const sellTx = mockTransaction({
+      id: "sell-8949",
+      type: "SELL",
+      sentAsset: "BTC",
+      sentAmount: 1,
+      sentValueUsd: 45000,
+      feeValueUsd: 10,
+      timestamp: new Date("2025-06-15T00:00:00Z"),
+    });
+
+    mockPrisma.transaction.findMany
+      .mockResolvedValueOnce([buyTx])
+      .mockResolvedValueOnce([sellTx]);
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/tax/form8949?year=2025&method=FIFO",
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data.taxYear).toBe(2025);
+    expect(body.data.lines).toBeInstanceOf(Array);
+    expect(body.data.lines.length).toBeGreaterThan(0);
+    expect(body.data.lines[0].description).toContain("BTC");
+  });
+
+  it("GET /tax/form8949 returns CSV format", async () => {
+    const buyTx = mockTransaction({
+      id: "buy-csv",
+      type: "BUY",
+      receivedAsset: "ETH",
+      receivedAmount: 10,
+      receivedValueUsd: 28000,
+      timestamp: new Date("2024-02-01T00:00:00Z"),
+    });
+    const sellTx = mockTransaction({
+      id: "sell-csv",
+      type: "SELL",
+      sentAsset: "ETH",
+      sentAmount: 10,
+      sentValueUsd: 35000,
+      timestamp: new Date("2025-08-01T00:00:00Z"),
+    });
+
+    mockPrisma.transaction.findMany
+      .mockResolvedValueOnce([buyTx])
+      .mockResolvedValueOnce([sellTx]);
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/tax/form8949?year=2025&method=FIFO&format=csv",
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-type"]).toContain("text/csv");
+    expect(res.headers["content-disposition"]).toContain("form8949");
+    expect(res.body).toContain("Description");
+  });
+
+  // ─── GET /tax/schedule-d ────────────────────
+
+  it("GET /tax/schedule-d returns Schedule D summary", async () => {
+    const buyTx = mockTransaction({
+      id: "buy-sd",
+      type: "BUY",
+      receivedAsset: "BTC",
+      receivedAmount: 1,
+      receivedValueUsd: 30000,
+      timestamp: new Date("2024-01-15T00:00:00Z"),
+    });
+    const sellTx = mockTransaction({
+      id: "sell-sd",
+      type: "SELL",
+      sentAsset: "BTC",
+      sentAmount: 1,
+      sentValueUsd: 45000,
+      timestamp: new Date("2025-06-15T00:00:00Z"),
+    });
+
+    mockPrisma.transaction.findMany
+      .mockResolvedValueOnce([buyTx])
+      .mockResolvedValueOnce([sellTx]);
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/tax/schedule-d?year=2025&method=FIFO",
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data.netLongTerm).toBeDefined();
+    expect(body.data.netShortTerm).toBeDefined();
+    expect(body.data.combinedNetGainLoss).toBeDefined();
+  });
 });
 
 describe("Transfer Routes", () => {
