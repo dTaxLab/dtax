@@ -19,6 +19,7 @@ const mockPrisma = {
     update: vi.fn(),
     delete: vi.fn(),
     createMany: vi.fn(),
+    deleteMany: vi.fn(),
     updateMany: vi.fn(),
     groupBy: vi.fn(),
   },
@@ -282,6 +283,48 @@ describe("Transaction Routes", () => {
     });
 
     expect(res.statusCode).toBe(404);
+  });
+
+  // ─── DELETE /transactions/bulk ───────────────
+
+  it("DELETE /transactions/bulk deletes multiple transactions", async () => {
+    mockPrisma.transaction.deleteMany.mockResolvedValueOnce({ count: 3 });
+
+    const res = await app.inject({
+      method: "DELETE",
+      url: "/api/v1/transactions/bulk",
+      payload: {
+        ids: [
+          "550e8400-e29b-41d4-a716-446655440001",
+          "550e8400-e29b-41d4-a716-446655440002",
+          "550e8400-e29b-41d4-a716-446655440003",
+        ],
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data.deleted).toBe(3);
+  });
+
+  it("DELETE /transactions/bulk rejects empty ids array", async () => {
+    const res = await app.inject({
+      method: "DELETE",
+      url: "/api/v1/transactions/bulk",
+      payload: { ids: [] },
+    });
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("DELETE /transactions/bulk rejects non-UUID ids", async () => {
+    const res = await app.inject({
+      method: "DELETE",
+      url: "/api/v1/transactions/bulk",
+      payload: { ids: ["not-a-uuid", "also-not-uuid"] },
+    });
+
+    expect(res.statusCode).toBe(400);
   });
 
   // ─── GET /transactions/export ────────────────
