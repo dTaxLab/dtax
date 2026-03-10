@@ -61,6 +61,8 @@ export {
   isSolscanCsv,
   isSolscanSplCsv,
   isSolscanDefiCsv,
+  parseBitfinexCsv,
+  isBitfinexCsv,
   detectCsvFormat,
   parseCsvRows,
   parseCsvToObjects,

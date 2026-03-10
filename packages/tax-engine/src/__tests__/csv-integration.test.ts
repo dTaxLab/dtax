@@ -69,6 +69,7 @@ const FORMAT_HEADERS: [CsvFormat, string][] = [
     "solscan_defi",
     "Signature,Timestamp,Platform,Activity,TokenIn,AmountIn,TokenOut,AmountOut,Fee",
   ],
+  ["bitfinex", "#,PAIR,AMOUNT,PRICE,FEE,FEE CURRENCY,DATE,ORDER ID"],
 ];
 
 describe("detectCsvFormat — cross-format matrix", () => {
