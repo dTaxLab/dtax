@@ -40,6 +40,7 @@ import {
   isSolscanDefiCsv,
 } from "./solscan";
 import { parseBitfinexCsv, isBitfinexCsv } from "./bitfinex";
+import { parsePoloniexCsv, isPoloniexCsv } from "./poloniex";
 import type { CsvParseResult, CsvFormat, GenericColumnMap } from "./types";
 
 /**
@@ -63,6 +64,7 @@ export function detectCsvFormat(csv: string): CsvFormat {
   if (isBitgetCsv(csv)) return "bitget";
   if (isHtxCsv(csv)) return "htx";
   if (isBitfinexCsv(csv)) return "bitfinex";
+  if (isPoloniexCsv(csv)) return "poloniex";
   if (isOkxCsv(csv)) return "okx";
   if (isBybitCsv(csv)) return "bybit";
   return "generic";
@@ -129,6 +131,8 @@ export function parseCsv(
       return parseSolscanDefiCsv(csv);
     case "bitfinex":
       return parseBitfinexCsv(csv);
+    case "poloniex":
+      return parsePoloniexCsv(csv);
     case "generic":
     default:
       return parseGenericCsv(csv, options?.columnMap);
@@ -169,6 +173,7 @@ export {
   isSolscanDefiCsv,
 } from "./solscan";
 export { parseBitfinexCsv, isBitfinexCsv } from "./bitfinex";
+export { parsePoloniexCsv, isPoloniexCsv } from "./poloniex";
 export { parseCsvRows, parseCsvToObjects } from "./csv-core";
 export type {
   CsvFormat,

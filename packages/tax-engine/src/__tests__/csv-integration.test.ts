@@ -70,6 +70,10 @@ const FORMAT_HEADERS: [CsvFormat, string][] = [
     "Signature,Timestamp,Platform,Activity,TokenIn,AmountIn,TokenOut,AmountOut,Fee",
   ],
   ["bitfinex", "#,PAIR,AMOUNT,PRICE,FEE,FEE CURRENCY,DATE,ORDER ID"],
+  [
+    "poloniex",
+    "Date,Market,Category,Type,Price,Amount,Total,Fee,Order Number,Base Total Less Fee,Quote Total Less Fee,Fee Currency,Fee Total",
+  ],
 ];
 
 describe("detectCsvFormat — cross-format matrix", () => {

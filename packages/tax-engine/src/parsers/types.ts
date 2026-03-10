@@ -23,7 +23,8 @@ export type CsvFormat =
   | "htx"
   | "solscan"
   | "solscan_defi"
-  | "bitfinex";
+  | "bitfinex"
+  | "poloniex";
 
 /** A parsed transaction row from CSV */
 export interface ParsedTransaction {
