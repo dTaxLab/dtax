@@ -50,6 +50,7 @@ const formatSchema = z
     "solscan",
     "solscan_defi",
     "bitfinex",
+    "poloniex",
   ])
   .optional();
 
