@@ -40,6 +40,7 @@ const mockPrisma = {
     findUnique: vi.fn(),
   },
   $queryRaw: vi.fn(),
+  $transaction: vi.fn(),
 };
 
 vi.mock("../lib/prisma", () => ({
@@ -680,6 +681,118 @@ describe("Transfer Routes", () => {
     expect(body.data.matches).toHaveLength(1);
     expect(body.data.matches[0].outTx.id).toBe("out-1");
     expect(body.data.matches[0].inTx.id).toBe("in-1");
+  });
+
+  // ─── POST /transfers/confirm ──────────────────
+
+  it("POST /transfers/confirm converts pair to INTERNAL_TRANSFER", async () => {
+    const outTx = mockTransaction({
+      id: "00000000-0000-0000-0000-000000000001",
+      type: "TRANSFER_OUT",
+      sentAsset: "BTC",
+      sentAmount: 1,
+    });
+    const inTx = mockTransaction({
+      id: "00000000-0000-0000-0000-000000000002",
+      type: "TRANSFER_IN",
+      receivedAsset: "BTC",
+      receivedAmount: 0.999,
+    });
+
+    mockPrisma.transaction.findFirst
+      .mockResolvedValueOnce(outTx)
+      .mockResolvedValueOnce(inTx);
+    mockPrisma.$transaction.mockResolvedValueOnce([{}, {}]);
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/transfers/confirm",
+      payload: {
+        outTxId: "00000000-0000-0000-0000-000000000001",
+        inTxId: "00000000-0000-0000-0000-000000000002",
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data.status).toBe("confirmed");
+    expect(body.data.outTxId).toBe("00000000-0000-0000-0000-000000000001");
+    expect(body.data.inTxId).toBe("00000000-0000-0000-0000-000000000002");
+  });
+
+  it("POST /transfers/confirm returns 404 when tx not found", async () => {
+    mockPrisma.transaction.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/transfers/confirm",
+      payload: {
+        outTxId: "00000000-0000-0000-0000-000000000001",
+        inTxId: "00000000-0000-0000-0000-000000000002",
+      },
+    });
+
+    expect(res.statusCode).toBe(404);
+    const body = JSON.parse(res.body);
+    expect(body.error.message).toContain("not found");
+  });
+
+  // ─── POST /transfers/dismiss ──────────────────
+
+  it("POST /transfers/dismiss marks pair as reviewed", async () => {
+    const outTx = mockTransaction({
+      id: "00000000-0000-0000-0000-000000000003",
+      type: "TRANSFER_OUT",
+      sentAsset: "ETH",
+      sentAmount: 5,
+    });
+    const inTx = mockTransaction({
+      id: "00000000-0000-0000-0000-000000000004",
+      type: "TRANSFER_IN",
+      receivedAsset: "ETH",
+      receivedAmount: 4.99,
+    });
+
+    mockPrisma.transaction.findFirst
+      .mockResolvedValueOnce(outTx)
+      .mockResolvedValueOnce(inTx);
+    mockPrisma.$transaction.mockResolvedValueOnce([{}, {}]);
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/transfers/dismiss",
+      payload: {
+        outTxId: "00000000-0000-0000-0000-000000000003",
+        inTxId: "00000000-0000-0000-0000-000000000004",
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data.status).toBe("dismissed");
+  });
+
+  it("POST /transfers/dismiss returns 404 when tx not found", async () => {
+    mockPrisma.transaction.findFirst
+      .mockResolvedValueOnce(
+        mockTransaction({ id: "00000000-0000-0000-0000-000000000005" }),
+      )
+      .mockResolvedValueOnce(null);
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/transfers/dismiss",
+      payload: {
+        outTxId: "00000000-0000-0000-0000-000000000005",
+        inTxId: "00000000-0000-0000-0000-000000000006",
+      },
+    });
+
+    expect(res.statusCode).toBe(404);
+    const body = JSON.parse(res.body);
+    expect(body.error.message).toContain("not found");
   });
 });
 
