@@ -49,6 +49,7 @@ const formatSchema = z
     "htx",
     "solscan",
     "solscan_defi",
+    "bitfinex",
   ])
   .optional();
 

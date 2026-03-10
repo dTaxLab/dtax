@@ -39,6 +39,7 @@ import {
   isSolscanSplCsv,
   isSolscanDefiCsv,
 } from "./solscan";
+import { parseBitfinexCsv, isBitfinexCsv } from "./bitfinex";
 import type { CsvParseResult, CsvFormat, GenericColumnMap } from "./types";
 
 /**
@@ -61,6 +62,7 @@ export function detectCsvFormat(csv: string): CsvFormat {
   if (isGateCsv(csv)) return "gate";
   if (isBitgetCsv(csv)) return "bitget";
   if (isHtxCsv(csv)) return "htx";
+  if (isBitfinexCsv(csv)) return "bitfinex";
   if (isOkxCsv(csv)) return "okx";
   if (isBybitCsv(csv)) return "bybit";
   return "generic";
@@ -125,6 +127,8 @@ export function parseCsv(
         : parseSolscanCsv(csv, options?.userAddress || "");
     case "solscan_defi":
       return parseSolscanDefiCsv(csv);
+    case "bitfinex":
+      return parseBitfinexCsv(csv);
     case "generic":
     default:
       return parseGenericCsv(csv, options?.columnMap);
@@ -164,6 +168,7 @@ export {
   isSolscanSplCsv,
   isSolscanDefiCsv,
 } from "./solscan";
+export { parseBitfinexCsv, isBitfinexCsv } from "./bitfinex";
 export { parseCsvRows, parseCsvToObjects } from "./csv-core";
 export type {
   CsvFormat,

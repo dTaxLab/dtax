@@ -118,6 +118,7 @@ export function ImportPanel({ onImported }: ImportPanelProps) {
             <option value="etherscan_erc20">Etherscan (ERC-20 Tokens)</option>
             <option value="solscan">Solscan (Solana Transfers)</option>
             <option value="solscan_defi">Solscan (Solana DeFi)</option>
+            <option value="bitfinex">Bitfinex</option>
             <option value="generic">Generic CSV</option>
           </select>
         </div>
