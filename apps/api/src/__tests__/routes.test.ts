@@ -616,6 +616,74 @@ describe("Tax Routes", () => {
     expect(body.data.netShortTerm).toBeDefined();
     expect(body.data.combinedNetGainLoss).toBeDefined();
   });
+
+  // ─── POST /tax/reconcile ─────────────────────
+
+  it("POST /tax/reconcile returns reconciliation report", async () => {
+    const buyTx = mockTransaction({
+      id: "buy-recon",
+      type: "BUY",
+      receivedAsset: "BTC",
+      receivedAmount: 1,
+      receivedValueUsd: 30000,
+      timestamp: new Date("2024-01-15T00:00:00Z"),
+    });
+    const sellTx = mockTransaction({
+      id: "sell-recon",
+      type: "SELL",
+      sentAsset: "BTC",
+      sentAmount: 1,
+      sentValueUsd: 45000,
+      feeValueUsd: 10,
+      timestamp: new Date("2025-06-15T00:00:00Z"),
+    });
+
+    mockPrisma.transaction.findMany
+      .mockResolvedValueOnce([buyTx]) // acquisitions (fetchTaxData)
+      .mockResolvedValueOnce([sellTx]) // dispositions (fetchTaxData)
+      .mockResolvedValueOnce([]); // internal transfers (fetchInternalTransferIds)
+
+    const csv1099 = [
+      "asset,date_sold,date_acquired,gross_proceeds,cost_basis,gain_loss,transaction_id",
+      "BTC,2025-06-15,2024-01-15,45000,30000,15000,sell-recon",
+    ].join("\n");
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/tax/reconcile",
+      payload: {
+        csvContent: csv1099,
+        brokerName: "TestBroker",
+        taxYear: 2025,
+        method: "FIFO",
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data.taxYear).toBe(2025);
+    expect(body.data.brokerName).toBe("TestBroker");
+    expect(body.data.summary).toBeDefined();
+    expect(body.data.summary.totalBrokerEntries).toBeGreaterThan(0);
+    expect(body.data.items).toBeInstanceOf(Array);
+  });
+
+  it("POST /tax/reconcile returns 400 for empty 1099-DA CSV", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/tax/reconcile",
+      payload: {
+        csvContent:
+          "asset,date_sold,date_acquired,gross_proceeds,cost_basis,gain_loss\n",
+        brokerName: "TestBroker",
+        taxYear: 2025,
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+    const body = JSON.parse(res.body);
+    expect(body.error.message).toContain("No valid entries");
+  });
 });
 
 describe("Transfer Routes", () => {
