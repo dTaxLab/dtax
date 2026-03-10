@@ -73,7 +73,7 @@ function printCalculateHelp(): void {
   console.log("");
   console.log("Supported formats:");
   console.log("  coinbase, binance, binance_us, kraken, gemini, crypto_com,");
-  console.log("  kucoin, okx, bybit, gate, bitget, mexc, htx,");
+  console.log("  kucoin, okx, bybit, gate, bitget, mexc, htx, bitfinex,");
   console.log("  etherscan, etherscan_erc20, solscan, solscan_defi, generic");
   console.log("");
   console.log("Examples:");
