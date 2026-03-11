@@ -32,7 +32,11 @@ export default function Dashboard() {
   const prefs = typeof window !== "undefined" ? getPreferences() : null;
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(prefs?.defaultYear ?? currentYear - 1);
-  const [method, setMethod] = useState<string>(prefs?.defaultMethod ?? "FIFO");
+  const [method, setMethod] = useState<string>(
+    prefs?.defaultMethod === "SPECIFIC_ID"
+      ? "FIFO"
+      : (prefs?.defaultMethod ?? "FIFO"),
+  );
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [txMeta, setTxMeta] = useState({ total: 0, page: 1, totalPages: 0 });
   const [taxSummary, setTaxSummary] = useState<TaxSummary | null>(null);

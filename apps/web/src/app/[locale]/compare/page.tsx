@@ -20,7 +20,11 @@ export default function ComparePage() {
   const t = useTranslations("compare");
   const { formatFiat } = useFiatFormatter();
   const prefs = typeof window !== "undefined" ? getPreferences() : null;
-  const [method, setMethod] = useState<string>(prefs?.defaultMethod ?? "FIFO");
+  const [method, setMethod] = useState<string>(
+    prefs?.defaultMethod === "SPECIFIC_ID"
+      ? "FIFO"
+      : (prefs?.defaultMethod ?? "FIFO"),
+  );
   const [selectedYears, setSelectedYears] = useState<Set<number>>(
     new Set([currentYear - 1, currentYear - 2]),
   );
