@@ -168,6 +168,23 @@
       "nftTokenIdPlaceholder": "1234"
     }
   },
+  "aiReview": {
+    "pendingReview": "{count} 笔交易已由 AI 分类，待审核",
+    "unknownCount": "{count} 笔未分类交易",
+    "classifyAll": "AI 全部分类",
+    "classifiedCount": "AI 已分类 {count} 笔交易",
+    "reviewAll": "审核",
+    "collapse": "收起",
+    "loading": "加载中...",
+    "noReview": "没有待审核的 AI 分类",
+    "asset": "资产",
+    "originalType": "原始类型",
+    "aiType": "AI 类型",
+    "confidence": "置信度",
+    "actions": "操作",
+    "confirm": "确认",
+    "correct": "修正..."
+  },
   "transfers": {
     "title": "内部转账",
     "subtitle": "匹配钱包和交易所之间的转账记录",
@@ -193,6 +210,19 @@
     "minutes": "{count}分钟",
     "hours": "{count}小时",
     "days": "{count}天"
+  },
+  "riskScan": {
+    "title": "税前审计风险扫描",
+    "runScan": "开始扫描",
+    "scanning": "扫描中...",
+    "scoreLabel": "风险评分",
+    "highCount": "{count} 高风险",
+    "mediumCount": "{count} 中风险",
+    "lowCount": "{count} 低风险",
+    "potentialImpact": "潜在税务影响",
+    "noRisks": "未检测到风险 — 您的记录看起来很干净！",
+    "suggestedAction": "建议操作",
+    "affectedCount": "影响 {count} 笔交易"
   },
   "tax": {
     "title": "税务报告",

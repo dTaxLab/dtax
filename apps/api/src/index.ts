@@ -22,6 +22,8 @@ import { priceRoutes } from "./routes/prices";
 import { authRoutes } from "./routes/auth";
 import { adminRoutes } from "./routes/admin";
 import { billingRoutes } from "./routes/billing";
+import { aiClassifyRoutes } from "./routes/ai-classify";
+import { riskScanRoutes } from "./routes/risk-scan";
 import authPlugin from "./plugins/auth";
 import { registerSwagger } from "./plugins/swagger";
 import { initSentry, captureException } from "./lib/sentry";
@@ -116,6 +118,8 @@ async function main() {
   await app.register(priceRoutes, { prefix: "/api/v1" });
   await app.register(adminRoutes, { prefix: "/api/v1" });
   await app.register(billingRoutes, { prefix: "/api/v1" });
+  await app.register(aiClassifyRoutes, { prefix: "/api/v1" });
+  await app.register(riskScanRoutes, { prefix: "/api/v1" });
 
   // Graceful shutdown
   const shutdown = async () => {

@@ -19,6 +19,7 @@ import { ApiSyncPanel } from "./components/ApiSyncPanel";
 import { TransactionForm } from "./components/TransactionForm";
 import { TransactionTable } from "./components/TransactionTable";
 import { FilterBar } from "./components/FilterBar";
+import { AiReviewBanner } from "./components/AiReviewBanner";
 import { UpgradeModal } from "@/components/upgrade-modal";
 
 export default function TransactionsPage() {
@@ -163,6 +164,7 @@ export default function TransactionsPage() {
         </div>
       </div>
 
+      <AiReviewBanner onRefresh={() => loadPage(meta.page)} />
       <FilterBar onApply={handleFilter} />
 
       {backfillMsg && (

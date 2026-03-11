@@ -81,6 +81,9 @@ export interface Transaction {
   notes: string | null;
   gainLoss: string | null;
   holdingPeriod: string | null;
+  aiClassified?: boolean;
+  aiConfidence?: number;
+  originalType?: string;
 }
 
 export interface TaxSummary {
@@ -697,5 +700,97 @@ export async function calculateSpecific(
   }>("/api/v1/tax/calculate-specific", {
     method: "POST",
     body: JSON.stringify({ taxYear, selections, strictSilo }),
+  });
+}
+
+// ─── AI Classification ───────────────────────────
+
+export interface AiClassifyResult {
+  id: string;
+  originalType: string;
+  newType: string;
+  confidence: number;
+}
+
+export async function aiClassifyByIds(ids: string[]) {
+  return apiFetch<{
+    data: {
+      processed: number;
+      classified: number;
+      results: AiClassifyResult[];
+    };
+  }>("/api/v1/transactions/ai-classify", {
+    method: "POST",
+    body: JSON.stringify({ ids }),
+  });
+}
+
+export async function aiClassifyAll() {
+  return apiFetch<{
+    data: { processed: number; classified: number; remaining?: string };
+  }>("/api/v1/transactions/ai-classify-all", {
+    method: "POST",
+  });
+}
+
+export async function getAiStats() {
+  return apiFetch<{
+    data: {
+      total: number;
+      aiClassified: number;
+      unknownCount: number;
+      aiEnabled: boolean;
+    };
+  }>("/api/v1/transactions/ai-stats");
+}
+
+export async function confirmAiClassification(id: string) {
+  return apiFetch<{ data: { success: boolean } }>(
+    `/api/v1/transactions/${id}`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ aiConfidence: 1.0 }),
+    },
+  );
+}
+
+export async function correctClassification(id: string, type: string) {
+  return apiFetch<{ data: { success: boolean } }>(
+    `/api/v1/transactions/${id}`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ type, aiClassified: false, aiConfidence: null }),
+    },
+  );
+}
+
+// ─── Risk Scan ───────────────────────────────────
+
+export interface RiskItem {
+  category: string;
+  severity: "high" | "medium" | "low";
+  description: string;
+  affectedTransactionIds: string[];
+  suggestedAction: string;
+  potentialTaxImpact: number;
+}
+
+export interface RiskReport {
+  taxYear: number;
+  generatedAt: string;
+  overallScore: number;
+  items: RiskItem[];
+  summary: {
+    high: number;
+    medium: number;
+    low: number;
+    totalPotentialImpact: number;
+  };
+}
+
+export async function runRiskScan(year: number) {
+  return apiFetch<{ data: RiskReport }>("/api/v1/tax/risk-scan", {
+    method: "POST",
+    body: JSON.stringify({ year }),
   });
 }

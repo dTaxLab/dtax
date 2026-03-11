@@ -15,4 +15,5 @@ export const config = {
   resendApiKey: process.env.RESEND_API_KEY || "",
   appUrl: process.env.APP_URL || "http://localhost:3000",
   fromEmail: process.env.FROM_EMAIL || "noreply@dtax.ai",
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY || "",
 } as const;

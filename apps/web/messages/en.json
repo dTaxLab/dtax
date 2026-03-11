@@ -168,6 +168,23 @@
       "nftTokenIdPlaceholder": "1234"
     }
   },
+  "aiReview": {
+    "pendingReview": "{count} AI-classified transactions pending review",
+    "unknownCount": "{count} unclassified transactions",
+    "classifyAll": "AI Classify All",
+    "classifiedCount": "{count} transactions classified by AI",
+    "reviewAll": "Review",
+    "collapse": "Collapse",
+    "loading": "Loading...",
+    "noReview": "No transactions pending AI review",
+    "asset": "Asset",
+    "originalType": "Original",
+    "aiType": "AI Type",
+    "confidence": "Confidence",
+    "actions": "Actions",
+    "confirm": "Confirm",
+    "correct": "Correct..."
+  },
   "transfers": {
     "title": "Internal Transfers",
     "subtitle": "Match transfers between your wallets and exchanges",
@@ -193,6 +210,19 @@
     "minutes": "{count}m",
     "hours": "{count}h",
     "days": "{count}d"
+  },
+  "riskScan": {
+    "title": "Pre-Audit Risk Scan",
+    "runScan": "Run Scan",
+    "scanning": "Scanning...",
+    "scoreLabel": "Risk Score",
+    "highCount": "{count} high",
+    "mediumCount": "{count} medium",
+    "lowCount": "{count} low",
+    "potentialImpact": "Potential tax impact",
+    "noRisks": "No risks detected — your records look clean!",
+    "suggestedAction": "Suggested action",
+    "affectedCount": "{count} transaction(s) affected"
   },
   "tax": {
     "title": "Tax Report",

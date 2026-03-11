@@ -15,6 +15,7 @@ import { DataSourceType, DataSourceStatus } from "@prisma/client";
 import { parseCsv } from "@dtax/tax-engine";
 import type { CsvFormat, ParsedTransaction } from "@dtax/tax-engine";
 import { checkTransactionQuota } from "../plugins/plan-guard";
+import { classifyBatch } from "../lib/ai-classifier";
 
 /** Generate a deterministic fingerprint for a parsed transaction */
 function txFingerprint(tx: ParsedTransaction): string {
@@ -239,10 +240,59 @@ export async function importRoutes(app: FastifyInstance) {
       data: dbRecords,
     });
 
+    // AI-classify UNKNOWN transactions (async, best-effort)
+    let aiClassified = 0;
+    try {
+      const unknownTxs = await prisma.transaction.findMany({
+        where: {
+          userId: request.userId,
+          sourceId: dataSource.id,
+          type: "UNKNOWN",
+        },
+      });
+
+      if (unknownTxs.length > 0) {
+        const inputs = unknownTxs.map((tx) => ({
+          type: tx.type,
+          sentAsset: tx.sentAsset || undefined,
+          sentAmount: tx.sentAmount ? Number(tx.sentAmount) : undefined,
+          receivedAsset: tx.receivedAsset || undefined,
+          receivedAmount: tx.receivedAmount
+            ? Number(tx.receivedAmount)
+            : undefined,
+          feeAsset: tx.feeAsset || undefined,
+          feeAmount: tx.feeAmount ? Number(tx.feeAmount) : undefined,
+          notes: tx.notes || undefined,
+          source: parseResult.summary.format,
+        }));
+
+        const results = await classifyBatch(inputs);
+
+        for (let i = 0; i < unknownTxs.length; i++) {
+          const r = results[i];
+          if (r && r.classifiedType !== "UNKNOWN") {
+            await prisma.transaction.update({
+              where: { id: unknownTxs[i].id },
+              data: {
+                originalType: unknownTxs[i].type,
+                type: r.classifiedType,
+                aiClassified: true,
+                aiConfidence: r.confidence,
+              },
+            });
+            aiClassified++;
+          }
+        }
+      }
+    } catch (err) {
+      request.log.error(err, "AI classification failed (non-blocking)");
+    }
+
     return reply.status(201).send({
       data: {
         imported: created.count,
         skipped,
+        aiClassified,
         errors: parseResult.errors.slice(0, 10),
         summary: parseResult.summary,
         sourceId: dataSource.id,

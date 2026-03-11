@@ -13,6 +13,7 @@ import type { TaxSummary, Form8949Report, ScheduleDReport } from "@/lib/api";
 import { getPreferences } from "@/lib/preferences";
 import { useFiatFormatter } from "@/lib/use-fiat";
 import SpecificIdView from "./specific-id-view";
+import { RiskScan } from "./risk-scan";
 
 const selectStyle = {
   padding: "10px 16px",
@@ -894,6 +895,8 @@ export default function TaxPage() {
           )}
         </>
       )}
+
+      {report && <RiskScan year={year} />}
     </div>
   );
 }
