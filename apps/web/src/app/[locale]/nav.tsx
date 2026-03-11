@@ -81,11 +81,25 @@ export function LocaleNav({ locale }: { locale: string }) {
         ) : (
           <>
             <Link
-              href="/legal/terms"
+              href="/features"
               className="nav-link"
               onClick={() => setMenuOpen(false)}
             >
-              {t("legal")}
+              {t("features")}
+            </Link>
+            <Link
+              href="/pricing"
+              className="nav-link"
+              onClick={() => setMenuOpen(false)}
+            >
+              {t("pricing")}
+            </Link>
+            <Link
+              href="/exchanges"
+              className="nav-link"
+              onClick={() => setMenuOpen(false)}
+            >
+              {t("exchanges")}
             </Link>
             <Link
               href="/auth"
