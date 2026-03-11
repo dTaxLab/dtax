@@ -377,7 +377,10 @@
     "loading": "Loading DTax...",
     "error": "Connection Error",
     "errorHint": "Make sure the API is running:",
-    "retry": "Retry"
+    "retry": "Retry",
+    "unexpectedError": "Something went wrong",
+    "unexpectedErrorHint": "An unexpected error occurred. Please try again.",
+    "goHome": "Go to Dashboard"
   },
   "specificId": {
     "title": "Specific ID Lot Selection",

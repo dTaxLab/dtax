@@ -16,10 +16,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const stored = localStorage.getItem(THEME_KEY) as Theme | null;
+    let resolved: Theme;
     if (stored === "light" || stored === "dark") {
-      setTheme(stored);
-      document.documentElement.setAttribute("data-theme", stored);
+      resolved = stored;
+    } else {
+      resolved = window.matchMedia("(prefers-color-scheme: light)").matches
+        ? "light"
+        : "dark";
     }
+    setTheme(resolved);
+    document.documentElement.setAttribute("data-theme", resolved);
   }, []);
 
   function toggle() {
