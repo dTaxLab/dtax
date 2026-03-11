@@ -635,6 +635,7 @@
     "comparisonTitle": "Feature Comparison",
     "comparisonFeature": "Feature",
     "featureTxLimit": "Transaction Limit",
+    "feature50Tx": "50",
     "featureUnlimited": "Unlimited",
     "featureCostBasis": "Cost Basis Methods",
     "featureFifoOnly": "FIFO only",

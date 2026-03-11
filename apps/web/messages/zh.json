@@ -635,6 +635,7 @@
     "comparisonTitle": "功能对比",
     "comparisonFeature": "功能",
     "featureTxLimit": "交易数量限制",
+    "feature50Tx": "50",
     "featureUnlimited": "无限",
     "featureCostBasis": "成本计算方法",
     "featureFifoOnly": "仅 FIFO",

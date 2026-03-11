@@ -12,7 +12,7 @@ type PlanFeature = {
 const FEATURE_COMPARISON: PlanFeature[] = [
   {
     key: "featureTxLimit",
-    free: "50",
+    free: "feature50Tx",
     pro: "featureUnlimited",
     cpa: "featureUnlimited",
   },
