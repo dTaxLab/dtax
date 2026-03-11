@@ -427,6 +427,8 @@
     "comparisonOpenSource": "开源",
     "comparisonSelfHost": "可自托管",
     "comparisonDefi": "DeFi 支持",
+    "comparisonNft": "NFT 税务追踪",
+    "comparisonDefiParsers": "DeFi 交易自动分类",
     "comparisonWashSale": "Wash Sale 检测",
     "comparisonForm8949": "Form 8949 + Schedule D",
     "comparison1099da": "1099-DA 对账",

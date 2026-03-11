@@ -43,6 +43,13 @@ const COMPARISON: ComparisonRow[] = [
     cointracker: false,
   },
   { key: "comparisonDefi", dtax: true, koinly: true, cointracker: true },
+  { key: "comparisonNft", dtax: true, koinly: true, cointracker: false },
+  {
+    key: "comparisonDefiParsers",
+    dtax: true,
+    koinly: false,
+    cointracker: false,
+  },
   { key: "comparisonWashSale", dtax: true, koinly: true, cointracker: true },
   { key: "comparisonForm8949", dtax: true, koinly: true, cointracker: true },
   {

@@ -427,6 +427,8 @@
     "comparisonOpenSource": "Open Source",
     "comparisonSelfHost": "Self-Hostable",
     "comparisonDefi": "DeFi Support",
+    "comparisonNft": "NFT Tax Tracking",
+    "comparisonDefiParsers": "Auto DeFi Tx Classification",
     "comparisonWashSale": "Wash Sale Detection",
     "comparisonForm8949": "Form 8949 + Schedule D",
     "comparison1099da": "1099-DA Reconciliation",
