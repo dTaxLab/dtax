@@ -134,3 +134,12 @@ export {
   processWrapUnwrap,
 } from "./normalizers/wrap-unwrap";
 export type { WrapEvent, WrapResult } from "./normalizers/wrap-unwrap";
+
+export { scanRisks } from "./risk-scanner";
+export type {
+  RiskCategory,
+  RiskSeverity,
+  RiskItem,
+  RiskReport,
+  RiskScanTransaction,
+} from "./risk-scanner";
