@@ -12,6 +12,7 @@ import {
 import type { TaxSummary, Form8949Report, ScheduleDReport } from "@/lib/api";
 import { getPreferences } from "@/lib/preferences";
 import { useFiatFormatter } from "@/lib/use-fiat";
+import SpecificIdView from "./specific-id-view";
 
 const selectStyle = {
   padding: "10px 16px",
@@ -140,13 +141,15 @@ export default function TaxPage() {
               {t("includeWashSales")}
             </label>
           </div>
-          <button
-            className="btn btn-primary"
-            onClick={handleCalculate}
-            disabled={loading}
-          >
-            {loading ? `⏳ ${t("calculating")}` : `🧮 ${t("calculate")}`}
-          </button>
+          {method !== "SPECIFIC_ID" && (
+            <button
+              className="btn btn-primary"
+              onClick={handleCalculate}
+              disabled={loading}
+            >
+              {loading ? `⏳ ${t("calculating")}` : `🧮 ${t("calculate")}`}
+            </button>
+          )}
         </div>
         {error && (
           <p
@@ -157,7 +160,9 @@ export default function TaxPage() {
         )}
       </div>
 
-      {report && (
+      {method === "SPECIFIC_ID" && <SpecificIdView year={year} />}
+
+      {report && method !== "SPECIFIC_ID" && (
         <>
           <div className="grid-3" style={{ marginBottom: "24px" }}>
             <div className="stat-card">

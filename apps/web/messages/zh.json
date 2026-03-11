@@ -364,6 +364,20 @@
     "errorHint": "请确保 API 正在运行：",
     "retry": "重试"
   },
+  "specificId": {
+    "title": "Specific ID 选批",
+    "subtitle": "发现 {count} 笔处置交易 — 为每笔分配税批",
+    "loading": "加载税批和处置交易中...",
+    "noDispositions": "该税年未发现处置交易。",
+    "noSelections": "请至少为一笔处置交易分配税批。",
+    "addLot": "+ 添加税批...",
+    "amount": "数量",
+    "proceeds": "收入",
+    "calculate": "按选定税批计算",
+    "calculating": "计算中...",
+    "results": "Specific ID 计算结果",
+    "holding": "持有期"
+  },
   "footer": {
     "version": "DTax v0.1.0 · 开源税务引擎 (AGPL-3.0)",
     "github": "GitHub",

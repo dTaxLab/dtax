@@ -364,6 +364,20 @@
     "errorHint": "Make sure the API is running:",
     "retry": "Retry"
   },
+  "specificId": {
+    "title": "Specific ID Lot Selection",
+    "subtitle": "{count} dispositions found — assign lots to each",
+    "loading": "Loading lots and dispositions...",
+    "noDispositions": "No disposition events found for this tax year.",
+    "noSelections": "Please assign at least one lot to a disposition.",
+    "addLot": "+ Add lot...",
+    "amount": "Amount",
+    "proceeds": "Proceeds",
+    "calculate": "Calculate with Selected Lots",
+    "calculating": "Calculating...",
+    "results": "Specific ID Results",
+    "holding": "Holding"
+  },
   "footer": {
     "version": "DTax v0.1.0 · Open Source Tax Engine (AGPL-3.0)",
     "github": "GitHub",
