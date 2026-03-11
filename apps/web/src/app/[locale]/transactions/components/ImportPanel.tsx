@@ -2,15 +2,16 @@
 
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { importCsv } from "@/lib/api";
+import { importCsv, ApiError } from "@/lib/api";
 import type { ImportResult } from "@/lib/api";
 import { inputStyle, labelStyle } from "./shared";
 
 interface ImportPanelProps {
   onImported: () => void;
+  onQuotaExceeded?: (current: number, limit: number) => void;
 }
 
-export function ImportPanel({ onImported }: ImportPanelProps) {
+export function ImportPanel({ onImported, onQuotaExceeded }: ImportPanelProps) {
   const t = useTranslations("transactions");
   const fileRef = useRef<HTMLInputElement>(null);
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -43,7 +44,11 @@ export function ImportPanel({ onImported }: ImportPanelProps) {
       setImportResult(res.data);
       onImported();
     } catch (e) {
-      setImportError(e instanceof Error ? e.message : "Import failed");
+      if (e instanceof ApiError && e.code === "QUOTA_EXCEEDED") {
+        onQuotaExceeded?.(e.current ?? 0, e.limit ?? 50);
+      } else {
+        setImportError(e instanceof Error ? e.message : "Import failed");
+      }
     }
     setImporting(false);
   }

@@ -6,6 +6,43 @@ import { getStoredToken } from "./auth-context";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
+/** Structured API error with optional error code and metadata. */
+export class ApiError extends Error {
+  code?: string;
+  limit?: number;
+  current?: number;
+
+  constructor(
+    message: string,
+    code?: string,
+    limit?: number,
+    current?: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+    this.code = code;
+    this.limit = limit;
+    this.current = current;
+  }
+}
+
+function throwApiError(errorBody: Record<string, unknown>): never {
+  const err = errorBody.error as
+    | {
+        message?: string;
+        code?: string;
+        limit?: number;
+        current?: number;
+      }
+    | undefined;
+  throw new ApiError(
+    err?.message || "Unknown API error",
+    err?.code,
+    err?.limit,
+    err?.current,
+  );
+}
+
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const token = getStoredToken();
   const authHeaders: Record<string, string> = {};
@@ -23,7 +60,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     const error = await res
       .json()
       .catch(() => ({ error: { message: res.statusText } }));
-    throw new Error(error.error?.message || `API Error: ${res.status}`);
+    throwApiError(error);
   }
   return res.json();
 }
@@ -207,7 +244,7 @@ export async function importCsv(
     const error = await res
       .json()
       .catch(() => ({ error: { message: res.statusText } }));
-    throw new Error(error.error?.message || `Import failed: ${res.status}`);
+    throwApiError(error);
   }
 
   return res.json();

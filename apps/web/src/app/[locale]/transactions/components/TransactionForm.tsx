@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { createTransaction } from "@/lib/api";
+import { createTransaction, ApiError } from "@/lib/api";
 import {
   inputStyle,
   labelStyle,
@@ -15,9 +15,14 @@ import {
 interface TransactionFormProps {
   onCreated: () => void;
   onCancel: () => void;
+  onQuotaExceeded?: (current: number, limit: number) => void;
 }
 
-export function TransactionForm({ onCreated, onCancel }: TransactionFormProps) {
+export function TransactionForm({
+  onCreated,
+  onCancel,
+  onQuotaExceeded,
+}: TransactionFormProps) {
   const t = useTranslations("transactions");
   const tType = useTranslations("txTypes");
   const [submitting, setSubmitting] = useState(false);
@@ -106,9 +111,13 @@ export function TransactionForm({ onCreated, onCancel }: TransactionFormProps) {
       await createTransaction(body);
       onCreated();
     } catch (e) {
-      setSubmitError(
-        e instanceof Error ? e.message : "Failed to save transaction",
-      );
+      if (e instanceof ApiError && e.code === "QUOTA_EXCEEDED") {
+        onQuotaExceeded?.(e.current ?? 0, e.limit ?? 50);
+      } else {
+        setSubmitError(
+          e instanceof Error ? e.message : "Failed to save transaction",
+        );
+      }
     }
     setSubmitting(false);
   }

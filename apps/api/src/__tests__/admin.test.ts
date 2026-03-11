@@ -20,6 +20,7 @@ vi.mock("../lib/prisma", () => ({
     transaction: { count: vi.fn() },
     dataSource: { count: vi.fn() },
     taxReport: { count: vi.fn() },
+    subscription: { count: vi.fn() },
   },
 }));
 
@@ -67,6 +68,8 @@ describe("Admin Routes", () => {
       mockPrisma.transaction.count.mockResolvedValueOnce(500);
       mockPrisma.dataSource.count.mockResolvedValueOnce(5);
       mockPrisma.taxReport.count.mockResolvedValueOnce(3);
+      (mockPrisma.subscription.count as any).mockResolvedValueOnce(2);
+      (mockPrisma.subscription.count as any).mockResolvedValueOnce(1);
 
       const res = await app.inject({
         method: "GET",
@@ -76,6 +79,8 @@ describe("Admin Routes", () => {
       const body = JSON.parse(res.body);
       expect(body.data.users).toBe(10);
       expect(body.data.transactions).toBe(500);
+      expect(body.data.proUsers).toBe(2);
+      expect(body.data.cpaUsers).toBe(1);
     });
   });
 

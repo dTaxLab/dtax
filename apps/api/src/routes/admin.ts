@@ -27,12 +27,15 @@ export async function adminRoutes(app: FastifyInstance) {
 
   // GET /admin/stats — 系统概览统计
   app.get("/admin/stats", async () => {
-    const [userCount, txCount, dsCount, reportCount] = await Promise.all([
-      prisma.user.count(),
-      prisma.transaction.count(),
-      prisma.dataSource.count(),
-      prisma.taxReport.count(),
-    ]);
+    const [userCount, txCount, dsCount, reportCount, proCount, cpaCount] =
+      await Promise.all([
+        prisma.user.count(),
+        prisma.transaction.count(),
+        prisma.dataSource.count(),
+        prisma.taxReport.count(),
+        prisma.subscription.count({ where: { plan: "PRO", status: "active" } }),
+        prisma.subscription.count({ where: { plan: "CPA", status: "active" } }),
+      ]);
 
     return {
       data: {
@@ -40,6 +43,8 @@ export async function adminRoutes(app: FastifyInstance) {
         transactions: txCount,
         dataSources: dsCount,
         taxReports: reportCount,
+        proUsers: proCount,
+        cpaUsers: cpaCount,
       },
     };
   });

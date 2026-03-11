@@ -12,6 +12,8 @@ interface AdminStats {
   transactions: number;
   dataSources: number;
   taxReports: number;
+  proUsers: number;
+  cpaUsers: number;
 }
 
 export default function AdminPage() {
@@ -83,6 +85,16 @@ export default function AdminPage() {
     { label: t("totalTransactions"), value: stats?.transactions ?? 0 },
     { label: t("totalDataSources"), value: stats?.dataSources ?? 0 },
     { label: t("totalTaxReports"), value: stats?.taxReports ?? 0 },
+    {
+      label: t("proSubscribers"),
+      value: stats?.proUsers ?? 0,
+      color: "#6366f1",
+    },
+    {
+      label: t("cpaSubscribers"),
+      value: stats?.cpaUsers ?? 0,
+      color: "#10b981",
+    },
   ];
 
   return (
@@ -107,7 +119,7 @@ export default function AdminPage() {
               style={{
                 fontSize: "2.5rem",
                 fontWeight: 700,
-                color: "var(--accent)",
+                color: ("color" in card && card.color) || "var(--accent)",
                 lineHeight: 1.2,
               }}
             >

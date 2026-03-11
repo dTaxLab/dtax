@@ -367,7 +367,23 @@
     "defaultYear": "Default Tax Year",
     "fiatCurrency": "Display Currency",
     "saved": "Settings saved",
-    "save": "Save Settings"
+    "save": "Save Settings",
+    "billingTitle": "Billing & Subscription",
+    "currentPlan": "Current Plan",
+    "planFree": "FREE",
+    "planPro": "PRO",
+    "planCpa": "CPA",
+    "planStatus": "Status",
+    "statusActive": "Active",
+    "statusCanceled": "Canceled",
+    "statusPastDue": "Past Due",
+    "taxYear": "Tax Year",
+    "expiresAt": "Expires",
+    "upgradePro": "Upgrade to Pro",
+    "upgradeCpa": "Upgrade to CPA",
+    "manageSubscription": "Manage Subscription",
+    "paymentSuccess": "Payment successful! Your plan has been upgraded.",
+    "upgrading": "Please wait..."
   },
   "dataSources": {
     "title": "Data Sources",
@@ -904,6 +920,16 @@
     "forbidden": "Access denied. Admin role required.",
     "promote": "Promote",
     "demote": "Demote",
-    "selfDemotion": "Cannot change your own role"
+    "selfDemotion": "Cannot change your own role",
+    "proSubscribers": "Pro Subscribers",
+    "cpaSubscribers": "CPA Subscribers"
+  },
+  "upgrade": {
+    "title": "Free Plan Limit Reached",
+    "subtitle": "You've used {current} of {limit} transactions on the free plan.",
+    "upgradePro": "Upgrade to Pro — $49/tax year",
+    "viewPlans": "View All Plans",
+    "benefits": "Unlimited transactions, Form 8949 PDF, wash sale detection, and more.",
+    "close": "Close"
   }
 }

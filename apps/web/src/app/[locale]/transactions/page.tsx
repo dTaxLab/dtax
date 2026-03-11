@@ -19,6 +19,7 @@ import { ApiSyncPanel } from "./components/ApiSyncPanel";
 import { TransactionForm } from "./components/TransactionForm";
 import { TransactionTable } from "./components/TransactionTable";
 import { FilterBar } from "./components/FilterBar";
+import { UpgradeModal } from "@/components/upgrade-modal";
 
 export default function TransactionsPage() {
   const t = useTranslations("transactions");
@@ -40,6 +41,10 @@ export default function TransactionsPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [backfillMsg, setBackfillMsg] = useState<string | null>(null);
   const [backfillLoading, setBackfillLoading] = useState(false);
+  const [quotaExceeded, setQuotaExceeded] = useState<{
+    current: number;
+    limit: number;
+  } | null>(null);
 
   useEffect(() => {
     loadPage(1);
@@ -190,7 +195,12 @@ export default function TransactionsPage() {
       )}
 
       {activePanel === "import" && (
-        <ImportPanel onImported={() => loadPage(1)} />
+        <ImportPanel
+          onImported={() => loadPage(1)}
+          onQuotaExceeded={(current, limit) =>
+            setQuotaExceeded({ current, limit })
+          }
+        />
       )}
 
       {activePanel === "api" && <ApiSyncPanel onSynced={() => loadPage(1)} />}
@@ -202,6 +212,9 @@ export default function TransactionsPage() {
             loadPage(1);
           }}
           onCancel={() => setActivePanel("none")}
+          onQuotaExceeded={(current, limit) =>
+            setQuotaExceeded({ current, limit })
+          }
         />
       )}
 
@@ -244,6 +257,13 @@ export default function TransactionsPage() {
           onSort={handleSort}
         />
       )}
+
+      <UpgradeModal
+        open={!!quotaExceeded}
+        onClose={() => setQuotaExceeded(null)}
+        current={quotaExceeded?.current || 0}
+        limit={quotaExceeded?.limit || 50}
+      />
     </div>
   );
 }

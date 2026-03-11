@@ -367,7 +367,23 @@
     "defaultYear": "默认纳税年度",
     "fiatCurrency": "显示货币",
     "saved": "设置已保存",
-    "save": "保存设置"
+    "save": "保存设置",
+    "billingTitle": "账单与订阅",
+    "currentPlan": "当前方案",
+    "planFree": "免费版",
+    "planPro": "专业版",
+    "planCpa": "CPA 版",
+    "planStatus": "状态",
+    "statusActive": "生效中",
+    "statusCanceled": "已取消",
+    "statusPastDue": "逾期",
+    "taxYear": "纳税年度",
+    "expiresAt": "到期时间",
+    "upgradePro": "升级到专业版",
+    "upgradeCpa": "升级到 CPA 版",
+    "manageSubscription": "管理订阅",
+    "paymentSuccess": "支付成功！您的方案已升级。",
+    "upgrading": "请稍候..."
   },
   "dataSources": {
     "title": "数据源",
@@ -904,6 +920,16 @@
     "forbidden": "访问被拒绝。需要管理员权限。",
     "promote": "提升",
     "demote": "降级",
-    "selfDemotion": "无法更改自己的角色"
+    "selfDemotion": "无法更改自己的角色",
+    "proSubscribers": "Pro 订阅用户",
+    "cpaSubscribers": "CPA 订阅用户"
+  },
+  "upgrade": {
+    "title": "免费版额度已用完",
+    "subtitle": "您已使用免费版 {limit} 笔交易中的 {current} 笔。",
+    "upgradePro": "升级到专业版 — $49/税年",
+    "viewPlans": "查看所有方案",
+    "benefits": "无限交易、Form 8949 PDF、洗售检测等更多功能。",
+    "close": "关闭"
   }
 }
