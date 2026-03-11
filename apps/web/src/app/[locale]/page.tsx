@@ -2,8 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { getTransactions, getTaxSummary, calculateTax } from "@/lib/api";
-import type { Transaction, TaxSummary } from "@/lib/api";
+import {
+  getTransactions,
+  getTaxSummary,
+  calculateTax,
+  getDataSources,
+} from "@/lib/api";
+import type { Transaction, TaxSummary, DataSource } from "@/lib/api";
 import { getBadgeClass } from "./transactions/components/shared";
 import { getPreferences } from "@/lib/preferences";
 import { useFiatFormatter } from "@/lib/use-fiat";
@@ -43,6 +48,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [calculating, setCalculating] = useState(false);
+  const [dataSources, setDataSources] = useState<DataSource[]>([]);
 
   useEffect(() => {
     loadData();
@@ -52,9 +58,10 @@ export default function Dashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [txRes, taxRes] = await Promise.allSettled([
+      const [txRes, taxRes, dsRes] = await Promise.allSettled([
         getTransactions(1, 10),
         getTaxSummary(year, method),
+        getDataSources(),
       ]);
       if (txRes.status === "fulfilled") {
         setTransactions(txRes.value.data);
@@ -62,6 +69,9 @@ export default function Dashboard() {
       }
       if (taxRes.status === "fulfilled") {
         setTaxSummary(taxRes.value.data);
+      }
+      if (dsRes.status === "fulfilled") {
+        setDataSources(dsRes.value.data);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to connect");
@@ -256,6 +266,130 @@ export default function Dashboard() {
         ) : null}
       </div>
 
+      {/* Quick Actions */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: "12px",
+          marginBottom: "32px",
+        }}
+      >
+        {[
+          {
+            href: "transactions",
+            label: t("actionImport"),
+            desc: t("actionImportDesc"),
+            icon: "📁",
+          },
+          {
+            href: "tax",
+            label: t("actionTaxReport"),
+            desc: t("actionTaxReportDesc"),
+            icon: "📋",
+          },
+          {
+            href: "portfolio",
+            label: t("actionPortfolio"),
+            desc: t("actionPortfolioDesc"),
+            icon: "💼",
+          },
+          {
+            href: "compare",
+            label: t("actionCompare"),
+            desc: t("actionCompareDesc"),
+            icon: "📊",
+          },
+        ].map((action) => (
+          <a
+            key={action.href}
+            href={action.href}
+            className="card"
+            style={{
+              padding: "16px",
+              textDecoration: "none",
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              transition: "border-color 0.15s",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <span style={{ fontSize: "24px" }}>{action.icon}</span>
+            <div>
+              <div
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  color: "var(--text-primary)",
+                }}
+              >
+                {action.label}
+              </div>
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "var(--text-muted)",
+                  marginTop: "2px",
+                }}
+              >
+                {action.desc}
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+
+      {/* Data Sources summary */}
+      {dataSources.length > 0 && (
+        <div
+          className="card"
+          style={{
+            padding: "16px 20px",
+            marginBottom: "24px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <span style={{ fontSize: "14px", fontWeight: 600 }}>
+              {t("dataSources")}
+            </span>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              {dataSources.map((ds) => (
+                <span
+                  key={ds.id}
+                  style={{
+                    fontSize: "12px",
+                    padding: "3px 10px",
+                    borderRadius: "12px",
+                    background: "var(--bg-surface)",
+                    border: "1px solid var(--border)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  {ds.name}{" "}
+                  <span style={{ color: "var(--text-muted)" }}>
+                    ({ds.transactionCount})
+                  </span>
+                </span>
+              ))}
+            </div>
+          </div>
+          <a
+            href="settings"
+            style={{
+              fontSize: "13px",
+              color: "var(--accent)",
+              textDecoration: "none",
+            }}
+          >
+            {t("viewAll")}
+          </a>
+        </div>
+      )}
+
       <div
         style={{
           display: "flex",
@@ -277,18 +411,71 @@ export default function Dashboard() {
       </div>
 
       {transactions.length === 0 ? (
-        <div className="card" style={{ textAlign: "center", padding: "48px" }}>
-          <div style={{ fontSize: "48px", marginBottom: "16px" }}>📭</div>
-          <p style={{ color: "var(--text-muted)" }}>{t("noTransactions")}</p>
-          <p
+        <div className="card" style={{ padding: "40px 24px" }}>
+          <h3
             style={{
-              color: "var(--text-muted)",
-              fontSize: "13px",
-              marginTop: "8px",
+              fontSize: "18px",
+              fontWeight: 600,
+              marginBottom: "20px",
+              textAlign: "center",
             }}
           >
-            {t("noTransactionsHint")}
-          </p>
+            {t("getStarted")}
+          </h3>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+              maxWidth: "400px",
+              margin: "0 auto",
+            }}
+          >
+            {[t("step1"), t("step2"), t("step3")].map((step, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  background: "var(--bg-surface)",
+                  borderRadius: "var(--radius-sm)",
+                }}
+              >
+                <span
+                  style={{
+                    width: "28px",
+                    height: "28px",
+                    lineHeight: "28px",
+                    textAlign: "center",
+                    borderRadius: "50%",
+                    background: "var(--accent)",
+                    color: "white",
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    flexShrink: 0,
+                  }}
+                >
+                  {i + 1}
+                </span>
+                <span
+                  style={{ fontSize: "14px", color: "var(--text-secondary)" }}
+                >
+                  {step}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div style={{ textAlign: "center", marginTop: "20px" }}>
+            <a
+              href="transactions"
+              className="btn btn-primary"
+              style={{ textDecoration: "none" }}
+            >
+              {t("actionImport")}
+            </a>
+          </div>
         </div>
       ) : (
         <div className="table-container">
