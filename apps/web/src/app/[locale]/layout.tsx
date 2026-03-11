@@ -6,6 +6,7 @@ import { routing } from "@/i18n/routing";
 import "../globals.css";
 import { LocaleNav } from "./nav";
 import { AuthProvider } from "@/lib/auth-context";
+import { ThemeProvider } from "@/lib/theme";
 import { AuthGuard } from "./auth-guard";
 
 export const metadata: Metadata = {
@@ -34,14 +35,16 @@ export default async function LocaleLayout({ children, params }: Props) {
     <html lang={locale}>
       <body>
         <NextIntlClientProvider messages={messages}>
-          <AuthProvider>
-            <AuthGuard>
-              <div className="container">
-                <LocaleNav locale={locale} />
-                {children}
-              </div>
-            </AuthGuard>
-          </AuthProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <AuthGuard>
+                <div className="container">
+                  <LocaleNav locale={locale} />
+                  {children}
+                </div>
+              </AuthGuard>
+            </AuthProvider>
+          </ThemeProvider>
         </NextIntlClientProvider>
       </body>
     </html>

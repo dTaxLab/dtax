@@ -3,6 +3,7 @@
 import { useTranslations, useLocale } from "next-intl";
 import { usePathname, Link } from "@/i18n/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { useTheme } from "@/lib/theme";
 
 export function LocaleNav({ locale }: { locale: string }) {
   const t = useTranslations("nav");
@@ -11,6 +12,7 @@ export function LocaleNav({ locale }: { locale: string }) {
   const otherLocale = currentLocale === "en" ? "zh" : "en";
   const otherLabel = currentLocale === "en" ? "中文" : "EN";
   const { user, logout } = useAuth();
+  const { theme, toggle: toggleTheme } = useTheme();
 
   return (
     <nav className="nav" aria-label="Main navigation">
@@ -97,6 +99,22 @@ export function LocaleNav({ locale }: { locale: string }) {
             alignSelf: "center",
           }}
         />
+        <button
+          onClick={toggleTheme}
+          className="nav-link"
+          aria-label={
+            theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+          }
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            fontSize: "16px",
+            padding: "6px 10px",
+          }}
+        >
+          {theme === "dark" ? "☀️" : "🌙"}
+        </button>
         <Link
           href={pathname}
           locale={otherLocale}
