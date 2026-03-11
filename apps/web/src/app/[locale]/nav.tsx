@@ -77,6 +77,15 @@ export function LocaleNav({ locale }: { locale: string }) {
                 {link.label}
               </Link>
             ))}
+            {user.role === "ADMIN" && (
+              <Link
+                href="/admin"
+                className={`nav-link ${pathname === "/admin" ? "active" : ""}`}
+                onClick={() => setMenuOpen(false)}
+              >
+                {t("admin")}
+              </Link>
+            )}
           </>
         ) : (
           <>

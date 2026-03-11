@@ -12,7 +12,8 @@
     "features": "Features",
     "pricing": "Pricing",
     "exchanges": "Exchanges",
-    "signIn": "Sign In"
+    "signIn": "Sign In",
+    "admin": "Admin"
   },
   "auth": {
     "login": "Login",
@@ -869,5 +870,40 @@
     "ctaTitle": "Ready to Scale Your Crypto Tax Practice?",
     "ctaTrial": "Start Your Free Trial",
     "ctaSales": "Contact Sales for Volume Pricing"
+  },
+  "admin": {
+    "title": "Admin Dashboard",
+    "subtitle": "Platform overview and management",
+    "loading": "Loading admin data...",
+    "accessDenied": "Access denied. Administrator privileges required.",
+    "fetchError": "Failed to load admin stats.",
+    "totalUsers": "Total Users",
+    "totalTransactions": "Total Transactions",
+    "totalDataSources": "Total Data Sources",
+    "totalTaxReports": "Total Tax Reports",
+    "manageUsers": "Manage Users →",
+    "userManagement": "User Management",
+    "userCount": "{count} total users",
+    "email": "Email",
+    "name": "Name",
+    "role": "Role",
+    "registered": "Registered",
+    "lastUpdated": "Last Updated",
+    "txCount": "Transactions",
+    "dsCount": "Data Sources",
+    "taxLots": "Tax Lots",
+    "taxReports": "Tax Reports",
+    "changeRole": "Change Role",
+    "confirmRoleChange": "Change {email} role to {role}?",
+    "roleUpdated": "Role updated",
+    "noUsers": "No users found",
+    "search": "Search",
+    "searchPlaceholder": "Search by email...",
+    "page": "Page",
+    "of": "of",
+    "forbidden": "Access denied. Admin role required.",
+    "promote": "Promote",
+    "demote": "Demote",
+    "selfDemotion": "Cannot change your own role"
   }
 }

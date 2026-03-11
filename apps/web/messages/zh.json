@@ -12,7 +12,8 @@
     "features": "功能",
     "pricing": "定价",
     "exchanges": "交易所",
-    "signIn": "登录"
+    "signIn": "登录",
+    "admin": "管理"
   },
   "auth": {
     "login": "登录",
@@ -869,5 +870,40 @@
     "ctaTitle": "准备好扩展您的加密税务业务了吗？",
     "ctaTrial": "开始免费试用",
     "ctaSales": "联系销售获取批量定价"
+  },
+  "admin": {
+    "title": "管理后台",
+    "subtitle": "平台概览与管理",
+    "loading": "加载管理数据...",
+    "accessDenied": "访问被拒绝。需要管理员权限。",
+    "fetchError": "加载管理统计数据失败。",
+    "totalUsers": "总用户数",
+    "totalTransactions": "总交易数",
+    "totalDataSources": "总数据源数",
+    "totalTaxReports": "总税务报告数",
+    "manageUsers": "管理用户 →",
+    "userManagement": "用户管理",
+    "userCount": "共 {count} 位用户",
+    "email": "邮箱",
+    "name": "姓名",
+    "role": "角色",
+    "registered": "注册时间",
+    "lastUpdated": "最后更新",
+    "txCount": "交易数",
+    "dsCount": "数据源",
+    "taxLots": "税批",
+    "taxReports": "税务报告",
+    "changeRole": "更改角色",
+    "confirmRoleChange": "将 {email} 的角色更改为 {role}？",
+    "roleUpdated": "角色已更新",
+    "noUsers": "暂无用户",
+    "search": "搜索",
+    "searchPlaceholder": "按邮箱搜索...",
+    "page": "第",
+    "of": "页，共",
+    "forbidden": "访问被拒绝。需要管理员权限。",
+    "promote": "提升",
+    "demote": "降级",
+    "selfDemotion": "无法更改自己的角色"
   }
 }
