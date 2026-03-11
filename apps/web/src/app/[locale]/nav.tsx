@@ -65,16 +65,29 @@ export function LocaleNav({ locale }: { locale: string }) {
       </button>
 
       <div className={`nav-links ${menuOpen ? "nav-links-open" : ""}`}>
-        {links.map((link) => (
+        {user ? (
+          <>
+            {links.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`nav-link ${pathname === link.href ? "active" : ""}`}
+                onClick={() => setMenuOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </>
+        ) : (
           <Link
-            key={link.href}
-            href={link.href}
-            className={`nav-link ${pathname === link.href ? "active" : ""}`}
+            href="/auth"
+            className="nav-link"
+            style={{ fontWeight: 600, color: "var(--accent)" }}
             onClick={() => setMenuOpen(false)}
           >
-            {link.label}
+            Sign In
           </Link>
-        ))}
+        )}
         <span role="separator" aria-hidden="true" className="nav-divider" />
         <button
           onClick={toggleTheme}

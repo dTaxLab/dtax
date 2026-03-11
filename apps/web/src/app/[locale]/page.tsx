@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useAuth } from "@/lib/auth-context";
+import { LandingPage } from "./landing";
 import {
   getTransactions,
   getTaxSummary,
@@ -27,12 +29,32 @@ function formatDate(iso: string, locale: string): string {
 }
 
 export default function Dashboard() {
+  const { user, loading: authLoading } = useAuth();
   const t = useTranslations("dashboard");
   const tt = useTranslations("table");
   const tc = useTranslations("common");
   const tf = useTranslations("footer");
   const tType = useTranslations("txTypes");
   const { formatFiat } = useFiatFormatter();
+
+  // 未登录 → 显示 Landing Page
+  if (!user && !authLoading) {
+    return <LandingPage />;
+  }
+
+  // 认证加载中
+  if (authLoading) {
+    return (
+      <div style={{ padding: "60px 0", textAlign: "center" }}>
+        <div className="loading-pulse" style={{ fontSize: "48px" }}>
+          🧮
+        </div>
+        <p style={{ color: "var(--text-muted)", marginTop: "16px" }}>
+          {tc("loading")}
+        </p>
+      </div>
+    );
+  }
 
   const prefs = typeof window !== "undefined" ? getPreferences() : null;
   const currentYear = new Date().getFullYear();

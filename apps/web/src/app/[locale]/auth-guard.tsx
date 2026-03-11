@@ -9,8 +9,9 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const tc = useTranslations("common");
 
-  // auth 页面不需要守卫
-  if (pathname.endsWith("/auth")) {
+  // auth 页面和首页不需要守卫
+  const segments = pathname.split("/").filter(Boolean);
+  if (pathname.endsWith("/auth") || segments.length <= 1) {
     return <>{children}</>;
   }
 
