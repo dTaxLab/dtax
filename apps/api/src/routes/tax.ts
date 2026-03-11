@@ -14,6 +14,7 @@ import {
   fetchTaxData,
   calculateIncome,
   fetchInternalTransferIds,
+  ACQUISITION_TYPES,
 } from "../lib/tax-data";
 import {
   CostBasisCalculator,
@@ -358,5 +359,96 @@ export async function taxRoutes(app: FastifyInstance) {
     });
 
     return { data: { ...report, parseErrors: parsed.errors } };
+  });
+
+  // GET /tax/available-lots — List available lots for Specific ID selection
+  app.get("/tax/available-lots", async (request, _reply) => {
+    const query = z
+      .object({
+        year: z.coerce.number().int().min(2009).max(2030),
+        asset: z.string().optional(),
+      })
+      .parse(request.query);
+
+    const yearEnd = new Date(`${query.year + 1}-01-01T00:00:00Z`);
+
+    const acquisitions = await prisma.transaction.findMany({
+      where: {
+        userId: request.userId,
+        type: { in: [...ACQUISITION_TYPES] },
+        timestamp: { lt: yearEnd },
+      },
+      orderBy: { timestamp: "asc" },
+    });
+
+    let lots = acquisitions.map((tx) => ({
+      id: tx.id,
+      asset: tx.receivedAsset || "",
+      amount: Number(tx.receivedAmount || 0),
+      costBasisUsd: Number(tx.receivedValueUsd || 0),
+      acquiredAt: tx.timestamp.toISOString(),
+      sourceId: tx.sourceId || "unknown",
+    }));
+
+    if (query.asset) {
+      lots = lots.filter((l) => l.asset === query.asset!.toUpperCase());
+    }
+
+    return { data: { lots } };
+  });
+
+  // POST /tax/calculate-specific — Calculate with user-selected lots (Specific ID)
+  app.post("/tax/calculate-specific", async (request, reply) => {
+    const body = z
+      .object({
+        taxYear: z.number().int().min(2009).max(2030),
+        selections: z
+          .array(
+            z.object({
+              eventId: z.string(),
+              lots: z.array(
+                z.object({
+                  lotId: z.string(),
+                  amount: z.number().positive(),
+                }),
+              ),
+            }),
+          )
+          .min(1),
+        strictSilo: z.boolean().default(false),
+      })
+      .parse(request.body);
+
+    const { lots, events } = await fetchTaxData({
+      userId: request.userId,
+      taxYear: body.taxYear,
+    });
+
+    const calculator = new CostBasisCalculator("SPECIFIC_ID");
+    calculator.addLots(lots);
+
+    const selectionMap = new Map(
+      body.selections.map((s) => [s.eventId, s.lots]),
+    );
+
+    const results = [];
+    for (const event of events) {
+      const eventSelections = selectionMap.get(event.id);
+      if (!eventSelections) continue;
+
+      try {
+        const result = calculator.calculateSpecificId(event, eventSelections);
+        results.push(result);
+      } catch (e) {
+        return reply.status(400).send({
+          error: {
+            message: e instanceof Error ? e.message : "Invalid lot selection",
+            eventId: event.id,
+          },
+        });
+      }
+    }
+
+    return { data: { results, method: "SPECIFIC_ID", taxYear: body.taxYear } };
   });
 }

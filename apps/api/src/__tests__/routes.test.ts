@@ -684,6 +684,164 @@ describe("Tax Routes", () => {
     const body = JSON.parse(res.body);
     expect(body.error.message).toContain("No valid entries");
   });
+
+  // ─── GET /tax/available-lots ────────────────────
+
+  it("GET /tax/available-lots returns available lots", async () => {
+    const buyTx1 = mockTransaction({
+      id: "lot-avail-1",
+      type: "BUY",
+      receivedAsset: "BTC",
+      receivedAmount: 2,
+      receivedValueUsd: 60000,
+      timestamp: new Date("2024-01-15T00:00:00Z"),
+      sourceId: "coinbase",
+    });
+    const buyTx2 = mockTransaction({
+      id: "lot-avail-2",
+      type: "BUY",
+      receivedAsset: "ETH",
+      receivedAmount: 10,
+      receivedValueUsd: 20000,
+      timestamp: new Date("2024-06-01T00:00:00Z"),
+      sourceId: "binance",
+    });
+
+    mockPrisma.transaction.findMany.mockResolvedValueOnce([buyTx1, buyTx2]);
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/tax/available-lots?year=2025",
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data.lots).toHaveLength(2);
+    expect(body.data.lots[0]).toHaveProperty("id");
+    expect(body.data.lots[0]).toHaveProperty("asset");
+    expect(body.data.lots[0]).toHaveProperty("amount");
+    expect(body.data.lots[0]).toHaveProperty("costBasisUsd");
+    expect(body.data.lots[0]).toHaveProperty("acquiredAt");
+    expect(body.data.lots[0]).toHaveProperty("sourceId");
+  });
+
+  it("GET /tax/available-lots filters by asset", async () => {
+    const btcTx = mockTransaction({
+      id: "lot-btc",
+      type: "BUY",
+      receivedAsset: "BTC",
+      receivedAmount: 1,
+      receivedValueUsd: 50000,
+      timestamp: new Date("2024-01-01T00:00:00Z"),
+    });
+
+    mockPrisma.transaction.findMany.mockResolvedValueOnce([btcTx]);
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/tax/available-lots?year=2025&asset=BTC",
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data.lots).toHaveLength(1);
+    expect(body.data.lots[0].asset).toBe("BTC");
+  });
+
+  // ─── POST /tax/calculate-specific ───────────────
+
+  it("POST /tax/calculate-specific computes gains with lot selections", async () => {
+    const buyTx = mockTransaction({
+      id: "lot-spec-1",
+      type: "BUY",
+      receivedAsset: "BTC",
+      receivedAmount: 2,
+      receivedValueUsd: 60000,
+      timestamp: new Date("2024-01-15T00:00:00Z"),
+    });
+    const sellTx = mockTransaction({
+      id: "sell-spec-1",
+      type: "SELL",
+      sentAsset: "BTC",
+      sentAmount: 1,
+      sentValueUsd: 50000,
+      feeValueUsd: 10,
+      timestamp: new Date("2025-06-15T00:00:00Z"),
+    });
+
+    mockPrisma.transaction.findMany
+      .mockResolvedValueOnce([buyTx]) // acquisitions
+      .mockResolvedValueOnce([sellTx]); // dispositions
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/tax/calculate-specific",
+      payload: {
+        taxYear: 2025,
+        selections: [
+          {
+            eventId: "sell-spec-1",
+            lots: [{ lotId: "lot-spec-1", amount: 1 }],
+          },
+        ],
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data.results).toBeInstanceOf(Array);
+    expect(body.data.results).toHaveLength(1);
+    expect(body.data.method).toBe("SPECIFIC_ID");
+    // costBasis = 1/2 * 60000 = 30000, proceeds = 50000, fee = 10
+    // gainLoss = 50000 - 30000 - 10 = 19990
+    expect(body.data.results[0].gainLoss).toBeCloseTo(19990, 0);
+  });
+
+  it("POST /tax/calculate-specific returns 400 for missing lot", async () => {
+    const sellTx = mockTransaction({
+      id: "sell-bad",
+      type: "SELL",
+      sentAsset: "BTC",
+      sentAmount: 1,
+      sentValueUsd: 50000,
+      timestamp: new Date("2025-06-15T00:00:00Z"),
+    });
+
+    mockPrisma.transaction.findMany
+      .mockResolvedValueOnce([]) // no acquisitions
+      .mockResolvedValueOnce([sellTx]); // dispositions
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/tax/calculate-specific",
+      payload: {
+        taxYear: 2025,
+        selections: [
+          {
+            eventId: "sell-bad",
+            lots: [{ lotId: "nonexistent-lot", amount: 1 }],
+          },
+        ],
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+    const body = JSON.parse(res.body);
+    expect(body.error.message).toBeDefined();
+  });
+
+  it("POST /tax/calculate-specific returns 400 for empty selections", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/tax/calculate-specific",
+      payload: {
+        taxYear: 2025,
+        selections: [],
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+  });
 });
 
 describe("Transfer Routes", () => {

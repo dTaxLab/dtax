@@ -8,7 +8,7 @@ import { prisma } from "./prisma";
 import type { TaxLot, TaxableEvent } from "@dtax/tax-engine";
 
 /** Transaction types that create tax lots (acquisitions) */
-const ACQUISITION_TYPES = [
+export const ACQUISITION_TYPES = [
   "BUY",
   "TRADE",
   "AIRDROP",
