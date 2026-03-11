@@ -39,6 +39,9 @@ const mockPrisma = {
     delete: vi.fn(),
     findUnique: vi.fn(),
   },
+  subscription: {
+    findUnique: vi.fn(),
+  },
   $queryRaw: vi.fn(),
   $transaction: vi.fn(),
 };
@@ -46,6 +49,10 @@ const mockPrisma = {
 vi.mock("../lib/prisma", () => ({
   prisma: mockPrisma,
 }));
+
+// Default: subscription check returns null (FREE plan), count=0 → quota allowed
+mockPrisma.subscription.findUnique.mockResolvedValue(null);
+mockPrisma.transaction.count.mockResolvedValue(0);
 
 // Mock CCXT service for connections route
 vi.mock("../services/ccxt", () => ({

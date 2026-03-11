@@ -21,6 +21,7 @@ import { portfolioRoutes } from "./routes/portfolio";
 import { priceRoutes } from "./routes/prices";
 import { authRoutes } from "./routes/auth";
 import { adminRoutes } from "./routes/admin";
+import { billingRoutes } from "./routes/billing";
 import authPlugin from "./plugins/auth";
 import { registerSwagger } from "./plugins/swagger";
 
@@ -103,6 +104,7 @@ async function main() {
   await app.register(portfolioRoutes, { prefix: "/api/v1" });
   await app.register(priceRoutes, { prefix: "/api/v1" });
   await app.register(adminRoutes, { prefix: "/api/v1" });
+  await app.register(billingRoutes, { prefix: "/api/v1" });
 
   // Graceful shutdown
   const shutdown = async () => {

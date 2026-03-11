@@ -32,6 +32,7 @@ model User {
   transactions Transaction[]
   taxLots      TaxLot[]
   taxReports   TaxReport[]
+  subscription Subscription?
 
   @@map("users")
 }
@@ -39,6 +40,12 @@ model User {
 enum UserRole {
   USER
   ADMIN
+}
+
+enum Plan {
+  FREE
+  PRO
+  CPA
 }
 
 // ─── Data Source ────────────────────────────────
@@ -251,4 +258,23 @@ enum ReportStatus {
   CALCULATING
   COMPLETE
   ERROR
+}
+
+// ─── Subscription ────────────────────────────
+// User subscription / billing info
+
+model Subscription {
+  id                 String    @id @default(uuid())
+  userId             String    @unique @map("user_id")
+  user               User      @relation(fields: [userId], references: [id])
+  plan               Plan      @default(FREE)
+  stripeCustomerId   String?   @map("stripe_customer_id")
+  stripeSubId        String?   @map("stripe_subscription_id")
+  taxYear            Int?      @map("tax_year")
+  status             String    @default("active")
+  currentPeriodEnd   DateTime? @map("current_period_end")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  @@map("subscriptions")
 }

@@ -10,6 +10,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
+import { checkTransactionQuota } from "../plugins/plan-guard";
 
 // ─── Validation Schemas ─────────────────────────
 
@@ -89,6 +90,19 @@ export async function transactionRoutes(app: FastifyInstance) {
   // POST /transactions — Create transaction(s)
   app.post("/transactions", async (request, reply) => {
     const body = createTransactionSchema.parse(request.body);
+
+    // Enforce FREE plan transaction quota
+    const quota = await checkTransactionQuota(request.userId);
+    if (!quota.allowed) {
+      return reply.status(403).send({
+        error: {
+          code: "QUOTA_EXCEEDED",
+          message: `Free plan limit of ${quota.limit} transactions reached (current: ${quota.current}). Upgrade to Pro for unlimited.`,
+          limit: quota.limit,
+          current: quota.current,
+        },
+      });
+    }
 
     const transaction = await prisma.transaction.create({
       data: {

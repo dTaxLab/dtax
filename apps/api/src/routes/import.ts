@@ -14,6 +14,7 @@ import { prisma } from "../lib/prisma";
 import { DataSourceType, DataSourceStatus } from "@prisma/client";
 import { parseCsv } from "@dtax/tax-engine";
 import type { CsvFormat, ParsedTransaction } from "@dtax/tax-engine";
+import { checkTransactionQuota } from "../plugins/plan-guard";
 
 /** Generate a deterministic fingerprint for a parsed transaction */
 function txFingerprint(tx: ParsedTransaction): string {
@@ -159,6 +160,30 @@ export async function importRoutes(app: FastifyInstance) {
       } else {
         newTxs.push({ tx: parseResult.transactions[i], fp: fingerprints[i] });
       }
+    }
+
+    // Enforce FREE plan transaction quota before insert
+    const quota = await checkTransactionQuota(request.userId);
+    if (!quota.allowed) {
+      return reply.status(403).send({
+        error: {
+          code: "QUOTA_EXCEEDED",
+          message: `Free plan limit of ${quota.limit} transactions reached (current: ${quota.current}). Upgrade to Pro for unlimited.`,
+          limit: quota.limit,
+          current: quota.current,
+        },
+      });
+    }
+    if (quota.plan === "FREE" && quota.current + newTxs.length > quota.limit) {
+      return reply.status(403).send({
+        error: {
+          code: "QUOTA_EXCEEDED",
+          message: `Import would exceed free plan limit of ${quota.limit} transactions (current: ${quota.current}, importing: ${newTxs.length}). Upgrade to Pro for unlimited.`,
+          limit: quota.limit,
+          current: quota.current,
+          importing: newTxs.length,
+        },
+      });
     }
 
     if (newTxs.length === 0) {
