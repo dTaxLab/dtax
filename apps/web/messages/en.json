@@ -13,7 +13,8 @@
     "pricing": "Pricing",
     "exchanges": "Exchanges",
     "signIn": "Sign In",
-    "admin": "Admin"
+    "admin": "Admin",
+    "aiAssistant": "AI Assistant"
   },
   "auth": {
     "login": "Login",
@@ -968,6 +969,21 @@
     "selfDemotion": "Cannot change your own role",
     "proSubscribers": "Pro Subscribers",
     "cpaSubscribers": "CPA Subscribers"
+  },
+  "chat": {
+    "title": "AI Tax Assistant",
+    "newConversation": "New Chat",
+    "placeholder": "Ask about your crypto taxes...",
+    "send": "Send",
+    "noConversations": "No conversations yet. Start a new chat!",
+    "deleteConfirm": "Delete this conversation?",
+    "quotaExceeded": "Daily message limit reached. Upgrade to PRO for unlimited.",
+    "aiNotConfigured": "AI assistant is not available. Please contact support.",
+    "thinking": "Thinking...",
+    "toolCall": "Looking up {tool}...",
+    "error": "Failed to send message. Please try again.",
+    "deleteError": "Failed to delete conversation.",
+    "loadError": "Failed to load conversations."
   },
   "upgrade": {
     "title": "Free Plan Limit Reached",

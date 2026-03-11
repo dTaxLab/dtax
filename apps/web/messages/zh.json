@@ -13,7 +13,8 @@
     "pricing": "定价",
     "exchanges": "交易所",
     "signIn": "登录",
-    "admin": "管理"
+    "admin": "管理",
+    "aiAssistant": "AI 助手"
   },
   "auth": {
     "login": "登录",
@@ -968,6 +969,21 @@
     "selfDemotion": "无法更改自己的角色",
     "proSubscribers": "Pro 订阅用户",
     "cpaSubscribers": "CPA 订阅用户"
+  },
+  "chat": {
+    "title": "AI 税务助手",
+    "newConversation": "新对话",
+    "placeholder": "询问您的加密货币税务问题...",
+    "send": "发送",
+    "noConversations": "暂无对话记录。开始新聊天吧！",
+    "deleteConfirm": "确认删除此对话？",
+    "quotaExceeded": "已达每日消息限额。升级到专业版可无限使用。",
+    "aiNotConfigured": "AI 助手暂不可用，请联系客服。",
+    "thinking": "思考中...",
+    "toolCall": "正在查询 {tool}...",
+    "error": "发送消息失败，请重试。",
+    "deleteError": "删除对话失败。",
+    "loadError": "加载对话失败。"
   },
   "upgrade": {
     "title": "免费版额度已用完",

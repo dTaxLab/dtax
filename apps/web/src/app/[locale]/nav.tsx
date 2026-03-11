@@ -24,6 +24,7 @@ export function LocaleNav({ locale }: { locale: string }) {
     { href: "/portfolio", label: t("portfolio") },
     { href: "/reconcile", label: t("reconcile") },
     { href: "/compare", label: t("compare") },
+    { href: "/ai-assistant", label: t("aiAssistant") },
     { href: "/settings", label: t("settings") },
   ] as const;
 

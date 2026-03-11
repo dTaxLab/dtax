@@ -794,3 +794,64 @@ export async function runRiskScan(year: number) {
     body: JSON.stringify({ year }),
   });
 }
+
+// ─── Chat ─────────────────────────────────────────
+
+export interface ChatConversation {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messageCount: number;
+}
+
+export interface ChatMessageData {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  toolCalls?: Array<{ name: string; input: Record<string, unknown> }> | null;
+  createdAt: string;
+}
+
+export async function createConversation(title?: string) {
+  return apiFetch<{ data: ChatConversation }>("/api/v1/chat/conversations", {
+    method: "POST",
+    body: JSON.stringify({ title }),
+  });
+}
+
+export async function listConversations(page = 1, limit = 20) {
+  return apiFetch<{
+    data: ChatConversation[];
+    meta: { page: number; limit: number; total: number; totalPages: number };
+  }>(`/api/v1/chat/conversations?page=${page}&limit=${limit}`);
+}
+
+export async function getConversation(id: string) {
+  return apiFetch<{
+    data: {
+      id: string;
+      title: string;
+      messages: ChatMessageData[];
+    };
+  }>(`/api/v1/chat/conversations/${id}`);
+}
+
+export async function deleteConversation(id: string) {
+  return apiFetch<{ data: { deleted: boolean } }>(
+    `/api/v1/chat/conversations/${id}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function sendChatMessage(conversationId: string, content: string) {
+  return apiFetch<{
+    data: {
+      userMessage: ChatMessageData;
+      assistantMessage: ChatMessageData;
+    };
+  }>(`/api/v1/chat/conversations/${conversationId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ content }),
+  });
+}
