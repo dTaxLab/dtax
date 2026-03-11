@@ -76,6 +76,16 @@ export default function Dashboard() {
     loadData();
   }, [year, method]);
 
+  // 已登录且首次使用（无交易且未完成引导）→ 跳转引导
+  useEffect(() => {
+    if (user && !authLoading && !loading && txMeta.total === 0) {
+      const done = localStorage.getItem("dtax_onboarding_completed");
+      if (!done) {
+        window.location.href = "onboarding";
+      }
+    }
+  }, [user, authLoading, loading, txMeta.total]);
+
   async function loadData() {
     setLoading(true);
     setError(null);
