@@ -6,12 +6,17 @@
  * GET    /chat/conversations/:id          — Get conversation with messages
  * DELETE /chat/conversations/:id          — Delete conversation
  * POST   /chat/conversations/:id/messages — Send message (returns AI response)
+ * POST   /chat/conversations/:id/messages/stream — Send message (SSE streaming)
  */
 
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
-import { chatCompletion, type ChatMessage } from "../lib/chat-service";
+import {
+  chatCompletion,
+  chatCompletionStream,
+  type ChatMessage,
+} from "../lib/chat-service";
 import { checkChatQuota } from "../plugins/plan-guard";
 
 export async function chatRoutes(app: FastifyInstance) {
@@ -99,11 +104,9 @@ export async function chatRoutes(app: FastifyInstance) {
     });
 
     if (!conversation) {
-      return reply
-        .status(404)
-        .send({
-          error: { code: "NOT_FOUND", message: "Conversation not found" },
-        });
+      return reply.status(404).send({
+        error: { code: "NOT_FOUND", message: "Conversation not found" },
+      });
     }
 
     return { data: conversation };
@@ -118,11 +121,9 @@ export async function chatRoutes(app: FastifyInstance) {
     });
 
     if (!conversation) {
-      return reply
-        .status(404)
-        .send({
-          error: { code: "NOT_FOUND", message: "Conversation not found" },
-        });
+      return reply.status(404).send({
+        error: { code: "NOT_FOUND", message: "Conversation not found" },
+      });
     }
 
     await prisma.chatConversation.delete({ where: { id } });
@@ -146,11 +147,9 @@ export async function chatRoutes(app: FastifyInstance) {
     });
 
     if (!conversation) {
-      return reply
-        .status(404)
-        .send({
-          error: { code: "NOT_FOUND", message: "Conversation not found" },
-        });
+      return reply.status(404).send({
+        error: { code: "NOT_FOUND", message: "Conversation not found" },
+      });
     }
 
     // Check chat quota
@@ -245,4 +244,150 @@ export async function chatRoutes(app: FastifyInstance) {
       },
     };
   });
+
+  // POST /chat/conversations/:id/messages/stream — SSE streaming message
+  app.post(
+    "/chat/conversations/:id/messages/stream",
+    async (request, reply) => {
+      const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+
+      const body = z
+        .object({ content: z.string().min(1).max(10000) })
+        .parse(request.body);
+
+      // Verify ownership
+      const conversation = await prisma.chatConversation.findFirst({
+        where: { id, userId: request.userId },
+      });
+      if (!conversation) {
+        return reply.status(404).send({
+          error: { code: "NOT_FOUND", message: "Conversation not found" },
+        });
+      }
+
+      // Quota check
+      const quota = await checkChatQuota(request.userId);
+      if (!quota.allowed) {
+        return reply.status(429).send({
+          error: {
+            code: "CHAT_QUOTA_EXCEEDED",
+            message: `Free plan allows ${quota.limit} messages per day. Upgrade to PRO for unlimited.`,
+            current: quota.current,
+            limit: quota.limit,
+          },
+        });
+      }
+
+      // Load history
+      const existingMessages = await prisma.chatMessage.findMany({
+        where: { conversationId: id },
+        orderBy: { createdAt: "asc" },
+        select: { role: true, content: true },
+      });
+
+      const chatMessages: ChatMessage[] = [
+        ...existingMessages.map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        })),
+        { role: "user" as const, content: body.content },
+      ];
+
+      // Save user message immediately
+      const userMessage = await prisma.chatMessage.create({
+        data: { conversationId: id, role: "user", content: body.content },
+      });
+
+      // Set SSE headers
+      reply.raw.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+        "X-Accel-Buffering": "no",
+      });
+
+      // Send user message ID as first event
+      reply.raw.write(
+        `event: user_message\ndata: ${JSON.stringify({ id: userMessage.id })}\n\n`,
+      );
+
+      // Stream AI response
+      const gen = chatCompletionStream(chatMessages, {
+        userId: request.userId,
+      });
+
+      let finalContent = "";
+      let finalToolCalls: Array<{
+        name: string;
+        input: Record<string, unknown>;
+      }> = [];
+
+      for await (const ev of gen) {
+        reply.raw.write(
+          `event: ${ev.event}\ndata: ${JSON.stringify(ev.data)}\n\n`,
+        );
+
+        if (ev.event === "done") {
+          finalContent = (
+            ev.data as {
+              content: string;
+              toolCalls: Array<{
+                name: string;
+                input: Record<string, unknown>;
+              }>;
+            }
+          ).content;
+          finalToolCalls = (
+            ev.data as {
+              content: string;
+              toolCalls: Array<{
+                name: string;
+                input: Record<string, unknown>;
+              }>;
+            }
+          ).toolCalls;
+        } else if (ev.event === "error") {
+          finalContent =
+            (ev.data as { message: string }).message || "An error occurred.";
+        }
+      }
+
+      // Save assistant message after stream completes
+      const assistantMessage = await prisma.chatMessage.create({
+        data: {
+          conversationId: id,
+          role: "assistant",
+          content: finalContent,
+          toolCalls:
+            finalToolCalls.length > 0
+              ? (JSON.parse(JSON.stringify(finalToolCalls)) as object)
+              : undefined,
+        },
+      });
+
+      // Send saved message ID
+      reply.raw.write(
+        `event: saved\ndata: ${JSON.stringify({ assistantMessageId: assistantMessage.id })}\n\n`,
+      );
+
+      // Auto-title on first message
+      if (existingMessages.length === 0) {
+        const title =
+          body.content.length > 60
+            ? body.content.slice(0, 57) + "..."
+            : body.content;
+        await prisma.chatConversation.update({
+          where: { id },
+          data: { title },
+        });
+      }
+
+      await prisma.chatConversation.update({
+        where: { id },
+        data: { updatedAt: new Date() },
+      });
+
+      reply.raw.end();
+    },
+  );
 }

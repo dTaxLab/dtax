@@ -26,12 +26,28 @@ vi.mock("../lib/prisma", () => ({
 
 // Mock @anthropic-ai/sdk
 const mockCreate = vi.fn();
+const mockStream = vi.fn();
 vi.mock("@anthropic-ai/sdk", () => ({
   default: class MockAnthropic {
-    messages = { create: mockCreate };
+    messages = { create: mockCreate, stream: mockStream };
     constructor() {}
   },
 }));
+
+/** Helper: create a mock stream object that yields events and has finalMessage() */
+function createMockStream(
+  events: Array<{ type: string; [key: string]: unknown }>,
+  finalMsg: { content: Array<{ type: string; [key: string]: unknown }> },
+) {
+  return {
+    [Symbol.asyncIterator]: async function* () {
+      for (const event of events) {
+        yield event;
+      }
+    },
+    finalMessage: () => Promise.resolve(finalMsg),
+  };
+}
 
 // Mock tax-engine scanRisks
 vi.mock("@dtax/tax-engine", () => ({
@@ -55,8 +71,10 @@ import { config } from "../config";
 import { prisma } from "../lib/prisma";
 import {
   chatCompletion,
+  chatCompletionStream,
   resetChatClient,
   type ChatMessage,
+  type StreamEvent,
 } from "../lib/chat-service";
 
 const mutableConfig = config as { anthropicApiKey: string };
@@ -372,6 +390,151 @@ describe("Chat Service", () => {
       expect(result.toolCalls[0].name).toBe("unknown_tool");
       // The model should still produce a final text response
       expect(result.content).toBeTruthy();
+    });
+  });
+
+  describe("chatCompletionStream", () => {
+    async function collectEvents(
+      gen: AsyncGenerator<StreamEvent>,
+    ): Promise<StreamEvent[]> {
+      const events: StreamEvent[] = [];
+      for await (const ev of gen) {
+        events.push(ev);
+      }
+      return events;
+    }
+
+    it("无 API key 时 yield error 事件", async () => {
+      mutableConfig.anthropicApiKey = "";
+
+      const events = await collectEvents(
+        chatCompletionStream([{ role: "user", content: "Hi" }], {
+          userId: "user-1",
+        }),
+      );
+
+      expect(events).toHaveLength(1);
+      expect(events[0].event).toBe("error");
+      expect((events[0].data as { message: string }).message).toContain(
+        "ANTHROPIC_API_KEY",
+      );
+    });
+
+    it("流式文本回复（无 tool use）", async () => {
+      mutableConfig.anthropicApiKey = "sk-test";
+
+      const streamEvents = [
+        {
+          type: "content_block_start",
+          index: 0,
+          content_block: { type: "text", text: "" },
+        },
+        {
+          type: "content_block_delta",
+          delta: { type: "text_delta", text: "Hello " },
+        },
+        {
+          type: "content_block_delta",
+          delta: { type: "text_delta", text: "world!" },
+        },
+        { type: "content_block_stop", index: 0 },
+      ];
+      const finalMsg = {
+        content: [{ type: "text", text: "Hello world!" }],
+      };
+
+      mockStream.mockReturnValueOnce(createMockStream(streamEvents, finalMsg));
+
+      const events = await collectEvents(
+        chatCompletionStream([{ role: "user", content: "Hi" }], {
+          userId: "user-1",
+        }),
+      );
+
+      const textEvents = events.filter((e) => e.event === "text");
+      expect(textEvents).toHaveLength(2);
+      expect((textEvents[0].data as { chunk: string }).chunk).toBe("Hello ");
+      expect((textEvents[1].data as { chunk: string }).chunk).toBe("world!");
+
+      const doneEvent = events.find((e) => e.event === "done");
+      expect(doneEvent).toBeDefined();
+      expect((doneEvent!.data as { content: string }).content).toBe(
+        "Hello world!",
+      );
+    });
+
+    it("流式 tool use: tool_start → tool_end → 文本", async () => {
+      mutableConfig.anthropicApiKey = "sk-test";
+
+      // First stream: tool use
+      const stream1Events = [
+        {
+          type: "content_block_start",
+          index: 0,
+          content_block: {
+            type: "tool_use",
+            id: "toolu_1",
+            name: "get_transaction_stats",
+          },
+        },
+        { type: "content_block_stop", index: 0 },
+      ];
+      const final1 = {
+        content: [
+          {
+            type: "tool_use",
+            id: "toolu_1",
+            name: "get_transaction_stats",
+            input: {},
+          },
+        ],
+      };
+
+      // Second stream: text response
+      const stream2Events = [
+        {
+          type: "content_block_start",
+          index: 0,
+          content_block: { type: "text", text: "" },
+        },
+        {
+          type: "content_block_delta",
+          delta: { type: "text_delta", text: "You have 50 txs." },
+        },
+        { type: "content_block_stop", index: 0 },
+      ];
+      const final2 = {
+        content: [{ type: "text", text: "You have 50 txs." }],
+      };
+
+      mockStream
+        .mockReturnValueOnce(createMockStream(stream1Events, final1))
+        .mockReturnValueOnce(createMockStream(stream2Events, final2));
+
+      // Mock prisma for tool execution
+      (prisma.transaction.count as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(50)
+        .mockResolvedValueOnce(5);
+      (
+        prisma.transaction.groupBy as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce([]);
+
+      const events = await collectEvents(
+        chatCompletionStream([{ role: "user", content: "Stats?" }], {
+          userId: "user-1",
+        }),
+      );
+
+      const eventTypes = events.map((e) => e.event);
+      expect(eventTypes).toContain("tool_start");
+      expect(eventTypes).toContain("tool_end");
+      expect(eventTypes).toContain("text");
+      expect(eventTypes).toContain("done");
+
+      const toolStart = events.find((e) => e.event === "tool_start");
+      expect((toolStart!.data as { name: string }).name).toBe(
+        "get_transaction_stats",
+      );
     });
   });
 });

@@ -855,3 +855,107 @@ export async function sendChatMessage(conversationId: string, content: string) {
     body: JSON.stringify({ content }),
   });
 }
+
+export interface StreamCallbacks {
+  onUserMessageId?: (id: string) => void;
+  onText?: (chunk: string) => void;
+  onToolStart?: (name: string) => void;
+  onToolEnd?: (name: string) => void;
+  onDone?: (
+    content: string,
+    toolCalls: Array<{ name: string; input: Record<string, unknown> }>,
+  ) => void;
+  onSaved?: (assistantMessageId: string) => void;
+  onError?: (message: string) => void;
+}
+
+/**
+ * Send a chat message via SSE streaming.
+ * Parses Server-Sent Events from the response stream and invokes callbacks.
+ */
+export async function sendChatMessageStream(
+  conversationId: string,
+  content: string,
+  callbacks: StreamCallbacks,
+): Promise<void> {
+  const token = getStoredToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const response = await fetch(
+    `${API_BASE}/api/v1/chat/conversations/${conversationId}/messages/stream`,
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ content }),
+    },
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    const err = (errorBody as Record<string, unknown>).error as
+      | {
+          message?: string;
+          code?: string;
+        }
+      | undefined;
+    throw new ApiError(err?.message || `HTTP ${response.status}`, err?.code);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) return;
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    // Parse SSE lines
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || ""; // Keep incomplete last line in buffer
+
+    let currentEvent = "";
+    for (const line of lines) {
+      if (line.startsWith("event: ")) {
+        currentEvent = line.slice(7);
+      } else if (line.startsWith("data: ")) {
+        const data = line.slice(6);
+        try {
+          const parsed = JSON.parse(data);
+          switch (currentEvent) {
+            case "user_message":
+              callbacks.onUserMessageId?.(parsed.id);
+              break;
+            case "text":
+              callbacks.onText?.(parsed.chunk);
+              break;
+            case "tool_start":
+              callbacks.onToolStart?.(parsed.name);
+              break;
+            case "tool_end":
+              callbacks.onToolEnd?.(parsed.name);
+              break;
+            case "done":
+              callbacks.onDone?.(parsed.content, parsed.toolCalls);
+              break;
+            case "saved":
+              callbacks.onSaved?.(parsed.assistantMessageId);
+              break;
+            case "error":
+              callbacks.onError?.(parsed.message);
+              break;
+          }
+        } catch {
+          // Skip malformed JSON
+        }
+        currentEvent = "";
+      }
+    }
+  }
+}

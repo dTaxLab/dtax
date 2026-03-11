@@ -13,9 +13,11 @@ const TOOL_LABELS: Record<string, string> = {
 export function MessageList({
   messages,
   loading,
+  activeTools = [],
 }: {
   messages: ChatMessageData[];
   loading: boolean;
+  activeTools?: string[];
 }) {
   const t = useTranslations("chat");
 
@@ -69,19 +71,47 @@ export function MessageList({
                       marginBottom: 4,
                     }}
                   >
-                    {t("toolCall", { tool: TOOL_LABELS[tc.name] || tc.name })}
+                    {t("toolCall", {
+                      tool: TOOL_LABELS[tc.name] || tc.name,
+                    })}
                   </span>
                 ))}
               </div>
             )}
-            {msg.content.split("\n").map((line, i) => (
-              <p key={i} style={{ margin: "2px 0" }}>
-                {line || "\u00A0"}
-              </p>
-            ))}
+            {msg.content
+              ? msg.content.split("\n").map((line, i) => (
+                  <p key={i} style={{ margin: "2px 0" }}>
+                    {line || "\u00A0"}
+                  </p>
+                ))
+              : msg.role === "assistant" && (
+                  <span style={{ color: "var(--text-muted)" }}>
+                    {t("thinking")}
+                  </span>
+                )}
           </div>
         </div>
       ))}
+      {/* Show active tool execution badges */}
+      {activeTools.length > 0 && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {activeTools.map((name) => (
+            <span
+              key={name}
+              style={{
+                fontSize: 12,
+                padding: "4px 10px",
+                borderRadius: 6,
+                background: "rgba(99,102,241,0.1)",
+                color: "var(--accent)",
+                animation: "pulse 1.5s infinite",
+              }}
+            >
+              {t("toolCall", { tool: TOOL_LABELS[name] || name })}
+            </span>
+          ))}
+        </div>
+      )}
       {loading && (
         <div
           style={{

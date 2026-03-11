@@ -33,8 +33,11 @@ vi.mock("../lib/prisma", () => ({
 }));
 
 const mockChatCompletion = vi.fn();
+const mockChatCompletionStream = vi.fn();
 vi.mock("../lib/chat-service", () => ({
   chatCompletion: (...args: unknown[]) => mockChatCompletion(...args),
+  chatCompletionStream: (...args: unknown[]) =>
+    mockChatCompletionStream(...args),
 }));
 
 // ─── Helpers ────────────────────────────────────
@@ -285,6 +288,98 @@ describe("Chat Routes", () => {
       });
 
       expect(res.statusCode).toBe(404);
+      await app.close();
+    });
+  });
+
+  describe("POST /chat/conversations/:id/messages/stream", () => {
+    it("streams SSE events and saves message", async () => {
+      const app = await buildChatApp();
+
+      mockPrisma.chatConversation.findFirst.mockResolvedValueOnce({
+        id: CONV_ID,
+        userId: TEST_USER_ID,
+      });
+      mockPrisma.chatMessage.findMany.mockResolvedValueOnce([]);
+      mockPrisma.chatMessage.create
+        .mockResolvedValueOnce({
+          id: "msg-user",
+          role: "user",
+          content: "Hello",
+          createdAt: new Date(),
+        })
+        .mockResolvedValueOnce({
+          id: "msg-ai",
+          role: "assistant",
+          content: "Hi there!",
+          toolCalls: null,
+          createdAt: new Date(),
+        });
+      mockPrisma.chatConversation.update.mockResolvedValue({});
+
+      // Mock streaming generator
+      mockChatCompletionStream.mockReturnValueOnce(
+        (async function* () {
+          yield { event: "text", data: { chunk: "Hi " } };
+          yield { event: "text", data: { chunk: "there!" } };
+          yield {
+            event: "done",
+            data: { content: "Hi there!", toolCalls: [] },
+          };
+        })(),
+      );
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/chat/conversations/${CONV_ID}/messages/stream`,
+        payload: { content: "Hello" },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.headers["content-type"]).toBe("text/event-stream");
+
+      // Parse SSE body
+      const body = res.body;
+      expect(body).toContain("event: user_message");
+      expect(body).toContain("event: text");
+      expect(body).toContain('"chunk":"Hi "');
+      expect(body).toContain("event: done");
+      expect(body).toContain("event: saved");
+
+      // Verify assistant message was saved
+      expect(mockPrisma.chatMessage.create).toHaveBeenCalledTimes(2);
+      await app.close();
+    });
+
+    it("returns 404 for non-existent conversation (stream)", async () => {
+      const app = await buildChatApp();
+      mockPrisma.chatConversation.findFirst.mockResolvedValueOnce(null);
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/chat/conversations/${CONV_ID}/messages/stream`,
+        payload: { content: "Hello" },
+      });
+
+      expect(res.statusCode).toBe(404);
+      await app.close();
+    });
+
+    it("rejects when quota exceeded (stream)", async () => {
+      const app = await buildChatApp();
+      mockPrisma.chatConversation.findFirst.mockResolvedValueOnce({
+        id: CONV_ID,
+        userId: TEST_USER_ID,
+      });
+      mockPrisma.chatMessage.count.mockResolvedValueOnce(5);
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/chat/conversations/${CONV_ID}/messages/stream`,
+        payload: { content: "Hello" },
+      });
+
+      expect(res.statusCode).toBe(429);
       await app.close();
     });
   });

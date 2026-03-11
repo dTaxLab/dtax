@@ -373,3 +373,141 @@ export async function chatCompletion(
 
   return { content: finalContent, toolCalls };
 }
+
+/** SSE event types emitted by chatCompletionStream */
+export type StreamEvent =
+  | { event: "text"; data: { chunk: string } }
+  | { event: "tool_start"; data: { name: string } }
+  | { event: "tool_end"; data: { name: string } }
+  | {
+      event: "done";
+      data: {
+        content: string;
+        toolCalls: Array<{ name: string; input: Record<string, unknown> }>;
+      };
+    }
+  | { event: "error"; data: { message: string } };
+
+/**
+ * Stream a chat completion via async generator.
+ * Yields SSE events for text chunks, tool execution, and final result.
+ * Handles tool use loops (max 5 iterations).
+ */
+export async function* chatCompletionStream(
+  messages: ChatMessage[],
+  ctx: ChatToolContext,
+): AsyncGenerator<StreamEvent> {
+  const anthropic = getClient();
+  if (!anthropic) {
+    yield {
+      event: "error",
+      data: {
+        message:
+          "AI assistant is not configured. Please set ANTHROPIC_API_KEY in your environment.",
+      },
+    };
+    return;
+  }
+
+  const apiMessages: Anthropic.MessageParam[] = messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
+
+  const toolCalls: Array<{ name: string; input: Record<string, unknown> }> = [];
+  let fullContent = "";
+
+  for (let i = 0; i < 5; i++) {
+    // Use streaming API
+    const stream = anthropic.messages.stream({
+      model: CHAT_MODEL,
+      max_tokens: 1500,
+      system: [
+        {
+          type: "text",
+          text: SYSTEM_PROMPT,
+          cache_control: { type: "ephemeral" },
+        },
+      ],
+      tools: CHAT_TOOLS,
+      messages: apiMessages,
+    });
+
+    let iterationText = "";
+    const iterationToolUses: Array<{
+      id: string;
+      name: string;
+      input: Record<string, unknown>;
+    }> = [];
+    let currentToolName = "";
+
+    // Process stream events
+    for await (const event of stream) {
+      if (event.type === "content_block_start") {
+        if (event.content_block.type === "tool_use") {
+          currentToolName = event.content_block.name;
+          yield { event: "tool_start", data: { name: currentToolName } };
+        }
+      } else if (event.type === "content_block_delta") {
+        if (event.delta.type === "text_delta" && "text" in event.delta) {
+          const chunk = event.delta.text;
+          iterationText += chunk;
+          yield { event: "text", data: { chunk } };
+        }
+      } else if (event.type === "content_block_stop") {
+        // Block ended — if it was a tool, we'll process after message ends
+      }
+    }
+
+    // Get the final message to extract tool use blocks
+    const finalMessage = await stream.finalMessage();
+
+    const toolUseBlocks = finalMessage.content.filter(
+      (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
+    );
+
+    if (toolUseBlocks.length > 0) {
+      // Execute tools
+      apiMessages.push({ role: "assistant", content: finalMessage.content });
+
+      const toolResults: Anthropic.ToolResultBlockParam[] = [];
+      for (const toolBlock of toolUseBlocks) {
+        const input = toolBlock.input as Record<string, unknown>;
+        toolCalls.push({ name: toolBlock.name, input });
+        iterationToolUses.push({
+          id: toolBlock.id,
+          name: toolBlock.name,
+          input,
+        });
+
+        const result = await executeTool(toolBlock.name, input, ctx);
+        toolResults.push({
+          type: "tool_result",
+          tool_use_id: toolBlock.id,
+          content: result,
+        });
+        yield { event: "tool_end", data: { name: toolBlock.name } };
+      }
+
+      apiMessages.push({ role: "user", content: toolResults });
+      fullContent += iterationText;
+      // Continue loop for next Claude response
+    } else {
+      // No tool calls — streaming is complete
+      fullContent += iterationText;
+      yield { event: "done", data: { content: fullContent, toolCalls } };
+      return;
+    }
+
+    // Last iteration fallback
+    if (i === 4) {
+      fullContent += iterationText;
+      if (!fullContent) {
+        fullContent =
+          "I encountered an issue processing your request. Please try again.";
+      }
+      yield { event: "done", data: { content: fullContent, toolCalls } };
+      return;
+    }
+  }
+}

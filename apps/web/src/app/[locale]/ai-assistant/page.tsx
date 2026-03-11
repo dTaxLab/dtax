@@ -7,12 +7,14 @@ import {
   createConversation,
   getConversation,
   deleteConversation,
-  sendChatMessage,
+  sendChatMessageStream,
   type ChatConversation,
   type ChatMessageData,
 } from "@/lib/api";
 import { MessageList } from "./message-list";
 import { ChatInput } from "./chat-input";
+
+const STREAMING_ASSISTANT_ID = "streaming-assistant";
 
 export default function AiAssistantPage() {
   const t = useTranslations("chat");
@@ -23,6 +25,7 @@ export default function AiAssistantPage() {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTools, setActiveTools] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback(() => {
@@ -79,7 +82,9 @@ export default function AiAssistantPage() {
     if (!activeId || sending) return;
     setError(null);
     setSending(true);
+    setActiveTools([]);
 
+    // Add temporary user message
     const tempUserMsg: ChatMessageData = {
       id: `temp-${Date.now()}`,
       role: "user",
@@ -87,15 +92,89 @@ export default function AiAssistantPage() {
       createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, tempUserMsg]);
+
+    // Add streaming assistant placeholder
+    const streamingMsg: ChatMessageData = {
+      id: STREAMING_ASSISTANT_ID,
+      role: "assistant",
+      content: "",
+      toolCalls: [],
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, streamingMsg]);
     setTimeout(scrollToBottom, 50);
 
     try {
-      const res = await sendChatMessage(activeId, content);
-      setMessages((prev) => [
-        ...prev.filter((m) => m.id !== tempUserMsg.id),
-        res.data.userMessage,
-        res.data.assistantMessage,
-      ]);
+      let realUserMsgId = tempUserMsg.id;
+
+      await sendChatMessageStream(activeId, content, {
+        onUserMessageId: (id) => {
+          realUserMsgId = id;
+          setMessages((prev) =>
+            prev.map((m) => (m.id === tempUserMsg.id ? { ...m, id } : m)),
+          );
+        },
+        onText: (chunk) => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === STREAMING_ASSISTANT_ID
+                ? { ...m, content: m.content + chunk }
+                : m,
+            ),
+          );
+          scrollToBottom();
+        },
+        onToolStart: (name) => {
+          setActiveTools((prev) => [...prev, name]);
+        },
+        onToolEnd: (name) => {
+          setActiveTools((prev) => prev.filter((t) => t !== name));
+          // Add tool call to streaming message
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === STREAMING_ASSISTANT_ID
+                ? {
+                    ...m,
+                    toolCalls: [...(m.toolCalls || []), { name, input: {} }],
+                  }
+                : m,
+            ),
+          );
+        },
+        onDone: (finalContent, toolCalls) => {
+          // Replace streaming placeholder with final message
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === STREAMING_ASSISTANT_ID
+                ? {
+                    ...m,
+                    content: finalContent,
+                    toolCalls: toolCalls.length > 0 ? toolCalls : null,
+                  }
+                : m,
+            ),
+          );
+        },
+        onSaved: (assistantMessageId) => {
+          // Replace streaming ID with real DB id
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === STREAMING_ASSISTANT_ID
+                ? { ...m, id: assistantMessageId }
+                : m,
+            ),
+          );
+        },
+        onError: (message) => {
+          setError(message);
+          // Remove streaming placeholder
+          setMessages((prev) =>
+            prev.filter((m) => m.id !== STREAMING_ASSISTANT_ID),
+          );
+        },
+      });
+
+      // Update conversation list
       setConversations((prev) =>
         prev.map((c) =>
           c.id === activeId
@@ -113,9 +192,13 @@ export default function AiAssistantPage() {
             : c,
         ),
       );
-      setTimeout(scrollToBottom, 100);
     } catch (err) {
-      setMessages((prev) => prev.filter((m) => m.id !== tempUserMsg.id));
+      // Remove temp messages on error
+      setMessages((prev) =>
+        prev.filter(
+          (m) => m.id !== tempUserMsg.id && m.id !== STREAMING_ASSISTANT_ID,
+        ),
+      );
       const apiErr = err as { code?: string };
       if (apiErr.code === "CHAT_QUOTA_EXCEEDED") {
         setError(t("quotaExceeded"));
@@ -124,6 +207,7 @@ export default function AiAssistantPage() {
       }
     } finally {
       setSending(false);
+      setActiveTools([]);
     }
   }
 
@@ -258,7 +342,14 @@ export default function AiAssistantPage() {
                   padding: 16,
                 }}
               >
-                <MessageList messages={messages} loading={sending} />
+                <MessageList
+                  messages={messages}
+                  loading={
+                    sending &&
+                    !messages.some((m) => m.id === STREAMING_ASSISTANT_ID)
+                  }
+                  activeTools={activeTools}
+                />
                 <div ref={messagesEndRef} />
               </div>
               <div
