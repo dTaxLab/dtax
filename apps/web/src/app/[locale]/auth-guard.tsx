@@ -4,14 +4,28 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useTranslations } from "next-intl";
 
+const PUBLIC_PATHS = [
+  "/auth",
+  "/legal",
+  "/pricing",
+  "/features",
+  "/security",
+  "/exchanges",
+  "/docs",
+  "/for-cpas",
+  "/faq",
+  "/onboarding",
+];
+
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
   const tc = useTranslations("common");
 
-  // auth 页面和首页不需要守卫
+  // 公共页面不需要守卫：根路径 + PUBLIC_PATHS
   const segments = pathname.split("/").filter(Boolean);
-  if (pathname.endsWith("/auth") || segments.length <= 1) {
+  const subPath = "/" + (segments[1] || "");
+  if (segments.length <= 1 || PUBLIC_PATHS.some((p) => subPath.startsWith(p))) {
     return <>{children}</>;
   }
 
