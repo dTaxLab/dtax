@@ -243,6 +243,7 @@ enum CostBasisMethod {
   FIFO
   LIFO
   HIFO
+  SPECIFIC_ID
 }
 
 enum ReportStatus {
