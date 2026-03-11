@@ -34,7 +34,7 @@ import type {
 
 const calculateSchema = z.object({
   taxYear: z.number().int().min(2009).max(2030),
-  method: z.enum(["FIFO", "LIFO", "HIFO"]).default("FIFO"),
+  method: z.enum(["FIFO", "LIFO", "HIFO", "SPECIFIC_ID"]).default("FIFO"),
   strictSilo: z.boolean().default(false),
 });
 
@@ -153,7 +153,7 @@ export async function taxRoutes(app: FastifyInstance) {
     const query = z
       .object({
         year: z.coerce.number().int().min(2009).max(2030),
-        method: z.enum(["FIFO", "LIFO", "HIFO"]).default("FIFO"),
+        method: z.enum(["FIFO", "LIFO", "HIFO", "SPECIFIC_ID"]).default("FIFO"),
         format: z.enum(["json", "csv", "pdf"]).default("json"),
         strictSilo: z.coerce.boolean().default(false),
         includeWashSales: z.coerce.boolean().default(false),
@@ -220,7 +220,7 @@ export async function taxRoutes(app: FastifyInstance) {
     const query = z
       .object({
         year: z.coerce.number().int().min(2009).max(2030),
-        method: z.enum(["FIFO", "LIFO", "HIFO"]).default("FIFO"),
+        method: z.enum(["FIFO", "LIFO", "HIFO", "SPECIFIC_ID"]).default("FIFO"),
         strictSilo: z.coerce.boolean().default(false),
         includeWashSales: z.coerce.boolean().default(false),
         lossLimit: z.coerce.number().default(3000),
@@ -264,7 +264,7 @@ export async function taxRoutes(app: FastifyInstance) {
     const query = z
       .object({
         year: z.coerce.number().int().min(2009).max(2030),
-        method: z.enum(["FIFO", "LIFO", "HIFO"]).default("FIFO"),
+        method: z.enum(["FIFO", "LIFO", "HIFO", "SPECIFIC_ID"]).default("FIFO"),
       })
       .parse(request.query);
 
@@ -315,7 +315,7 @@ export async function taxRoutes(app: FastifyInstance) {
         csvContent: z.string().min(1),
         brokerName: z.string().default("Unknown"),
         taxYear: z.number().int().min(2009).max(2030),
-        method: z.enum(["FIFO", "LIFO", "HIFO"]).default("FIFO"),
+        method: z.enum(["FIFO", "LIFO", "HIFO", "SPECIFIC_ID"]).default("FIFO"),
       })
       .parse(request.body);
 
