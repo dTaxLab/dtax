@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { usePathname, Link } from "@/i18n/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -13,6 +14,18 @@ export function LocaleNav({ locale }: { locale: string }) {
   const otherLabel = currentLocale === "en" ? "中文" : "EN";
   const { user, logout } = useAuth();
   const { theme, toggle: toggleTheme } = useTheme();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const links = [
+    { href: "/", label: t("dashboard") },
+    { href: "/transactions", label: t("transactions") },
+    { href: "/transfers", label: t("transfers") },
+    { href: "/tax", label: t("taxReport") },
+    { href: "/portfolio", label: t("portfolio") },
+    { href: "/reconcile", label: t("reconcile") },
+    { href: "/compare", label: t("compare") },
+    { href: "/settings", label: t("settings") },
+  ] as const;
 
   return (
     <nav className="nav" aria-label="Main navigation">
@@ -38,67 +51,31 @@ export function LocaleNav({ locale }: { locale: string }) {
         </svg>
         <span>DTax</span>
       </Link>
-      <div className="nav-links">
-        <Link
-          href="/"
-          className={`nav-link ${pathname === "/" ? "active" : ""}`}
-        >
-          {t("dashboard")}
-        </Link>
-        <Link
-          href="/transactions"
-          className={`nav-link ${pathname === "/transactions" ? "active" : ""}`}
-        >
-          {t("transactions")}
-        </Link>
-        <Link
-          href="/transfers"
-          className={`nav-link ${pathname === "/transfers" ? "active" : ""}`}
-        >
-          {t("transfers")}
-        </Link>
-        <Link
-          href="/tax"
-          className={`nav-link ${pathname === "/tax" ? "active" : ""}`}
-        >
-          {t("taxReport")}
-        </Link>
-        <Link
-          href="/portfolio"
-          className={`nav-link ${pathname === "/portfolio" ? "active" : ""}`}
-        >
-          {t("portfolio")}
-        </Link>
-        <Link
-          href="/reconcile"
-          className={`nav-link ${pathname === "/reconcile" ? "active" : ""}`}
-        >
-          {t("reconcile")}
-        </Link>
-        <Link
-          href="/compare"
-          className={`nav-link ${pathname === "/compare" ? "active" : ""}`}
-        >
-          {t("compare")}
-        </Link>
-        <Link
-          href="/settings"
-          className={`nav-link ${pathname === "/settings" ? "active" : ""}`}
-        >
-          {t("settings")}
-        </Link>
-        <span
-          role="separator"
-          aria-hidden="true"
-          className="nav-divider"
-          style={{
-            width: "1px",
-            height: "20px",
-            background: "var(--border)",
-            margin: "0 4px",
-            alignSelf: "center",
-          }}
-        />
+
+      {/* Hamburger button — mobile only */}
+      <button
+        className="nav-hamburger"
+        onClick={() => setMenuOpen(!menuOpen)}
+        aria-label="Toggle menu"
+        aria-expanded={menuOpen}
+      >
+        <span className={`hamburger-line ${menuOpen ? "open" : ""}`} />
+        <span className={`hamburger-line ${menuOpen ? "open" : ""}`} />
+        <span className={`hamburger-line ${menuOpen ? "open" : ""}`} />
+      </button>
+
+      <div className={`nav-links ${menuOpen ? "nav-links-open" : ""}`}>
+        {links.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`nav-link ${pathname === link.href ? "active" : ""}`}
+            onClick={() => setMenuOpen(false)}
+          >
+            {link.label}
+          </Link>
+        ))}
+        <span role="separator" aria-hidden="true" className="nav-divider" />
         <button
           onClick={toggleTheme}
           className="nav-link"
@@ -125,16 +102,7 @@ export function LocaleNav({ locale }: { locale: string }) {
         </Link>
         {user && (
           <>
-            <span
-              className="nav-divider"
-              style={{
-                width: "1px",
-                height: "20px",
-                background: "var(--border)",
-                margin: "0 4px",
-                alignSelf: "center",
-              }}
-            />
+            <span className="nav-divider" />
             <span
               style={{
                 color: "var(--text-muted)",
@@ -145,7 +113,10 @@ export function LocaleNav({ locale }: { locale: string }) {
               {user.email}
             </span>
             <button
-              onClick={logout}
+              onClick={() => {
+                logout();
+                setMenuOpen(false);
+              }}
               className="nav-link"
               style={{
                 background: "none",
