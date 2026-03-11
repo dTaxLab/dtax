@@ -12,7 +12,13 @@ import type { FiatCurrency } from "@/lib/preferences";
 import { getDataSources, renameDataSource, deleteDataSource } from "@/lib/api";
 import type { DataSource } from "@/lib/api";
 
-const METHODS = ["FIFO", "LIFO", "HIFO"] as const;
+const METHODS = ["FIFO", "LIFO", "HIFO", "SPECIFIC_ID"] as const;
+const METHOD_I18N: Record<string, string> = {
+  FIFO: "fifo",
+  LIFO: "lifo",
+  HIFO: "hifo",
+  SPECIFIC_ID: "specificId",
+};
 const currentYear = new Date().getFullYear();
 const YEARS = Array.from({ length: 10 }, (_, i) => currentYear - i);
 
@@ -70,7 +76,7 @@ export default function SettingsPage() {
 
   function handleSave() {
     savePreferences({
-      defaultMethod: method as "FIFO" | "LIFO" | "HIFO",
+      defaultMethod: method as "FIFO" | "LIFO" | "HIFO" | "SPECIFIC_ID",
       defaultYear: year,
       fiatCurrency,
     });
@@ -139,7 +145,9 @@ export default function SettingsPage() {
           >
             {METHODS.map((m) => (
               <option key={m} value={m}>
-                {tTax(m.toLowerCase() as "fifo" | "lifo" | "hifo")}
+                {tTax(
+                  METHOD_I18N[m] as "fifo" | "lifo" | "hifo" | "specificId",
+                )}
               </option>
             ))}
           </select>

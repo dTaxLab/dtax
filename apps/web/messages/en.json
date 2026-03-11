@@ -169,6 +169,7 @@
     "fifo": "FIFO (First In, First Out)",
     "lifo": "LIFO (Last In, First Out)",
     "hifo": "HIFO (Highest In, First Out)",
+    "specificId": "Specific ID (Choose Your Lots)",
     "netGainLoss": "Net Gain / Loss",
     "totalDispositions": "Total Dispositions",
     "methodLabel": "Method",

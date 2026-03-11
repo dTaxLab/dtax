@@ -601,3 +601,64 @@ export async function dismissTransfer(outTxId: string, inTxId: string) {
     body: JSON.stringify({ outTxId, inTxId }),
   });
 }
+
+// ─── Specific ID Lot Selection ─────────────────
+
+export interface AvailableLot {
+  id: string;
+  asset: string;
+  amount: number;
+  costBasisUsd: number;
+  acquiredAt: string;
+  sourceId: string;
+}
+
+export interface LotSelection {
+  lotId: string;
+  amount: number;
+}
+
+export interface SpecificIdSelection {
+  eventId: string;
+  lots: LotSelection[];
+}
+
+export async function getAvailableLots(year: number, asset?: string) {
+  const params = new URLSearchParams({ year: String(year) });
+  if (asset) params.set("asset", asset);
+  return apiFetch<{ data: { lots: AvailableLot[] } }>(
+    `/api/v1/tax/available-lots?${params.toString()}`,
+  );
+}
+
+export async function calculateSpecific(
+  taxYear: number,
+  selections: SpecificIdSelection[],
+  strictSilo = false,
+) {
+  return apiFetch<{
+    data: {
+      results: Array<{
+        event: {
+          id: string;
+          asset: string;
+          amount: number;
+          date: string;
+          proceedsUsd: number;
+        };
+        matchedLots: Array<{
+          lotId: string;
+          amount: number;
+          costBasisUsd: number;
+        }>;
+        gainLoss: number;
+        holdingPeriod: "SHORT_TERM" | "LONG_TERM";
+      }>;
+      method: string;
+      taxYear: number;
+    };
+  }>("/api/v1/tax/calculate-specific", {
+    method: "POST",
+    body: JSON.stringify({ taxYear, selections, strictSilo }),
+  });
+}

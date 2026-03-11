@@ -111,6 +111,7 @@ export default function TaxPage() {
               <option value="FIFO">{t("fifo")}</option>
               <option value="LIFO">{t("lifo")}</option>
               <option value="HIFO">{t("hifo")}</option>
+              <option value="SPECIFIC_ID">{t("specificId")}</option>
             </select>
           </div>
           <div

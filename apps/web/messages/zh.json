@@ -169,6 +169,7 @@
     "fifo": "FIFO（先进先出）",
     "lifo": "LIFO（后进先出）",
     "hifo": "HIFO（最高成本先出）",
+    "specificId": "Specific ID（手动选批）",
     "netGainLoss": "净收益 / 亏损",
     "totalDispositions": "处置交易数",
     "methodLabel": "计算方法",

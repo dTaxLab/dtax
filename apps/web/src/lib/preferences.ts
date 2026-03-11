@@ -31,7 +31,7 @@ export const SUPPORTED_FIATS: { code: FiatCurrency; label: string }[] = [
 ];
 
 export interface UserPreferences {
-  defaultMethod: "FIFO" | "LIFO" | "HIFO";
+  defaultMethod: "FIFO" | "LIFO" | "HIFO" | "SPECIFIC_ID";
   defaultYear: number;
   fiatCurrency: FiatCurrency;
 }
