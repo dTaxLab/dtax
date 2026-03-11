@@ -23,16 +23,18 @@ model User {
   email        String   @unique
   passwordHash String   @map("password_hash")
   name         String?
-  role         UserRole @default(USER)
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  role           UserRole @default(USER)
+  emailVerified  Boolean  @default(false) @map("email_verified")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Relations
-  dataSources  DataSource[]
-  transactions Transaction[]
-  taxLots      TaxLot[]
-  taxReports   TaxReport[]
-  subscription Subscription?
+  dataSources    DataSource[]
+  transactions   Transaction[]
+  taxLots        TaxLot[]
+  taxReports     TaxReport[]
+  subscription   Subscription?
+  passwordResets PasswordReset[]
 
   @@map("users")
 }
@@ -277,4 +279,22 @@ model Subscription {
   updatedAt          DateTime  @updatedAt @map("updated_at")
 
   @@map("subscriptions")
+}
+
+// ─── Password Reset Token ────────────────────
+// One-time token for password recovery, 15-minute expiry
+
+model PasswordReset {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  token     String    @unique
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("password_resets")
 }

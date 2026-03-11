@@ -5,10 +5,13 @@
  * GET  /auth/me       — 获取当前用户信息
  */
 
+import crypto from "crypto";
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma";
+import { config } from "../config";
+import { sendEmail, verificationEmail, resetPasswordEmail } from "../lib/email";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -44,6 +47,17 @@ export async function authRoutes(app: FastifyInstance) {
       });
 
       const token = app.jwt.sign({ sub: user.id, role: user.role });
+
+      // 发送验证邮件（异步不阻塞响应）
+      const verifyJwt = app.jwt.sign(
+        { sub: user.id, role: user.role, purpose: "email-verify" } as any,
+        { expiresIn: "24h" },
+      );
+      const verifyUrl = `${config.appUrl}/auth/verify?token=${verifyJwt}`;
+      const vEmail = verificationEmail(verifyUrl);
+      sendEmail({ to: user.email, ...vEmail }).catch((err) =>
+        request.log.error(err, "Failed to send verification email"),
+      );
 
       return reply.status(201).send({
         data: {
@@ -120,6 +134,114 @@ export async function authRoutes(app: FastifyInstance) {
 
     const token = app.jwt.sign({ sub: user.id, role: user.role });
     return { data: { token } };
+  });
+
+  // GET /auth/verify-email — 验证邮箱（公共路由）
+  app.get("/auth/verify-email", async (request, reply) => {
+    const query = z.object({ token: z.string() }).parse(request.query);
+
+    try {
+      const decoded = app.jwt.verify(query.token) as {
+        sub: string;
+        purpose: string;
+      };
+      if (decoded.purpose !== "email-verify") {
+        return reply.status(400).send({
+          error: {
+            code: "INVALID_TOKEN",
+            message: "Invalid verification token",
+          },
+        });
+      }
+
+      await prisma.user.update({
+        where: { id: decoded.sub },
+        data: { emailVerified: true },
+      });
+
+      return { data: { verified: true } };
+    } catch {
+      return reply.status(400).send({
+        error: {
+          code: "INVALID_TOKEN",
+          message: "Token expired or invalid",
+        },
+      });
+    }
+  });
+
+  // POST /auth/forgot-password — 请求密码重置（速率限制：每分钟 3 次）
+  app.post(
+    "/auth/forgot-password",
+    { config: { rateLimit: { max: 3, timeWindow: "1 minute" } } },
+    async (request) => {
+      const { email } = z
+        .object({ email: z.string().email() })
+        .parse(request.body);
+
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (user) {
+        const token = crypto.randomBytes(32).toString("hex");
+        await prisma.passwordReset.create({
+          data: {
+            userId: user.id,
+            token,
+            expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+          },
+        });
+
+        const resetUrl = `${config.appUrl}/auth/reset?token=${token}`;
+        const mail = resetPasswordEmail(resetUrl);
+        sendEmail({ to: email, ...mail }).catch((err) =>
+          request.log.error(err, "Failed to send reset email"),
+        );
+      }
+
+      // 无论邮箱是否存在都返回成功（防止邮箱枚举攻击）
+      return {
+        data: {
+          message: "If this email exists, a reset link has been sent.",
+        },
+      };
+    },
+  );
+
+  // POST /auth/reset-password — 重置密码
+  app.post("/auth/reset-password", async (request, reply) => {
+    const body = z
+      .object({
+        token: z.string(),
+        password: z.string().min(8),
+      })
+      .parse(request.body);
+
+    const reset = await prisma.passwordReset.findUnique({
+      where: { token: body.token },
+    });
+
+    if (!reset || reset.usedAt || reset.expiresAt < new Date()) {
+      return reply.status(400).send({
+        error: {
+          code: "INVALID_TOKEN",
+          message: "Token expired or already used",
+        },
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(body.password, 12);
+
+    await Promise.all([
+      prisma.user.update({
+        where: { id: reset.userId },
+        data: { passwordHash },
+      }),
+      prisma.passwordReset.update({
+        where: { id: reset.id },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+
+    return { data: { message: "Password reset successful" } };
   });
 
   // GET /auth/me — 需要认证

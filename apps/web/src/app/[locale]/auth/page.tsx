@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/lib/auth-context";
+import { Link } from "@/i18n/navigation";
 
 export default function AuthPage() {
   const t = useTranslations("auth");
@@ -143,6 +144,17 @@ export default function AuthPage() {
             onChange={(e) => setPassword(e.target.value)}
             style={inputStyle}
           />
+
+          {mode === "login" && (
+            <div style={{ textAlign: "right", marginTop: "-6px" }}>
+              <Link
+                href="/auth/reset"
+                style={{ fontSize: "13px", color: "var(--accent)" }}
+              >
+                {t("forgotPassword")}
+              </Link>
+            </div>
+          )}
 
           {error && (
             <div

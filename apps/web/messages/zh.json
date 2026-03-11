@@ -26,7 +26,22 @@
     "loginBtn": "登录",
     "registerBtn": "注册账号",
     "submitting": "请稍候...",
-    "failed": "操作失败"
+    "failed": "操作失败",
+    "verifyTitle": "验证邮箱",
+    "verifySuccess": "邮箱验证成功！您现在可以登录了。",
+    "verifyFailed": "验证失败。链接可能已过期。",
+    "verifyChecking": "正在验证您的邮箱...",
+    "verificationSent": "我们已向 {email} 发送了验证邮件，请查收。",
+    "resendVerification": "重新发送验证邮件",
+    "forgotPassword": "忘记密码？",
+    "forgotTitle": "重置密码",
+    "forgotSubtitle": "输入您的邮箱以接收重置链接",
+    "forgotSubmit": "发送重置链接",
+    "forgotSuccess": "如果该邮箱已注册，您将很快收到重置链接。",
+    "resetTitle": "设置新密码",
+    "resetSubmit": "重置密码",
+    "resetSuccess": "密码已重置！您可以使用新密码登录了。",
+    "resetInvalidToken": "无效或已过期的重置链接。"
   },
   "dashboard": {
     "title": "仪表盘",

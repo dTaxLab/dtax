@@ -15,8 +15,35 @@ vi.mock("../lib/prisma", () => ({
     user: {
       findUnique: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
+    },
+    passwordReset: {
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
     },
   },
+}));
+
+// 模拟 config
+vi.mock("../config", () => ({
+  config: {
+    jwtSecret: "test-secret",
+    appUrl: "http://localhost:3000",
+    fromEmail: "noreply@test.com",
+    resendApiKey: "",
+  },
+}));
+
+// 模拟 email 模块
+vi.mock("../lib/email", () => ({
+  sendEmail: vi.fn().mockResolvedValue(undefined),
+  verificationEmail: vi
+    .fn()
+    .mockReturnValue({ subject: "Verify", html: "<p>verify</p>" }),
+  resetPasswordEmail: vi
+    .fn()
+    .mockReturnValue({ subject: "Reset", html: "<p>reset</p>" }),
 }));
 
 // 模拟 bcryptjs
@@ -204,6 +231,103 @@ describe("Auth Routes", () => {
       expect(res.statusCode).toBe(200);
       const body = JSON.parse(res.body);
       expect(body.data.email).toBe("test@example.com");
+    });
+  });
+
+  describe("GET /auth/verify-email", () => {
+    it("有效 token 验证邮箱成功", async () => {
+      // 生成真实的 verify JWT
+      const verifyToken = app.jwt.sign(
+        { sub: "user-1", purpose: "email-verify" },
+        { expiresIn: "24h" },
+      );
+      mockPrisma.user.update.mockResolvedValueOnce({
+        id: "user-1",
+        emailVerified: true,
+      } as any);
+
+      const res = await app.inject({
+        method: "GET",
+        url: `/api/v1/auth/verify-email?token=${verifyToken}`,
+      });
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body).data.verified).toBe(true);
+    });
+
+    it("无效 token 返回 400", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/v1/auth/verify-email?token=invalid-jwt-token",
+      });
+      expect(res.statusCode).toBe(400);
+      expect(JSON.parse(res.body).error.code).toBe("INVALID_TOKEN");
+    });
+  });
+
+  describe("POST /auth/forgot-password", () => {
+    it("已注册邮箱返回 200", async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce({
+        id: "user-1",
+        email: "test@example.com",
+      } as any);
+      (mockPrisma.passwordReset.create as any).mockResolvedValueOnce({} as any);
+
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/v1/auth/forgot-password",
+        payload: { email: "test@example.com" },
+      });
+      expect(res.statusCode).toBe(200);
+    });
+
+    it("未注册邮箱也返回 200（防枚举）", async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce(null);
+
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/v1/auth/forgot-password",
+        payload: { email: "nobody@example.com" },
+      });
+      expect(res.statusCode).toBe(200);
+    });
+  });
+
+  describe("POST /auth/reset-password", () => {
+    it("有效 token 重置密码成功", async () => {
+      (mockPrisma.passwordReset.findUnique as any).mockResolvedValueOnce({
+        id: "pr-1",
+        userId: "user-1",
+        token: "valid-token",
+        expiresAt: new Date(Date.now() + 600000),
+        usedAt: null,
+      } as any);
+      mockPrisma.user.update.mockResolvedValueOnce({} as any);
+      (mockPrisma.passwordReset.update as any).mockResolvedValueOnce({} as any);
+
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/v1/auth/reset-password",
+        payload: { token: "valid-token", password: "newpass123" },
+      });
+      expect(res.statusCode).toBe(200);
+    });
+
+    it("过期 token 返回 400", async () => {
+      (mockPrisma.passwordReset.findUnique as any).mockResolvedValueOnce({
+        id: "pr-2",
+        userId: "user-1",
+        token: "expired",
+        expiresAt: new Date(Date.now() - 1000),
+        usedAt: null,
+      } as any);
+
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/v1/auth/reset-password",
+        payload: { token: "expired", password: "newpass123" },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(JSON.parse(res.body).error.code).toBe("INVALID_TOKEN");
     });
   });
 });

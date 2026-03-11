@@ -26,7 +26,22 @@
     "loginBtn": "Sign In",
     "registerBtn": "Create Account",
     "submitting": "Please wait...",
-    "failed": "Operation failed"
+    "failed": "Operation failed",
+    "verifyTitle": "Verify Your Email",
+    "verifySuccess": "Email verified successfully! You can now sign in.",
+    "verifyFailed": "Verification failed. The link may have expired.",
+    "verifyChecking": "Verifying your email...",
+    "verificationSent": "We've sent a verification email to {email}. Please check your inbox.",
+    "resendVerification": "Resend Verification Email",
+    "forgotPassword": "Forgot password?",
+    "forgotTitle": "Reset Password",
+    "forgotSubtitle": "Enter your email to receive a reset link",
+    "forgotSubmit": "Send Reset Link",
+    "forgotSuccess": "If this email is registered, you'll receive a reset link shortly.",
+    "resetTitle": "Set New Password",
+    "resetSubmit": "Reset Password",
+    "resetSuccess": "Password reset! You can now sign in with your new password.",
+    "resetInvalidToken": "Invalid or expired reset link."
   },
   "dashboard": {
     "title": "Dashboard",

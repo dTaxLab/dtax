@@ -24,8 +24,10 @@ import { adminRoutes } from "./routes/admin";
 import { billingRoutes } from "./routes/billing";
 import authPlugin from "./plugins/auth";
 import { registerSwagger } from "./plugins/swagger";
+import { initSentry, captureException } from "./lib/sentry";
 
 async function main() {
+  initSentry();
   const app = Fastify({
     logger: {
       level: config.nodeEnv === "production" ? "info" : "debug",
@@ -66,6 +68,7 @@ async function main() {
 
     // Log unexpected errors
     request.log.error(error);
+    captureException(error, { url: request.url, method: request.method });
 
     // Don't leak internals in production
     const msg =
@@ -80,6 +83,14 @@ async function main() {
   await app.register(cors, {
     origin: config.corsOrigin,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  });
+
+  // Security headers
+  app.addHook("onSend", async (_request, reply) => {
+    reply.header("X-Content-Type-Options", "nosniff");
+    reply.header("X-Frame-Options", "DENY");
+    reply.header("X-XSS-Protection", "1; mode=block");
+    reply.header("Referrer-Policy", "strict-origin-when-cross-origin");
   });
   await app.register(multipart, {
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max

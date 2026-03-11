@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { NextIntlClientProvider, useMessages } from "next-intl";
+import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
@@ -8,18 +8,56 @@ import { LocaleNav } from "./nav";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme";
 import { AuthGuard } from "./auth-guard";
-
-export const metadata: Metadata = {
-  title: "DTax — AI-Powered Crypto Tax Intelligence",
-  description:
-    "Open source crypto tax calculator with FIFO, LIFO, HIFO support. Calculate your crypto capital gains and generate tax reports.",
-  keywords: ["crypto", "tax", "bitcoin", "FIFO", "capital gains", "portfolio"],
-};
+import { JsonLd } from "./json-ld";
 
 type Props = {
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  const isZh = locale === "zh";
+
+  const title = "DTax — AI-Powered Crypto Tax Intelligence";
+  const description = isZh
+    ? "开源加密货币税务计算器，支持 FIFO、LIFO、HIFO。计算资本利得并生成税务报告。"
+    : "Open source crypto tax calculator with FIFO, LIFO, HIFO support. Calculate capital gains and generate tax reports.";
+
+  return {
+    title,
+    description,
+    keywords: [
+      "crypto",
+      "tax",
+      "bitcoin",
+      "FIFO",
+      "capital gains",
+      "portfolio",
+      "1099-DA",
+      "Form 8949",
+    ],
+    metadataBase: new URL("https://dtax.ai"),
+    alternates: {
+      canonical: `/${locale}`,
+      languages: { en: "/en", zh: "/zh" },
+    },
+    openGraph: {
+      title,
+      description,
+      url: `https://dtax.ai/${locale}`,
+      siteName: "DTax",
+      locale: isZh ? "zh_CN" : "en_US",
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+    robots: { index: true, follow: true },
+  };
+}
 
 export default async function LocaleLayout({ children, params }: Props) {
   const { locale } = await params;
@@ -34,6 +72,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
+        <JsonLd />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem("dtax_theme");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t)}else if(window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches){document.documentElement.setAttribute("data-theme","light")}}catch(e){}})()`,

@@ -45,6 +45,9 @@ async function authPlugin(app: FastifyInstance) {
         url.startsWith("/api/health") ||
         url.startsWith("/api/v1/auth/register") ||
         url.startsWith("/api/v1/auth/login") ||
+        url.startsWith("/api/v1/auth/verify-email") ||
+        url.startsWith("/api/v1/auth/forgot-password") ||
+        url.startsWith("/api/v1/auth/reset-password") ||
         url.startsWith("/api/v1/billing/webhook")
       ) {
         return;
