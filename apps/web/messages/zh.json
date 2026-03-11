@@ -8,7 +8,9 @@
     "portfolio": "持仓",
     "compare": "年度对比",
     "settings": "设置",
-    "logout": "退出"
+    "logout": "退出",
+    "legal": "法律条款",
+    "signIn": "登录"
   },
   "auth": {
     "login": "登录",
@@ -459,7 +461,10 @@
     "pricingCpaF4": "白标报告",
     "pricingCpaF5": "专属支持 + SLA",
     "footerCta": "准备好计算你的加密税务了吗？",
-    "footerCtaBtn": "免费开始使用"
+    "footerCtaBtn": "免费开始使用",
+    "footerTerms": "服务条款",
+    "footerPrivacy": "隐私政策",
+    "footerDisclaimer": "税务免责声明"
   },
   "legal": {
     "termsTitle": "服务条款",

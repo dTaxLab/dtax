@@ -79,14 +79,23 @@ export function LocaleNav({ locale }: { locale: string }) {
             ))}
           </>
         ) : (
-          <Link
-            href="/auth"
-            className="nav-link"
-            style={{ fontWeight: 600, color: "var(--accent)" }}
-            onClick={() => setMenuOpen(false)}
-          >
-            Sign In
-          </Link>
+          <>
+            <Link
+              href="/legal/terms"
+              className="nav-link"
+              onClick={() => setMenuOpen(false)}
+            >
+              {t("legal")}
+            </Link>
+            <Link
+              href="/auth"
+              className="nav-link"
+              style={{ fontWeight: 600, color: "var(--accent)" }}
+              onClick={() => setMenuOpen(false)}
+            >
+              {t("signIn")}
+            </Link>
+          </>
         )}
         <span role="separator" aria-hidden="true" className="nav-divider" />
         <button

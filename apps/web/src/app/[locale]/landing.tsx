@@ -520,6 +520,37 @@ export function LandingPage() {
           {t("footerCtaBtn")}
         </a>
       </section>
+
+      {/* Legal Footer */}
+      <div
+        style={{
+          textAlign: "center",
+          padding: "24px 0",
+          fontSize: "13px",
+          color: "var(--text-muted)",
+        }}
+      >
+        <a
+          href="legal/terms"
+          style={{ color: "var(--text-muted)", textDecoration: "none" }}
+        >
+          {t("footerTerms")}
+        </a>
+        {" · "}
+        <a
+          href="legal/privacy"
+          style={{ color: "var(--text-muted)", textDecoration: "none" }}
+        >
+          {t("footerPrivacy")}
+        </a>
+        {" · "}
+        <a
+          href="legal/disclaimer"
+          style={{ color: "var(--text-muted)", textDecoration: "none" }}
+        >
+          {t("footerDisclaimer")}
+        </a>
+      </div>
     </div>
   );
 }

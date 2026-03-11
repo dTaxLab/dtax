@@ -8,7 +8,9 @@
     "portfolio": "Portfolio",
     "compare": "Compare",
     "settings": "Settings",
-    "logout": "Logout"
+    "logout": "Logout",
+    "legal": "Legal",
+    "signIn": "Sign In"
   },
   "auth": {
     "login": "Login",
@@ -459,7 +461,10 @@
     "pricingCpaF4": "White-label reports",
     "pricingCpaF5": "Dedicated support + SLA",
     "footerCta": "Ready to calculate your crypto taxes?",
-    "footerCtaBtn": "Get Started — It's Free"
+    "footerCtaBtn": "Get Started — It's Free",
+    "footerTerms": "Terms of Service",
+    "footerPrivacy": "Privacy Policy",
+    "footerDisclaimer": "Tax Disclaimer"
   },
   "legal": {
     "termsTitle": "Terms of Service",
