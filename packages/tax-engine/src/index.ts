@@ -80,6 +80,7 @@ export type {
 // Reports
 export { generateForm8949, form8949ToCsv } from "./reports/form8949";
 export { generateForm8949Pdf } from "./reports/form8949-pdf";
+export { form8949ToTxf } from "./reports/form8949-txf";
 export { generateScheduleD } from "./reports/schedule-d";
 export type { ScheduleDLine, ScheduleDReport } from "./reports/schedule-d";
 export type {
