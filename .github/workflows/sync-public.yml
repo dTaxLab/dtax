@@ -36,7 +36,12 @@ jobs:
             --path README.md \
             --path CONTRIBUTING.md \
             --path SECURITY.md \
-            --path .github/ \
+            --path .github/ISSUE_TEMPLATE/ \
+            --path .github/pull_request_template.md \
+            --path .github/dependabot.yml \
+            --path .github/CODEOWNERS \
+            --path .github/workflows/ci.yml \
+            --path .github/workflows/publish.yml \
             --force
 
       - name: Push to public repo
