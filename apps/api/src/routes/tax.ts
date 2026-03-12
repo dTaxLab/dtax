@@ -20,6 +20,7 @@ import {
   CostBasisCalculator,
   generateForm8949,
   form8949ToCsv,
+  form8949ToTxf,
   generateForm8949Pdf,
   generateScheduleD,
   detectWashSales,
@@ -154,7 +155,7 @@ export async function taxRoutes(app: FastifyInstance) {
       .object({
         year: z.coerce.number().int().min(2009).max(2030),
         method: z.enum(["FIFO", "LIFO", "HIFO", "SPECIFIC_ID"]).default("FIFO"),
-        format: z.enum(["json", "csv", "pdf"]).default("json"),
+        format: z.enum(["json", "csv", "pdf", "txf"]).default("json"),
         strictSilo: z.coerce.boolean().default(false),
         includeWashSales: z.coerce.boolean().default(false),
       })
@@ -198,6 +199,16 @@ export async function taxRoutes(app: FastifyInstance) {
           `attachment; filename="form8949-${query.year}-${query.method}.csv"`,
         )
         .send(csv);
+    }
+
+    if (query.format === "txf") {
+      const txf = form8949ToTxf(report);
+      reply.header("Content-Type", "text/plain");
+      reply.header(
+        "Content-Disposition",
+        `attachment; filename="form8949-${query.year}.txf"`,
+      );
+      return reply.send(txf);
     }
 
     if (query.format === "pdf") {

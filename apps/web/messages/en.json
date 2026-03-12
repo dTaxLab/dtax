@@ -270,6 +270,7 @@
       "title": "IRS Form 8949 — Sales and Dispositions",
       "downloadCsv": "CSV",
       "downloadPdf": "Download PDF",
+      "downloadTxf": "Download TXF (TurboTax)",
       "box": "Box",
       "description": "Description",
       "acquired": "Acquired",

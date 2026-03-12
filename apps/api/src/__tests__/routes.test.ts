@@ -588,6 +588,39 @@ describe("Tax Routes", () => {
     expect(res.body).toContain("Description");
   });
 
+  it("GET /tax/form8949?format=txf returns TXF file", async () => {
+    const buyTx = mockTransaction({
+      id: "buy-txf",
+      type: "BUY",
+      receivedAsset: "BTC",
+      receivedAmount: 2,
+      receivedValueUsd: 50000,
+      timestamp: new Date("2024-03-01T00:00:00Z"),
+    });
+    const sellTx = mockTransaction({
+      id: "sell-txf",
+      type: "SELL",
+      sentAsset: "BTC",
+      sentAmount: 2,
+      sentValueUsd: 70000,
+      timestamp: new Date("2025-07-01T00:00:00Z"),
+    });
+
+    mockPrisma.transaction.findMany
+      .mockResolvedValueOnce([buyTx])
+      .mockResolvedValueOnce([sellTx]);
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/tax/form8949?year=2025&method=FIFO&format=txf",
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-type"]).toContain("text/plain");
+    expect(res.headers["content-disposition"]).toContain(".txf");
+    expect(res.body.startsWith("V042\n")).toBe(true);
+  });
+
   // ─── GET /tax/schedule-d ────────────────────
 
   it("GET /tax/schedule-d returns Schedule D summary", async () => {

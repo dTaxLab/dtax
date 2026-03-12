@@ -386,6 +386,15 @@ export function getForm8949PdfUrl(
   return `${API_BASE}/api/v1/tax/form8949?year=${year}&method=${method}&format=pdf${ws}`;
 }
 
+export function getForm8949TxfUrl(
+  year: number,
+  method = "FIFO",
+  includeWashSales = false,
+) {
+  const ws = includeWashSales ? "&includeWashSales=true" : "";
+  return `${API_BASE}/api/v1/tax/form8949?year=${year}&method=${method}&format=txf${ws}`;
+}
+
 export async function downloadJsonBackup(): Promise<void> {
   const token = getStoredToken();
   const headers: Record<string, string> = {};

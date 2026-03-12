@@ -7,6 +7,7 @@ import {
   getForm8949,
   getForm8949CsvUrl,
   getForm8949PdfUrl,
+  getForm8949TxfUrl,
   getScheduleD,
 } from "@/lib/api";
 import type { TaxSummary, Form8949Report, ScheduleDReport } from "@/lib/api";
@@ -729,6 +730,14 @@ export default function TaxPage() {
                     style={{ fontSize: "13px", textDecoration: "none" }}
                   >
                     {t("form8949.downloadPdf")}
+                  </a>
+                  <a
+                    href={getForm8949TxfUrl(year, method, includeWashSales)}
+                    download
+                    className="btn btn-secondary"
+                    style={{ fontSize: "13px", textDecoration: "none" }}
+                  >
+                    {t("form8949.downloadTxf")}
                   </a>
                   <a
                     href={getForm8949CsvUrl(year, method, includeWashSales)}
