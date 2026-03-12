@@ -1864,4 +1864,49 @@ describe("Tax Simulate Route", () => {
     expect(body.data.insufficientLots).toBe(false);
     expect(body.data.remainingPosition.totalAmount).toBeCloseTo(5, 4);
   });
+
+  it("POST /tax/compare-methods returns three method results + recommendation", async () => {
+    const lots = [
+      mockTransaction({
+        id: "cmp-buy-1",
+        type: "BUY",
+        receivedAsset: "BTC",
+        receivedAmount: 1,
+        receivedValueUsd: 30000,
+        timestamp: new Date("2023-01-01T00:00:00Z"),
+      }),
+      mockTransaction({
+        id: "cmp-buy-2",
+        type: "BUY",
+        receivedAsset: "BTC",
+        receivedAmount: 1,
+        receivedValueUsd: 50000,
+        timestamp: new Date("2024-06-01T00:00:00Z"),
+      }),
+    ];
+
+    // compare-methods calls findMany twice (lots + acquisitions for wash sale)
+    mockPrisma.transaction.findMany.mockResolvedValueOnce(lots);
+    mockPrisma.transaction.findMany.mockResolvedValueOnce(lots);
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/tax/compare-methods",
+      payload: {
+        asset: "BTC",
+        amount: 1,
+        pricePerUnit: 60000,
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data.fifo).toBeDefined();
+    expect(body.data.lifo).toBeDefined();
+    expect(body.data.hifo).toBeDefined();
+    expect(["FIFO", "LIFO", "HIFO"]).toContain(body.data.recommended);
+    expect(typeof body.data.recommendedReason).toBe("string");
+    expect(body.data.recommendedReason.length).toBeGreaterThan(0);
+    expect(typeof body.data.savings).toBe("number");
+  });
 });

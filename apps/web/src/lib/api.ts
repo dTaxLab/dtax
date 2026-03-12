@@ -759,6 +759,32 @@ export async function simulateSale(params: {
   return res.data;
 }
 
+// ─── Method Comparison ──────────────────────────
+
+export interface ComparisonResult {
+  fifo: SimulationResult;
+  lifo: SimulationResult;
+  hifo: SimulationResult;
+  recommended: "FIFO" | "LIFO" | "HIFO";
+  recommendedReason: string;
+  savings: number;
+}
+
+export async function compareAllMethods(params: {
+  asset: string;
+  amount: number;
+  pricePerUnit: number;
+}): Promise<ComparisonResult> {
+  const res = await apiFetch<{ data: ComparisonResult }>(
+    "/api/v1/tax/compare-methods",
+    {
+      method: "POST",
+      body: JSON.stringify(params),
+    },
+  );
+  return res.data;
+}
+
 // ─── AI Classification ───────────────────────────
 
 export interface AiClassifyResult {

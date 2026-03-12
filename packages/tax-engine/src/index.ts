@@ -144,6 +144,10 @@ export type {
   SimulationResult,
 } from "./simulator";
 
+// Method Comparison Engine
+export { compareAllMethods } from "./optimizer";
+export type { ComparisonResult } from "./optimizer";
+
 export { scanRisks } from "./risk-scanner";
 export type {
   RiskCategory,

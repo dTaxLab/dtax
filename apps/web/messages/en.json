@@ -1021,6 +1021,15 @@
     "remaining": "Remaining",
     "avgCost": "Avg Cost/Unit",
     "insufficientLots": "You only have {available} of {requested} {asset} available",
-    "noResults": "Enter a hypothetical sale to preview its tax impact"
+    "noResults": "Enter a hypothetical sale to preview its tax impact",
+    "compareAll": "Compare All Methods",
+    "comparing": "Comparing...",
+    "comparisonTitle": "Method Comparison",
+    "comparisonSubtitle": "Side-by-side comparison of FIFO, LIFO, and HIFO results",
+    "recommended": "Recommended",
+    "savings": "Potential Savings",
+    "recommendedReason": "Why this method?",
+    "washSale": "Wash Sale Risk",
+    "noSavings": "All methods produce identical results"
   }
 }

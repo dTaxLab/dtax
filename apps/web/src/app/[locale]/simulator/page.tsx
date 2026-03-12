@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { simulateSale } from "@/lib/api";
-import type { SimulationResult } from "@/lib/api";
+import { simulateSale, compareAllMethods } from "@/lib/api";
+import type { SimulationResult, ComparisonResult } from "@/lib/api";
 import { useFiatFormatter } from "@/lib/use-fiat";
 
 export default function SimulatorPage() {
@@ -16,8 +16,10 @@ export default function SimulatorPage() {
   const [pricePerUnit, setPricePerUnit] = useState("");
   const [method, setMethod] = useState<"FIFO" | "LIFO" | "HIFO">("FIFO");
   const [loading, setLoading] = useState(false);
+  const [comparing, setComparing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SimulationResult | null>(null);
+  const [comparison, setComparison] = useState<ComparisonResult | null>(null);
 
   async function handleSimulate() {
     const parsedAmount = parseFloat(amount);
@@ -47,6 +49,36 @@ export default function SimulatorPage() {
       setResult(null);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleCompare() {
+    const parsedAmount = parseFloat(amount);
+    const parsedPrice = parseFloat(pricePerUnit);
+    if (
+      !asset.trim() ||
+      isNaN(parsedAmount) ||
+      parsedAmount <= 0 ||
+      isNaN(parsedPrice) ||
+      parsedPrice < 0
+    ) {
+      return;
+    }
+
+    setComparing(true);
+    setError(null);
+    try {
+      const res = await compareAllMethods({
+        asset: asset.trim().toUpperCase(),
+        amount: parsedAmount,
+        pricePerUnit: parsedPrice,
+      });
+      setComparison(res);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Comparison failed");
+      setComparison(null);
+    } finally {
+      setComparing(false);
     }
   }
 
@@ -204,6 +236,18 @@ export default function SimulatorPage() {
             style={{ height: "38px" }}
           >
             {loading ? tc("loading") : t("simulate")}
+          </button>
+          <button
+            className="btn"
+            onClick={handleCompare}
+            disabled={comparing || !asset.trim() || !amount || !pricePerUnit}
+            style={{
+              height: "38px",
+              border: "1px solid var(--border)",
+              background: "var(--bg-card)",
+            }}
+          >
+            {comparing ? t("comparing") : t("compareAll")}
           </button>
         </div>
       </div>
@@ -537,6 +581,245 @@ export default function SimulatorPage() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Method Comparison */}
+      {comparison && (
+        <div style={{ marginTop: "32px" }}>
+          <div className="page-header" style={{ marginBottom: "16px" }}>
+            <div>
+              <h2
+                style={{
+                  fontSize: "20px",
+                  fontWeight: 700,
+                  margin: 0,
+                }}
+              >
+                {t("comparisonTitle")}
+              </h2>
+              <p
+                style={{
+                  color: "var(--text-muted)",
+                  fontSize: "14px",
+                  margin: "4px 0 0",
+                }}
+              >
+                {t("comparisonSubtitle")}
+              </p>
+            </div>
+          </div>
+
+          {/* Savings Banner */}
+          {comparison.savings > 0 ? (
+            <div
+              className="card"
+              style={{
+                padding: "16px 20px",
+                marginBottom: "16px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                background: "rgba(34, 197, 94, 0.06)",
+                border: "1px solid var(--green)",
+              }}
+            >
+              <span style={{ fontWeight: 600 }}>{t("savings")}</span>
+              <span
+                className="mono"
+                style={{
+                  fontSize: "18px",
+                  fontWeight: 700,
+                  color: "var(--green)",
+                }}
+              >
+                {formatFiat(comparison.savings)}
+              </span>
+            </div>
+          ) : (
+            <div
+              className="card"
+              style={{
+                padding: "16px 20px",
+                marginBottom: "16px",
+                textAlign: "center",
+                color: "var(--text-muted)",
+              }}
+            >
+              {t("noSavings")}
+            </div>
+          )}
+
+          {/* Three-column comparison */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "16px",
+              marginBottom: "16px",
+            }}
+          >
+            {(["FIFO", "LIFO", "HIFO"] as const).map((m) => {
+              const key = m.toLowerCase() as "fifo" | "lifo" | "hifo";
+              const sim = comparison[key];
+              const isRec = comparison.recommended === m;
+              return (
+                <div
+                  key={m}
+                  className="card"
+                  style={{
+                    padding: "20px",
+                    border: isRec
+                      ? "2px solid var(--green)"
+                      : "1px solid var(--border)",
+                    position: "relative",
+                  }}
+                >
+                  {isRec && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: "-10px",
+                        right: "12px",
+                        background: "var(--green)",
+                        color: "#fff",
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        padding: "2px 10px",
+                        borderRadius: "4px",
+                      }}
+                    >
+                      {t("recommended")}
+                    </span>
+                  )}
+                  <h3
+                    style={{
+                      fontSize: "18px",
+                      fontWeight: 700,
+                      marginBottom: "16px",
+                    }}
+                  >
+                    {m}
+                  </h3>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "12px",
+                    }}
+                  >
+                    <div>
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          color: "var(--text-muted)",
+                          display: "block",
+                        }}
+                      >
+                        {t("projectedGainLoss")}
+                      </span>
+                      <span
+                        className="mono"
+                        style={{
+                          fontSize: "20px",
+                          fontWeight: 700,
+                          color:
+                            sim.projectedGainLoss >= 0
+                              ? "var(--green)"
+                              : "var(--red)",
+                        }}
+                      >
+                        {formatFiat(sim.projectedGainLoss)}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <div>
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            color: "var(--text-muted)",
+                            display: "block",
+                          }}
+                        >
+                          {t("proceeds")}
+                        </span>
+                        <span className="mono" style={{ fontSize: "14px" }}>
+                          {formatFiat(sim.proceeds)}
+                        </span>
+                      </div>
+                      <div>
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            color: "var(--text-muted)",
+                            display: "block",
+                          }}
+                        >
+                          {t("costBasis")}
+                        </span>
+                        <span className="mono" style={{ fontSize: "14px" }}>
+                          {formatFiat(sim.costBasis)}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          color: "var(--text-muted)",
+                          display: "block",
+                        }}
+                      >
+                        {t("holdingPeriod")}
+                      </span>
+                      <span
+                        style={{
+                          color: holdingPeriodColor(sim.holdingPeriod),
+                          fontWeight: 600,
+                          fontSize: "13px",
+                        }}
+                      >
+                        {holdingPeriodLabel(sim.holdingPeriod)}
+                      </span>
+                    </div>
+                    {sim.washSaleRisk && (
+                      <div
+                        style={{
+                          padding: "6px 10px",
+                          background:
+                            "var(--yellow-bg, rgba(234, 179, 8, 0.1))",
+                          border: "1px solid var(--yellow, #eab308)",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          color: "var(--yellow, #eab308)",
+                        }}
+                      >
+                        {t("washSale")}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Recommendation reason */}
+          <div
+            className="card"
+            style={{
+              padding: "16px 20px",
+              fontSize: "14px",
+              color: "var(--text-secondary)",
+            }}
+          >
+            <strong>{t("recommendedReason")}</strong>{" "}
+            {comparison.recommendedReason}
+          </div>
+        </div>
       )}
     </div>
   );

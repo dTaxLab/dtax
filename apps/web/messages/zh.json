@@ -1021,6 +1021,15 @@
     "remaining": "剩余数量",
     "avgCost": "平均成本/单位",
     "insufficientLots": "你只有 {available} / {requested} {asset} 可用",
-    "noResults": "输入假设卖出参数以预览税务影响"
+    "noResults": "输入假设卖出参数以预览税务影响",
+    "compareAll": "对比所有方法",
+    "comparing": "对比中...",
+    "comparisonTitle": "方法对比",
+    "comparisonSubtitle": "并排对比 FIFO、LIFO 和 HIFO 的结果",
+    "recommended": "推荐",
+    "savings": "潜在节省",
+    "recommendedReason": "为什么推荐？",
+    "washSale": "洗售风险",
+    "noSavings": "所有方法结果相同"
   }
 }

@@ -27,6 +27,7 @@ import {
   parse1099DA,
   reconcile,
   simulateSale,
+  compareAllMethods,
 } from "@dtax/tax-engine";
 import type {
   LotDateMap,
@@ -510,6 +511,54 @@ export async function taxRoutes(app: FastifyInstance) {
         pricePerUnit: body.pricePerUnit,
         method: body.method,
         strictSilo: body.strictSilo,
+      },
+      acqRecords,
+    );
+
+    return { data: result };
+  });
+
+  // ─── Compare All Methods ───────────────────────────
+
+  const compareSchema = z.object({
+    asset: z.string().min(1),
+    amount: z.number().positive(),
+    pricePerUnit: z.number().nonnegative(),
+  });
+
+  app.post("/tax/compare-methods", async (request) => {
+    const body = compareSchema.parse(request.body);
+
+    const acquisitions = await prisma.transaction.findMany({
+      where: {
+        userId: request.userId,
+        type: { in: [...ACQUISITION_TYPES] },
+      },
+      orderBy: { timestamp: "asc" },
+    });
+
+    const lots = acquisitions.map((tx) => ({
+      id: tx.id,
+      asset: tx.receivedAsset || "",
+      amount: Number(tx.receivedAmount || 0),
+      costBasisUsd: Number(tx.receivedValueUsd || 0),
+      acquiredAt: tx.timestamp,
+      sourceId: tx.sourceId || "unknown",
+    }));
+
+    const acqRecords: AcquisitionRecord[] = acquisitions.map((tx) => ({
+      lotId: tx.id,
+      asset: tx.receivedAsset || "",
+      amount: Number(tx.receivedAmount || 0),
+      acquiredAt: tx.timestamp,
+    }));
+
+    const result = compareAllMethods(
+      lots,
+      {
+        asset: body.asset,
+        amount: body.amount,
+        pricePerUnit: body.pricePerUnit,
       },
       acqRecords,
     );
