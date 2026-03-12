@@ -432,7 +432,9 @@
     "upgradeCpa": "Upgrade to CPA",
     "manageSubscription": "Manage Subscription",
     "paymentSuccess": "Payment successful! Your plan has been upgraded.",
-    "upgrading": "Please wait..."
+    "upgrading": "Please wait...",
+    "stripeNotConfigured": "Payment system is not configured. Please contact support.",
+    "checkoutFailed": "Failed to start checkout. Please try again later."
   },
   "dataSources": {
     "title": "Data Sources",

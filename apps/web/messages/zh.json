@@ -432,7 +432,9 @@
     "upgradeCpa": "升级到 CPA 版",
     "manageSubscription": "管理订阅",
     "paymentSuccess": "支付成功！您的方案已升级。",
-    "upgrading": "请稍候..."
+    "upgrading": "请稍候...",
+    "stripeNotConfigured": "支付系统未配置，请联系支持。",
+    "checkoutFailed": "无法启动结账，请稍后重试。"
   },
   "dataSources": {
     "title": "数据源",

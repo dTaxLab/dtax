@@ -51,6 +51,7 @@ export default function SettingsPage() {
   const [billing, setBilling] = useState<BillingStatus | null>(null);
   const [billingLoading, setBillingLoading] = useState(true);
   const [upgrading, setUpgrading] = useState<string | null>(null);
+  const [billingError, setBillingError] = useState<string | null>(null);
 
   const billingSuccess = searchParams.get("billing") === "success";
 
@@ -95,6 +96,7 @@ export default function SettingsPage() {
 
   async function handleCheckout(plan: "PRO" | "CPA") {
     setUpgrading(plan);
+    setBillingError(null);
     try {
       const storedToken = getStoredToken();
       const res = await fetch(`${API_BASE}/api/v1/billing/checkout`, {
@@ -112,8 +114,14 @@ export default function SettingsPage() {
           return;
         }
       }
+      const err = await res.json().catch(() => null);
+      setBillingError(
+        err?.error?.code === "STRIPE_NOT_CONFIGURED"
+          ? t("stripeNotConfigured")
+          : t("checkoutFailed"),
+      );
     } catch {
-      /* ignore */
+      setBillingError(t("checkoutFailed"));
     } finally {
       setUpgrading(null);
     }
@@ -201,7 +209,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="card" style={{ padding: "24px", maxWidth: "480px" }}>
+      <div className="card" style={{ padding: "24px", maxWidth: "600px" }}>
         {user && (
           <div
             style={{
@@ -300,7 +308,10 @@ export default function SettingsPage() {
       </div>
 
       {/* Billing & Subscription */}
-      <div className="card" style={{ padding: "24px", marginTop: "24px" }}>
+      <div
+        className="card"
+        style={{ padding: "24px", marginTop: "24px", maxWidth: "600px" }}
+      >
         <h2 style={{ fontSize: "18px", fontWeight: 600, marginBottom: "4px" }}>
           {t("billingTitle")}
         </h2>
@@ -444,6 +455,22 @@ export default function SettingsPage() {
               </div>
             )}
 
+            {billingError && (
+              <div
+                style={{
+                  marginTop: "12px",
+                  padding: "10px 14px",
+                  background: "rgba(239, 68, 68, 0.1)",
+                  border: "1px solid rgba(239, 68, 68, 0.3)",
+                  borderRadius: "var(--radius-sm)",
+                  color: "var(--red)",
+                  fontSize: "13px",
+                }}
+              >
+                {billingError}
+              </div>
+            )}
+
             {billing && billing.plan !== "FREE" && (
               <button
                 className="btn btn-secondary"
@@ -461,7 +488,10 @@ export default function SettingsPage() {
       </div>
 
       {/* Data Sources */}
-      <div className="card" style={{ padding: "24px", marginTop: "24px" }}>
+      <div
+        className="card"
+        style={{ padding: "24px", marginTop: "24px", maxWidth: "600px" }}
+      >
         <h2 style={{ fontSize: "18px", fontWeight: 600, marginBottom: "4px" }}>
           {tDs("title")}
         </h2>
