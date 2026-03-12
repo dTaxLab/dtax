@@ -12,7 +12,21 @@ import { z } from "zod";
 import Stripe from "stripe";
 import { prisma } from "../lib/prisma";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+const stripeKey = process.env.STRIPE_SECRET_KEY;
+const stripe = stripeKey ? new Stripe(stripeKey) : null;
+
+function requireStripe(reply: FastifyReply): asserts stripe is Stripe {
+  if (!stripe) {
+    reply.code(503).send({
+      data: null,
+      error: {
+        message: "Stripe not configured",
+        code: "STRIPE_NOT_CONFIGURED",
+      },
+    });
+    throw new Error("Stripe not configured");
+  }
+}
 
 export async function billingRoutes(app: FastifyInstance) {
   /**
@@ -48,6 +62,7 @@ export async function billingRoutes(app: FastifyInstance) {
   app.post(
     "/billing/checkout",
     async (request: FastifyRequest, reply: FastifyReply) => {
+      requireStripe(reply);
       const body = z
         .object({
           plan: z.enum(["PRO", "CPA"]),
@@ -127,6 +142,7 @@ export async function billingRoutes(app: FastifyInstance) {
   app.post(
     "/billing/portal",
     async (request: FastifyRequest, reply: FastifyReply) => {
+      requireStripe(reply);
       const sub = await prisma.subscription.findUnique({
         where: { userId: request.userId },
       });
@@ -153,6 +169,7 @@ export async function billingRoutes(app: FastifyInstance) {
   app.post(
     "/billing/webhook",
     async (request: FastifyRequest, reply: FastifyReply) => {
+      requireStripe(reply);
       const sig = request.headers["stripe-signature"] as string;
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
       if (!webhookSecret) {

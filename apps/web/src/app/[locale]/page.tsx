@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useAuth } from "@/lib/auth-context";
 import { LandingPage } from "./landing";
 import {
@@ -36,6 +36,39 @@ export default function Dashboard() {
   const tf = useTranslations("footer");
   const tType = useTranslations("txTypes");
   const { formatFiat } = useFiatFormatter();
+  const locale = useLocale();
+
+  const prefs = typeof window !== "undefined" ? getPreferences() : null;
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(prefs?.defaultYear ?? currentYear - 1);
+  const [method, setMethod] = useState<string>(
+    prefs?.defaultMethod === "SPECIFIC_ID"
+      ? "FIFO"
+      : (prefs?.defaultMethod ?? "FIFO"),
+  );
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [txMeta, setTxMeta] = useState({ total: 0, page: 1, totalPages: 0 });
+  const [taxSummary, setTaxSummary] = useState<TaxSummary | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [calculating, setCalculating] = useState(false);
+  const [dataSources, setDataSources] = useState<DataSource[]>([]);
+
+  useEffect(() => {
+    if (user && !authLoading) {
+      loadData();
+    }
+  }, [year, method, user, authLoading]);
+
+  // 已登录且首次使用（无交易且未完成引导）→ 跳转引导
+  useEffect(() => {
+    if (user && !authLoading && !loading && txMeta.total === 0) {
+      const done = localStorage.getItem("dtax_onboarding_completed");
+      if (!done) {
+        window.location.href = `/${locale}/onboarding`;
+      }
+    }
+  }, [user, authLoading, loading, txMeta.total]);
 
   // 未登录 → 显示 Landing Page
   if (!user && !authLoading) {
@@ -55,36 +88,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
-  const prefs = typeof window !== "undefined" ? getPreferences() : null;
-  const currentYear = new Date().getFullYear();
-  const [year, setYear] = useState(prefs?.defaultYear ?? currentYear - 1);
-  const [method, setMethod] = useState<string>(
-    prefs?.defaultMethod === "SPECIFIC_ID"
-      ? "FIFO"
-      : (prefs?.defaultMethod ?? "FIFO"),
-  );
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [txMeta, setTxMeta] = useState({ total: 0, page: 1, totalPages: 0 });
-  const [taxSummary, setTaxSummary] = useState<TaxSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [calculating, setCalculating] = useState(false);
-  const [dataSources, setDataSources] = useState<DataSource[]>([]);
-
-  useEffect(() => {
-    loadData();
-  }, [year, method]);
-
-  // 已登录且首次使用（无交易且未完成引导）→ 跳转引导
-  useEffect(() => {
-    if (user && !authLoading && !loading && txMeta.total === 0) {
-      const done = localStorage.getItem("dtax_onboarding_completed");
-      if (!done) {
-        window.location.href = "onboarding";
-      }
-    }
-  }, [user, authLoading, loading, txMeta.total]);
 
   async function loadData() {
     setLoading(true);
