@@ -55,6 +55,7 @@ const formatSchema = z
     "poloniex",
     "koinly",
     "cointracker",
+    "cryptact",
   ])
   .optional();
 
