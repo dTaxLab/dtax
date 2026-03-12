@@ -26,7 +26,8 @@ export type CsvFormat =
   | "bitfinex"
   | "poloniex"
   | "koinly"
-  | "cointracker";
+  | "cointracker"
+  | "cryptact";
 
 /** A parsed transaction row from CSV */
 export interface ParsedTransaction {
