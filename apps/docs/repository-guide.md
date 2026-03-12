@@ -26,7 +26,7 @@ DTax 采用 **Open Core** 商业模式，核心算法开源（AGPL-3.0），Web 
 └─────────────────────────────────────────────┘
 ```
 
-## 三个 GitHub 仓库
+## 两个 GitHub 仓库
 
 ### 1. `dTaxLab/dtax` — 公开仓库 (PUBLIC)
 
@@ -36,7 +36,7 @@ DTax 采用 **Open Core** 商业模式，核心算法开源（AGPL-3.0），Web 
 ```
 dtax/
 ├── packages/
-│   ├── tax-engine/    # 核心计算引擎 (FIFO/LIFO/HIFO/SpecificID, Form 8949, Schedule D, Wash Sale, 22个CSV解析器)
+│   ├── tax-engine/    # 核心计算引擎 (FIFO/LIFO/HIFO/SpecificID, Form 8949, Schedule D, Wash Sale, 23个CSV解析器)
 │   ├── shared-types/  # TypeScript 类型定义
 │   └── cli/           # 命令行工具
 ├── docs/              # 项目文档
@@ -61,13 +61,13 @@ dtax/
 - 企业若想在闭源产品中集成 → 必须购买商业许可
 - 这是"开源逼迫付费"策略，MongoDB、Grafana 等均采用类似模式
 
-### 2. `dTaxLab/dtax-api` — 私有仓库 (PRIVATE)
+### 2. `dTaxLab/dtax-private` — 私有仓库 (PRIVATE)
 
 **许可证：** LICENSE-COMMERCIAL（商业许可）
-**内容：** 完整 monorepo 镜像
+**内容：** 完整 monorepo
 
 ```
-dtax-api/ (完整 monorepo)
+dtax-private/ (完整 monorepo)
 ├── apps/
 │   ├── api/           # Fastify REST API (Prisma, JWT Auth, Stripe Billing, AI Chat)
 │   └── web/           # Next.js 14 前端 (Dashboard, Tax Reports, Settings, Landing Page)
@@ -77,32 +77,23 @@ dtax-api/ (完整 monorepo)
 └── ...
 ```
 
-**用途：** API 服务器开发和部署
+**用途：** 完整产品开发和部署（API + Web 共用一个仓库，通过不同 CI workflow 分别部署）
 
-### 3. `dTaxLab/dtax-web` — 私有仓库 (PRIVATE)
-
-**许可证：** LICENSE-COMMERCIAL（商业许可）
-**内容：** 与 dtax-api 相同的完整 monorepo 镜像
-
-**用途：** 前端开发和部署（两个私有仓库便于独立设置 CI/CD 和访问权限）
-
-## 三仓库关系图
+## 双仓库关系图
 
 ```
 本地 monorepo (/Users/ericw/project/dtax)
 │
-├──→ git push origin-api  ──→  dTaxLab/dtax-api (PRIVATE, 完整代码)
-├──→ git push origin-web  ──→  dTaxLab/dtax-web (PRIVATE, 完整代码)
-└──→ git-filter-repo      ──→  dTaxLab/dtax     (PUBLIC,  仅 packages/ + docs/)
-     (克隆→过滤→force push)
+├──→ git push origin-private  ──→  dTaxLab/dtax-private (PRIVATE, 完整代码)
+└──→ git-filter-repo          ──→  dTaxLab/dtax         (PUBLIC,  仅 packages/ + docs/)
+     (克隆→过滤→force push，未来可通过 CI 自动化)
 ```
 
 **推送流程：**
 
 1. 本地开发在完整 monorepo 中
-2. `git push origin-api main` — 直接推送到私有 API 仓库
-3. `git push origin-web main` — 直接推送到私有 Web 仓库
-4. 公开仓库需要 `git-filter-repo` 过滤后 force push（移除 apps/、docker/ 等商业代码）
+2. `git push origin-private main` — 直接推送到私有仓库（一步搞定）
+3. 公开仓库需要 `git-filter-repo` 过滤后 force push（移除 apps/、docker/ 等商业代码）
 
 ## 盈利模式
 
