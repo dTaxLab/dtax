@@ -41,6 +41,8 @@ import {
 } from "./solscan";
 import { parseBitfinexCsv, isBitfinexCsv } from "./bitfinex";
 import { parsePoloniexCsv, isPoloniexCsv } from "./poloniex";
+import { parseKoinlyCsv, isKoinlyCsv } from "./koinly";
+import { parseCoinTrackerCsv, isCoinTrackerCsv } from "./cointracker";
 import type { CsvParseResult, CsvFormat, GenericColumnMap } from "./types";
 
 /**
@@ -58,6 +60,8 @@ export function detectCsvFormat(csv: string): CsvFormat {
   if (isEtherscanCsv(csv)) return "etherscan";
   if (isGeminiCsv(csv)) return "gemini";
   if (isCryptoComCsv(csv)) return "crypto_com";
+  if (isKoinlyCsv(csv)) return "koinly";
+  if (isCoinTrackerCsv(csv)) return "cointracker";
   if (isKuCoinCsv(csv)) return "kucoin";
   if (isMexcCsv(csv)) return "mexc";
   if (isGateCsv(csv)) return "gate";
@@ -133,6 +137,10 @@ export function parseCsv(
       return parseBitfinexCsv(csv);
     case "poloniex":
       return parsePoloniexCsv(csv);
+    case "koinly":
+      return parseKoinlyCsv(csv);
+    case "cointracker":
+      return parseCoinTrackerCsv(csv);
     case "generic":
     default:
       return parseGenericCsv(csv, options?.columnMap);
@@ -174,6 +182,8 @@ export {
 } from "./solscan";
 export { parseBitfinexCsv, isBitfinexCsv } from "./bitfinex";
 export { parsePoloniexCsv, isPoloniexCsv } from "./poloniex";
+export { parseKoinlyCsv, isKoinlyCsv } from "./koinly";
+export { parseCoinTrackerCsv, isCoinTrackerCsv } from "./cointracker";
 export { parseCsvRows, parseCsvToObjects } from "./csv-core";
 export type {
   CsvFormat,

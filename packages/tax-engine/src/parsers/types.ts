@@ -24,7 +24,9 @@ export type CsvFormat =
   | "solscan"
   | "solscan_defi"
   | "bitfinex"
-  | "poloniex";
+  | "poloniex"
+  | "koinly"
+  | "cointracker";
 
 /** A parsed transaction row from CSV */
 export interface ParsedTransaction {

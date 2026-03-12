@@ -1,7 +1,7 @@
 /**
  * CSV Parser Integration Tests (parseCsv unified entry)
  *
- * Includes cross-format detection matrix to verify all 18 formats
+ * Includes cross-format detection matrix to verify all 22 formats
  * are correctly detected without conflicts.
  *
  * @license AGPL-3.0
@@ -41,6 +41,14 @@ const FORMAT_HEADERS: [CsvFormat, string][] = [
   [
     "crypto_com",
     "Timestamp (UTC),Transaction Description,Currency,Amount,To Currency,To Amount,Native Currency,Native Amount,Native Amount (in USD),Transaction Kind",
+  ],
+  [
+    "koinly",
+    "Date,Sent Amount,Sent Currency,Received Amount,Received Currency,Fee Amount,Fee Currency,Net Worth Amount,Net Worth Currency,Label,Description,TxHash",
+  ],
+  [
+    "cointracker",
+    "Date,Received Quantity,Received Currency,Sent Quantity,Sent Currency,Fee Amount,Fee Currency,Tag",
   ],
   [
     "kucoin",
@@ -136,6 +144,37 @@ describe("detectCsvFormat — API/alternate headers", () => {
         "trade_id,symbol,direction,deal_price,amount,funds,fee,feeCurrency,time\n",
       ),
     ).toBe("kucoin");
+  });
+});
+
+describe("detectCsvFormat — Koinly/CoinTracker non-cross-detection", () => {
+  const koinlyHeader =
+    "Date,Sent Amount,Sent Currency,Received Amount,Received Currency,Fee Amount,Fee Currency,Net Worth Amount,Net Worth Currency,Label,Description,TxHash";
+  const coinTrackerHeader =
+    "Date,Received Quantity,Received Currency,Sent Quantity,Sent Currency,Fee Amount,Fee Currency,Tag";
+
+  it("Koinly CSV is NOT detected as cointracker", () => {
+    expect(detectCsvFormat(koinlyHeader + "\n")).not.toBe("cointracker");
+  });
+
+  it("Koinly CSV is NOT detected as generic", () => {
+    expect(detectCsvFormat(koinlyHeader + "\n")).not.toBe("generic");
+  });
+
+  it("Koinly CSV is NOT detected as crypto_com", () => {
+    expect(detectCsvFormat(koinlyHeader + "\n")).not.toBe("crypto_com");
+  });
+
+  it("CoinTracker CSV is NOT detected as koinly", () => {
+    expect(detectCsvFormat(coinTrackerHeader + "\n")).not.toBe("koinly");
+  });
+
+  it("CoinTracker CSV is NOT detected as generic", () => {
+    expect(detectCsvFormat(coinTrackerHeader + "\n")).not.toBe("generic");
+  });
+
+  it("CoinTracker CSV is NOT detected as coinbase", () => {
+    expect(detectCsvFormat(coinTrackerHeader + "\n")).not.toBe("coinbase");
   });
 });
 
