@@ -48,7 +48,8 @@ async function authPlugin(app: FastifyInstance) {
         url.startsWith("/api/v1/auth/verify-email") ||
         url.startsWith("/api/v1/auth/forgot-password") ||
         url.startsWith("/api/v1/auth/reset-password") ||
-        url.startsWith("/api/v1/billing/webhook")
+        url.startsWith("/api/v1/billing/webhook") ||
+        url.startsWith("/docs")
       ) {
         return;
       }
