@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 
 export default function ErrorPage({
   error,
@@ -73,13 +74,13 @@ export default function ErrorPage({
         <button className="btn btn-primary" onClick={reset}>
           {t("retry")}
         </button>
-        <a
+        <Link
           href="/"
           className="btn btn-secondary"
           style={{ textDecoration: "none" }}
         >
           {t("goHome")}
-        </a>
+        </Link>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 
 type Section = { title: string; body: string };
 
@@ -78,7 +79,7 @@ export function LegalPage({
           borderTop: "1px solid var(--border)",
         }}
       >
-        <a
+        <Link
           href="/"
           style={{
             color: "var(--accent)",
@@ -87,7 +88,7 @@ export function LegalPage({
           }}
         >
           {t("backToHome")}
-        </a>
+        </Link>
       </div>
     </div>
   );

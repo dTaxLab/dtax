@@ -15,7 +15,8 @@
     "signIn": "登录",
     "admin": "管理",
     "aiAssistant": "AI 助手",
-    "simulator": "模拟器"
+    "simulator": "模拟器",
+    "more": "更多"
   },
   "auth": {
     "login": "登录",

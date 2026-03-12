@@ -14,6 +14,7 @@ import type { Transaction, TaxSummary, DataSource } from "@/lib/api";
 import { getBadgeClass } from "./transactions/components/shared";
 import { getPreferences } from "@/lib/preferences";
 import { useFiatFormatter } from "@/lib/use-fiat";
+import { Link } from "@/i18n/navigation";
 
 function formatAmount(value: string | null, asset: string | null): string {
   if (!value || !asset) return "—";
@@ -336,7 +337,7 @@ export default function Dashboard() {
             icon: "📊",
           },
         ].map((action) => (
-          <a
+          <Link
             key={action.href}
             href={action.href}
             className="card"
@@ -371,7 +372,7 @@ export default function Dashboard() {
                 {action.desc}
               </div>
             </div>
-          </a>
+          </Link>
         ))}
       </div>
 
@@ -412,8 +413,8 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
-          <a
-            href="settings"
+          <Link
+            href="/settings"
             style={{
               fontSize: "13px",
               color: "var(--accent)",
@@ -421,7 +422,7 @@ export default function Dashboard() {
             }}
           >
             {t("viewAll")}
-          </a>
+          </Link>
         </div>
       )}
 
@@ -436,13 +437,13 @@ export default function Dashboard() {
         <h2 style={{ fontSize: "18px", fontWeight: "600" }}>
           {t("recentTransactions")}
         </h2>
-        <a
-          href="transactions"
+        <Link
+          href="/transactions"
           className="btn btn-secondary"
           style={{ fontSize: "13px" }}
         >
           {t("viewAll")}
-        </a>
+        </Link>
       </div>
 
       {transactions.length === 0 ? (
@@ -503,13 +504,13 @@ export default function Dashboard() {
             ))}
           </div>
           <div style={{ textAlign: "center", marginTop: "20px" }}>
-            <a
-              href="transactions"
+            <Link
+              href="/transactions"
               className="btn btn-primary"
               style={{ textDecoration: "none" }}
             >
               {t("actionImport")}
-            </a>
+            </Link>
           </div>
         </div>
       ) : (

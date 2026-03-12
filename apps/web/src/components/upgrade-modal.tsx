@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/lib/auth-context";
+import { Link } from "@/i18n/navigation";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -158,7 +159,7 @@ export function UpgradeModal({
         </button>
 
         {/* View all plans link */}
-        <a
+        <Link
           href="/pricing"
           style={{
             display: "block",
@@ -169,7 +170,7 @@ export function UpgradeModal({
           }}
         >
           {t("viewPlans")}
-        </a>
+        </Link>
       </div>
     </div>
   );

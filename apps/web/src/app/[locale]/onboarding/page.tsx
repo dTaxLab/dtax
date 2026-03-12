@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 const EXCHANGES = [
   "Coinbase",
@@ -26,13 +26,14 @@ const TOTAL_STEPS = 4;
 
 export default function OnboardingPage() {
   const t = useTranslations("onboarding");
+  const locale = useLocale();
   const [step, setStep] = useState(1);
   const [role, setRole] = useState<string | null>(null);
   const [selectedExchanges, setSelectedExchanges] = useState<string[]>([]);
 
   function complete() {
     localStorage.setItem("dtax_onboarding_completed", "true");
-    window.location.href = "./";
+    window.location.href = `/${locale}/`;
   }
 
   function skip() {
@@ -48,9 +49,9 @@ export default function OnboardingPage() {
   function goImport(mode: string) {
     localStorage.setItem("dtax_onboarding_completed", "true");
     if (mode === "csv") {
-      window.location.href = "transactions";
+      window.location.href = `/${locale}/transactions`;
     } else if (mode === "api") {
-      window.location.href = "transactions";
+      window.location.href = `/${locale}/transactions`;
     } else {
       setStep(4);
     }

@@ -15,7 +15,8 @@
     "signIn": "Sign In",
     "admin": "Admin",
     "aiAssistant": "AI Assistant",
-    "simulator": "Simulator"
+    "simulator": "Simulator",
+    "more": "More"
   },
   "auth": {
     "login": "Login",
