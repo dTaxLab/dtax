@@ -1,0 +1,44 @@
+name: Sync Public Repo
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  sync:
+    name: Filter & Push to Public
+    runs-on: ubuntu-latest
+    # Only runs in dtax-private, not in dtax public
+    if: github.repository == 'dTaxLab/dtax-private'
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install git-filter-repo
+        run: pip install git-filter-repo
+
+      - name: Filter to open-source paths only
+        run: |
+          git-filter-repo \
+            --path packages/ \
+            --path docs/ \
+            --path package.json \
+            --path pnpm-workspace.yaml \
+            --path tsconfig.json \
+            --path turbo.json \
+            --path .gitignore \
+            --path LICENSE \
+            --path LICENSE-COMMERCIAL \
+            --path README.md \
+            --path CONTRIBUTING.md \
+            --path SECURITY.md \
+            --path .github/ \
+            --force
+
+      - name: Push to public repo
+        run: |
+          git remote add public https://x-access-token:${{ secrets.PUBLIC_REPO_TOKEN }}@github.com/dTaxLab/dtax.git
+          git push public main --force
