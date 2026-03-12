@@ -1,7 +1,7 @@
 blank_issues_enabled: true
 contact_links:
   - name: Discussions
-    url: https://github.com/Phosmax/dtax/discussions
+    url: https://github.com/dTaxLab/dtax/discussions
     about: Ask questions or share ideas
   - name: Documentation
     url: https://dtax.dev

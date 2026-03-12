@@ -119,5 +119,5 @@ contribution in both the open-source and commercial versions of the software.
 
 ## Need Help?
 
-- 💬 [GitHub Discussions](https://github.com/Phosmax/dtax/discussions)
-- 🐛 [Report a Bug](https://github.com/Phosmax/dtax/issues/new)
+- 💬 [GitHub Discussions](https://github.com/dTaxLab/dtax/discussions)
+- 🐛 [Report a Bug](https://github.com/dTaxLab/dtax/issues/new)
