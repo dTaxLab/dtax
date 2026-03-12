@@ -15,7 +15,7 @@ import { prisma } from "../lib/prisma";
 const stripeKey = process.env.STRIPE_SECRET_KEY;
 const stripe = stripeKey ? new Stripe(stripeKey) : null;
 
-function requireStripe(reply: FastifyReply): asserts stripe is Stripe {
+function requireStripe(reply: FastifyReply): Stripe {
   if (!stripe) {
     reply.code(503).send({
       data: null,
@@ -26,6 +26,7 @@ function requireStripe(reply: FastifyReply): asserts stripe is Stripe {
     });
     throw new Error("Stripe not configured");
   }
+  return stripe;
 }
 
 export async function billingRoutes(app: FastifyInstance) {
@@ -35,19 +36,74 @@ export async function billingRoutes(app: FastifyInstance) {
    * Returns:
    *   plan, status, taxYear, currentPeriodEnd
    */
-  app.get("/billing/status", async (request: FastifyRequest) => {
-    const sub = await prisma.subscription.findUnique({
-      where: { userId: request.userId },
-    });
-    return {
-      data: {
-        plan: sub?.plan ?? "FREE",
-        status: sub?.status ?? "active",
-        taxYear: sub?.taxYear ?? null,
-        currentPeriodEnd: sub?.currentPeriodEnd ?? null,
+  app.get(
+    "/billing/status",
+    {
+      schema: {
+        tags: ["billing"],
+        summary: "Get current subscription status",
+        response: {
+          200: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              data: {
+                type: "object" as const,
+                additionalProperties: true,
+                properties: {
+                  plan: { type: "string" as const },
+                  status: { type: "string" as const },
+                  taxYear: { type: "integer" as const },
+                  currentPeriodEnd: { type: "string" as const },
+                },
+              },
+            },
+          },
+          400: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+          404: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+          500: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+          503: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+        },
       },
-    };
-  });
+    },
+    async (request: FastifyRequest) => {
+      const sub = await prisma.subscription.findUnique({
+        where: { userId: request.userId },
+      });
+      return {
+        data: {
+          plan: sub?.plan ?? "FREE",
+          status: sub?.status ?? "active",
+          taxYear: sub?.taxYear ?? null,
+          currentPeriodEnd: sub?.currentPeriodEnd ?? null,
+        },
+      };
+    },
+  );
 
   /**
    * POST /billing/checkout — Create a Stripe Checkout Session.
@@ -61,8 +117,63 @@ export async function billingRoutes(app: FastifyInstance) {
    */
   app.post(
     "/billing/checkout",
+    {
+      schema: {
+        tags: ["billing"],
+        summary: "Create Stripe Checkout Session",
+        body: {
+          type: "object" as const,
+          additionalProperties: true,
+          required: ["plan"],
+          properties: {
+            plan: { type: "string" as const, enum: ["PRO", "CPA"] },
+            taxYear: { type: "integer" as const },
+          },
+        },
+        response: {
+          200: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              data: {
+                type: "object" as const,
+                properties: { url: { type: "string" as const } },
+              },
+            },
+          },
+          400: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+          404: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+          500: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+          503: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+        },
+      },
+    },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      requireStripe(reply);
+      const s = requireStripe(reply);
       const body = z
         .object({
           plan: z.enum(["PRO", "CPA"]),
@@ -84,7 +195,7 @@ export async function billingRoutes(app: FastifyInstance) {
       let customerId = sub?.stripeCustomerId;
 
       if (!customerId) {
-        const customer = await stripe.customers.create({
+        const customer = await s.customers.create({
           email: user.email,
           metadata: { userId: user.id },
         });
@@ -116,7 +227,7 @@ export async function billingRoutes(app: FastifyInstance) {
           .send({ error: { message: "Stripe price not configured" } });
       }
 
-      const session = await stripe.checkout.sessions.create({
+      const session = await s.checkout.sessions.create({
         customer: customerId,
         mode: "payment", // one-time for per-tax-year
         line_items: [{ price: priceId, quantity: 1 }],
@@ -141,8 +252,54 @@ export async function billingRoutes(app: FastifyInstance) {
    */
   app.post(
     "/billing/portal",
+    {
+      schema: {
+        tags: ["billing"],
+        summary: "Create Stripe Customer Portal Session",
+        response: {
+          200: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              data: {
+                type: "object" as const,
+                properties: { url: { type: "string" as const } },
+              },
+            },
+          },
+          400: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+          404: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+          500: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+          503: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+        },
+      },
+    },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      requireStripe(reply);
+      const s = requireStripe(reply);
       const sub = await prisma.subscription.findUnique({
         where: { userId: request.userId },
       });
@@ -151,7 +308,7 @@ export async function billingRoutes(app: FastifyInstance) {
           .status(400)
           .send({ error: { message: "No billing account found" } });
       }
-      const session = await stripe.billingPortal.sessions.create({
+      const session = await s.billingPortal.sessions.create({
         customer: sub.stripeCustomerId,
         return_url: `${process.env.WEB_URL || "http://localhost:3000"}/settings`,
       });
@@ -168,8 +325,49 @@ export async function billingRoutes(app: FastifyInstance) {
    */
   app.post(
     "/billing/webhook",
+    {
+      schema: {
+        tags: ["billing"],
+        summary: "Stripe webhook handler (signature verified, no JWT)",
+        response: {
+          200: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: { received: { type: "boolean" as const } },
+          },
+          400: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+          404: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+          500: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+          503: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+        },
+      },
+    },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      requireStripe(reply);
+      const s = requireStripe(reply);
       const sig = request.headers["stripe-signature"] as string;
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
       if (!webhookSecret) {
@@ -185,7 +383,7 @@ export async function billingRoutes(app: FastifyInstance) {
         const payload =
           (request as unknown as { rawBody?: string }).rawBody ||
           JSON.stringify(request.body);
-        event = stripe.webhooks.constructEvent(payload, sig, webhookSecret);
+        event = s.webhooks.constructEvent(payload, sig, webhookSecret);
       } catch {
         return reply
           .status(400)

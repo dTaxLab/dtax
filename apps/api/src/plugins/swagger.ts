@@ -49,6 +49,8 @@ export async function registerSwagger(app: FastifyInstance) {
           name: "admin",
           description: "Admin operations (requires ADMIN role)",
         },
+        { name: "billing", description: "Stripe billing and subscriptions" },
+        { name: "chat", description: "AI tax assistant chat" },
         { name: "health", description: "Health checks" },
       ],
       components: {

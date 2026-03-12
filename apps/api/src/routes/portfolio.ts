@@ -11,124 +11,182 @@ import type { TaxLot, PriceMap } from "@dtax/tax-engine";
 
 export async function portfolioRoutes(app: FastifyInstance) {
   // GET /portfolio/holdings
-  app.get("/portfolio/holdings", async (request, reply) => {
-    const query = z
-      .object({
-        prices: z.string().optional(),
-      })
-      .parse(request.query);
-
-    // Parse prices from JSON string: {"BTC":45000,"ETH":2500}
-    let currentPrices: PriceMap | undefined;
-    if (query.prices) {
-      try {
-        const parsed = JSON.parse(query.prices) as Record<string, number>;
-        currentPrices = new Map(Object.entries(parsed));
-      } catch {
-        return reply.status(400).send({
-          error: {
-            message: 'Invalid prices format. Expected JSON: {"BTC":45000}',
+  app.get(
+    "/portfolio/holdings",
+    {
+      schema: {
+        tags: ["portfolio"],
+        summary:
+          "Aggregate portfolio holdings with optional current prices for TLH analysis",
+        querystring: {
+          type: "object" as const,
+          additionalProperties: true,
+          properties: {
+            prices: {
+              type: "string" as const,
+              description:
+                'JSON map of asset prices, e.g. {"BTC":45000,"ETH":2500}',
+            },
           },
-        });
-      }
-    }
-
-    // Get all acquisition transactions (remaining lots)
-    const acquisitions = await prisma.transaction.findMany({
-      where: {
-        userId: request.userId,
-        type: {
-          in: [
-            "BUY",
-            "TRADE",
-            "AIRDROP",
-            "STAKING_REWARD",
-            "MINING_REWARD",
-            "INTEREST",
-            "FORK",
-            "GIFT_RECEIVED",
-            "DEX_SWAP",
-            "LP_WITHDRAWAL",
-            "LP_REWARD",
-            "NFT_MINT",
-          ],
+        },
+        response: {
+          200: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              data: {
+                type: "object" as const,
+                additionalProperties: true,
+                properties: {
+                  holdings: {
+                    type: "array" as const,
+                    items: {
+                      type: "object" as const,
+                      additionalProperties: true,
+                      properties: {
+                        asset: { type: "string" as const },
+                        totalAmount: { type: "number" as const },
+                        totalCostBasis: { type: "number" as const },
+                        currentValue: {
+                          type: "number" as const,
+                          nullable: true,
+                        },
+                        unrealizedGainLoss: {
+                          type: "number" as const,
+                          nullable: true,
+                        },
+                      },
+                    },
+                  },
+                  tlhOpportunities: {
+                    type: "array" as const,
+                    items: {
+                      type: "object" as const,
+                      additionalProperties: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: {
+                type: "object" as const,
+                additionalProperties: true,
+                properties: { message: { type: "string" as const } },
+              },
+            },
+          },
         },
       },
-      orderBy: { timestamp: "asc" },
-    });
+    },
+    async (request, reply) => {
+      const query = z
+        .object({ prices: z.string().optional() })
+        .parse(request.query);
 
-    // Get all dispositions to subtract consumed amounts
-    const dispositions = await prisma.transaction.findMany({
-      where: {
-        userId: request.userId,
-        type: {
-          in: [
-            "SELL",
-            "TRADE",
-            "GIFT_SENT",
-            "LOST",
-            "STOLEN",
-            "DEX_SWAP",
-            "LP_DEPOSIT",
-            "NFT_PURCHASE",
-            "NFT_SALE",
-          ],
+      let currentPrices: PriceMap | undefined;
+      if (query.prices) {
+        try {
+          const parsed = JSON.parse(query.prices) as Record<string, number>;
+          currentPrices = new Map(Object.entries(parsed));
+        } catch {
+          return reply.status(400).send({
+            error: {
+              message: 'Invalid prices format. Expected JSON: {"BTC":45000}',
+            },
+          });
+        }
+      }
+
+      const acquisitions = await prisma.transaction.findMany({
+        where: {
+          userId: request.userId,
+          type: {
+            in: [
+              "BUY",
+              "TRADE",
+              "AIRDROP",
+              "STAKING_REWARD",
+              "MINING_REWARD",
+              "INTEREST",
+              "FORK",
+              "GIFT_RECEIVED",
+              "DEX_SWAP",
+              "LP_WITHDRAWAL",
+              "LP_REWARD",
+              "NFT_MINT",
+            ],
+          },
         },
-      },
-      orderBy: { timestamp: "asc" },
-    });
-
-    // Build acquisition lots
-    const rawLots: TaxLot[] = acquisitions.map((tx) => ({
-      id: tx.id,
-      asset: tx.receivedAsset || "",
-      amount: Number(tx.receivedAmount || 0),
-      costBasisUsd: Number(tx.receivedValueUsd || 0),
-      acquiredAt: tx.timestamp,
-      sourceId: tx.sourceId || "unknown",
-    }));
-
-    // Build disposition totals per asset to approximate remaining amounts
-    // This is a simplified approach — for accurate lot-level tracking,
-    // we'd need to run the cost basis calculator to know which lots were consumed.
-    // For now, subtract total dispositions from total acquisitions per asset.
-    const disposedByAsset = new Map<string, number>();
-    for (const tx of dispositions) {
-      const asset = tx.sentAsset || "";
-      const amount = Number(tx.sentAmount || 0);
-      disposedByAsset.set(asset, (disposedByAsset.get(asset) || 0) + amount);
-    }
-
-    // Subtract disposed amounts from lots (FIFO order since lots sorted by timestamp)
-    const remainingLots: TaxLot[] = [];
-    const disposedRemaining = new Map(disposedByAsset);
-
-    for (const lot of rawLots) {
-      const disposed = disposedRemaining.get(lot.asset) || 0;
-      if (disposed <= 0) {
-        remainingLots.push(lot);
-        continue;
-      }
-
-      if (disposed >= lot.amount) {
-        // Lot fully consumed
-        disposedRemaining.set(lot.asset, disposed - lot.amount);
-        continue;
-      }
-
-      // Partially consumed
-      const remaining = lot.amount - disposed;
-      const costRatio = remaining / lot.amount;
-      remainingLots.push({
-        ...lot,
-        amount: remaining,
-        costBasisUsd: lot.costBasisUsd * costRatio,
+        orderBy: { timestamp: "asc" },
       });
-      disposedRemaining.set(lot.asset, 0);
-    }
 
-    const analysis = analyzeHoldings(remainingLots, currentPrices);
+      const dispositions = await prisma.transaction.findMany({
+        where: {
+          userId: request.userId,
+          type: {
+            in: [
+              "SELL",
+              "TRADE",
+              "GIFT_SENT",
+              "LOST",
+              "STOLEN",
+              "DEX_SWAP",
+              "LP_DEPOSIT",
+              "NFT_PURCHASE",
+              "NFT_SALE",
+            ],
+          },
+        },
+        orderBy: { timestamp: "asc" },
+      });
 
-    return { data: analysis };
-  });
+      const rawLots: TaxLot[] = acquisitions.map((tx) => ({
+        id: tx.id,
+        asset: tx.receivedAsset || "",
+        amount: Number(tx.receivedAmount || 0),
+        costBasisUsd: Number(tx.receivedValueUsd || 0),
+        acquiredAt: tx.timestamp,
+        sourceId: tx.sourceId || "unknown",
+      }));
+
+      const disposedByAsset = new Map<string, number>();
+      for (const tx of dispositions) {
+        const asset = tx.sentAsset || "";
+        const amount = Number(tx.sentAmount || 0);
+        disposedByAsset.set(asset, (disposedByAsset.get(asset) || 0) + amount);
+      }
+
+      const remainingLots: TaxLot[] = [];
+      const disposedRemaining = new Map(disposedByAsset);
+
+      for (const lot of rawLots) {
+        const disposed = disposedRemaining.get(lot.asset) || 0;
+        if (disposed <= 0) {
+          remainingLots.push(lot);
+          continue;
+        }
+        if (disposed >= lot.amount) {
+          disposedRemaining.set(lot.asset, disposed - lot.amount);
+          continue;
+        }
+        const remaining = lot.amount - disposed;
+        const costRatio = remaining / lot.amount;
+        remainingLots.push({
+          ...lot,
+          amount: remaining,
+          costBasisUsd: lot.costBasisUsd * costRatio,
+        });
+        disposedRemaining.set(lot.asset, 0);
+      }
+
+      const analysis = analyzeHoldings(remainingLots, currentPrices);
+
+      return { data: analysis };
+    },
+  );
 }
