@@ -136,6 +136,14 @@ export {
 } from "./normalizers/wrap-unwrap";
 export type { WrapEvent, WrapResult } from "./normalizers/wrap-unwrap";
 
+// Tax Impact Simulator
+export { simulateSale } from "./simulator";
+export type {
+  SimulationInput,
+  SimulatedLot,
+  SimulationResult,
+} from "./simulator";
+
 export { scanRisks } from "./risk-scanner";
 export type {
   RiskCategory,
