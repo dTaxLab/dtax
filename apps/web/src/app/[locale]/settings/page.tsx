@@ -209,410 +209,431 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="card" style={{ padding: "24px", maxWidth: "600px" }}>
-        {user && (
-          <div
-            style={{
-              marginBottom: "20px",
-              padding: "12px 16px",
-              background: "var(--bg-secondary)",
-              borderRadius: "var(--radius-sm)",
-            }}
-          >
-            <div style={{ fontSize: "14px", color: "var(--text-primary)" }}>
-              {user.email}
-            </div>
-            <div
-              style={{
-                fontSize: "12px",
-                color: "var(--text-muted)",
-                marginTop: "2px",
-              }}
-            >
-              {user.role} {user.name ? `· ${user.name}` : ""}
-            </div>
-          </div>
-        )}
-
-        <div style={{ marginBottom: "20px" }}>
-          <label style={labelStyle}>{t("defaultMethod")}</label>
-          <select
-            style={inputStyle}
-            value={method}
-            onChange={(e) => setMethod(e.target.value)}
-          >
-            {METHODS.map((m) => (
-              <option key={m} value={m}>
-                {tTax(
-                  METHOD_I18N[m] as "fifo" | "lifo" | "hifo" | "specificId",
-                )}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div style={{ marginBottom: "20px" }}>
-          <label style={labelStyle}>{t("defaultYear")}</label>
-          <select
-            style={inputStyle}
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-          >
-            {YEARS.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div style={{ marginBottom: "24px" }}>
-          <label style={labelStyle}>{t("fiatCurrency")}</label>
-          <select
-            style={inputStyle}
-            value={fiatCurrency}
-            onChange={(e) => setFiatCurrency(e.target.value as FiatCurrency)}
-          >
-            {SUPPORTED_FIATS.map((f) => (
-              <option key={f.code} value={f.code}>
-                {f.code} — {f.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <button
-          className="btn btn-primary"
-          onClick={handleSave}
-          style={{ width: "100%" }}
-        >
-          {t("save")}
-        </button>
-
-        {saved && (
-          <div
-            style={{
-              marginTop: "12px",
-              padding: "10px",
-              textAlign: "center",
-              background: "rgba(34, 197, 94, 0.1)",
-              border: "1px solid rgba(34, 197, 94, 0.3)",
-              borderRadius: "var(--radius-sm)",
-              color: "#22c55e",
-              fontSize: "14px",
-            }}
-          >
-            {t("saved")}
-          </div>
-        )}
-      </div>
-
-      {/* Billing & Subscription */}
-      <div
-        className="card"
-        style={{ padding: "24px", marginTop: "24px", maxWidth: "600px" }}
-      >
-        <h2 style={{ fontSize: "18px", fontWeight: 600, marginBottom: "4px" }}>
-          {t("billingTitle")}
-        </h2>
-
-        {billingSuccess && (
-          <div
-            style={{
-              marginBottom: "16px",
-              padding: "10px 14px",
-              background: "rgba(34, 197, 94, 0.1)",
-              border: "1px solid rgba(34, 197, 94, 0.3)",
-              borderRadius: "var(--radius-sm)",
-              color: "#22c55e",
-              fontSize: "14px",
-            }}
-          >
-            {t("paymentSuccess")}
-          </div>
-        )}
-
-        {billingLoading ? (
-          <p style={{ fontSize: "14px", color: "var(--text-muted)" }}>...</p>
-        ) : (
-          <>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                marginBottom: "16px",
-                marginTop: "12px",
-              }}
-            >
-              <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>
-                {t("currentPlan")}
-              </span>
-              <span
-                style={{
-                  display: "inline-block",
-                  padding: "3px 10px",
-                  borderRadius: "12px",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  color: "#fff",
-                  background:
-                    (billing?.plan ?? "FREE") === "CPA"
-                      ? "#d4a017"
-                      : (billing?.plan ?? "FREE") === "PRO"
-                        ? "var(--accent)"
-                        : "var(--text-muted)",
-                }}
-              >
-                {t(
-                  (billing?.plan ?? "FREE") === "CPA"
-                    ? "planCpa"
-                    : (billing?.plan ?? "FREE") === "PRO"
-                      ? "planPro"
-                      : "planFree",
-                )}
-              </span>
-            </div>
-
-            {billing && billing.plan !== "FREE" && (
+      <div className="settings-grid">
+        {/* Left column */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          <div className="card" style={{ padding: "24px" }}>
+            {user && (
               <div
                 style={{
-                  marginBottom: "16px",
+                  marginBottom: "20px",
                   padding: "12px 16px",
                   background: "var(--bg-secondary)",
                   borderRadius: "var(--radius-sm)",
-                  fontSize: "13px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "6px",
                 }}
               >
-                <div>
-                  <span style={{ color: "var(--text-muted)" }}>
-                    {t("planStatus")}:{" "}
-                  </span>
-                  <span
-                    style={{
-                      color:
-                        billing.status === "active"
-                          ? "var(--green)"
-                          : billing.status === "past_due"
-                            ? "var(--red)"
-                            : "var(--text-muted)",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {t(
-                      billing.status === "active"
-                        ? "statusActive"
-                        : billing.status === "past_due"
-                          ? "statusPastDue"
-                          : "statusCanceled",
-                    )}
-                  </span>
+                <div style={{ fontSize: "14px", color: "var(--text-primary)" }}>
+                  {user.email}
                 </div>
-                {billing.taxYear && (
-                  <div>
-                    <span style={{ color: "var(--text-muted)" }}>
-                      {t("taxYear")}:{" "}
-                    </span>
-                    <span style={{ color: "var(--text-primary)" }}>
-                      {billing.taxYear}
-                    </span>
-                  </div>
-                )}
-                {billing.currentPeriodEnd && (
-                  <div>
-                    <span style={{ color: "var(--text-muted)" }}>
-                      {t("expiresAt")}:{" "}
-                    </span>
-                    <span style={{ color: "var(--text-primary)" }}>
-                      {new Date(billing.currentPeriodEnd).toLocaleDateString()}
-                    </span>
-                  </div>
-                )}
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "var(--text-muted)",
+                    marginTop: "2px",
+                  }}
+                >
+                  {user.role} {user.name ? `· ${user.name}` : ""}
+                </div>
               </div>
             )}
 
-            {(!billing || billing.plan === "FREE") && (
-              <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => handleCheckout("PRO")}
-                  disabled={upgrading !== null}
-                  style={{ flex: 1 }}
-                >
-                  {upgrading === "PRO" ? t("upgrading") : t("upgradePro")}
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => handleCheckout("CPA")}
-                  disabled={upgrading !== null}
-                  style={{ flex: 1 }}
-                >
-                  {upgrading === "CPA" ? t("upgrading") : t("upgradeCpa")}
-                </button>
-              </div>
-            )}
+            <div style={{ marginBottom: "20px" }}>
+              <label style={labelStyle}>{t("defaultMethod")}</label>
+              <select
+                style={inputStyle}
+                value={method}
+                onChange={(e) => setMethod(e.target.value)}
+              >
+                {METHODS.map((m) => (
+                  <option key={m} value={m}>
+                    {tTax(
+                      METHOD_I18N[m] as "fifo" | "lifo" | "hifo" | "specificId",
+                    )}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            {billingError && (
+            <div style={{ marginBottom: "20px" }}>
+              <label style={labelStyle}>{t("defaultYear")}</label>
+              <select
+                style={inputStyle}
+                value={year}
+                onChange={(e) => setYear(Number(e.target.value))}
+              >
+                {YEARS.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ marginBottom: "24px" }}>
+              <label style={labelStyle}>{t("fiatCurrency")}</label>
+              <select
+                style={inputStyle}
+                value={fiatCurrency}
+                onChange={(e) =>
+                  setFiatCurrency(e.target.value as FiatCurrency)
+                }
+              >
+                {SUPPORTED_FIATS.map((f) => (
+                  <option key={f.code} value={f.code}>
+                    {f.code} — {f.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              className="btn btn-primary"
+              onClick={handleSave}
+              style={{ width: "100%" }}
+            >
+              {t("save")}
+            </button>
+
+            {saved && (
               <div
                 style={{
                   marginTop: "12px",
-                  padding: "10px 14px",
-                  background: "rgba(239, 68, 68, 0.1)",
-                  border: "1px solid rgba(239, 68, 68, 0.3)",
+                  padding: "10px",
+                  textAlign: "center",
+                  background: "rgba(34, 197, 94, 0.1)",
+                  border: "1px solid rgba(34, 197, 94, 0.3)",
                   borderRadius: "var(--radius-sm)",
-                  color: "var(--red)",
-                  fontSize: "13px",
+                  color: "#22c55e",
+                  fontSize: "14px",
                 }}
               >
-                {billingError}
+                {t("saved")}
+              </div>
+            )}
+          </div>
+        </div>
+        {/* end left column */}
+
+        {/* Right column */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          {/* Billing & Subscription */}
+          <div className="card" style={{ padding: "24px" }}>
+            <h2
+              style={{ fontSize: "18px", fontWeight: 600, marginBottom: "4px" }}
+            >
+              {t("billingTitle")}
+            </h2>
+
+            {billingSuccess && (
+              <div
+                style={{
+                  marginBottom: "16px",
+                  padding: "10px 14px",
+                  background: "rgba(34, 197, 94, 0.1)",
+                  border: "1px solid rgba(34, 197, 94, 0.3)",
+                  borderRadius: "var(--radius-sm)",
+                  color: "#22c55e",
+                  fontSize: "14px",
+                }}
+              >
+                {t("paymentSuccess")}
               </div>
             )}
 
-            {billing && billing.plan !== "FREE" && (
-              <button
-                className="btn btn-secondary"
-                onClick={handleManageSubscription}
-                disabled={upgrading !== null}
-                style={{ width: "100%" }}
-              >
-                {upgrading === "manage"
-                  ? t("upgrading")
-                  : t("manageSubscription")}
-              </button>
-            )}
-          </>
-        )}
-      </div>
+            {billingLoading ? (
+              <p style={{ fontSize: "14px", color: "var(--text-muted)" }}>
+                ...
+              </p>
+            ) : (
+              <>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    marginBottom: "16px",
+                    marginTop: "12px",
+                  }}
+                >
+                  <span
+                    style={{ fontSize: "13px", color: "var(--text-muted)" }}
+                  >
+                    {t("currentPlan")}
+                  </span>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      padding: "3px 10px",
+                      borderRadius: "12px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      color: "#fff",
+                      background:
+                        (billing?.plan ?? "FREE") === "CPA"
+                          ? "#d4a017"
+                          : (billing?.plan ?? "FREE") === "PRO"
+                            ? "var(--accent)"
+                            : "var(--text-muted)",
+                    }}
+                  >
+                    {t(
+                      (billing?.plan ?? "FREE") === "CPA"
+                        ? "planCpa"
+                        : (billing?.plan ?? "FREE") === "PRO"
+                          ? "planPro"
+                          : "planFree",
+                    )}
+                  </span>
+                </div>
 
-      {/* Data Sources */}
-      <div
-        className="card"
-        style={{ padding: "24px", marginTop: "24px", maxWidth: "600px" }}
-      >
-        <h2 style={{ fontSize: "18px", fontWeight: 600, marginBottom: "4px" }}>
-          {tDs("title")}
-        </h2>
-        <p
-          style={{
-            fontSize: "13px",
-            color: "var(--text-muted)",
-            marginBottom: "16px",
-          }}
-        >
-          {tDs("subtitle")}
-        </p>
-
-        {sources.length === 0 ? (
-          <p style={{ fontSize: "14px", color: "var(--text-muted)" }}>
-            {tDs("noSources")}
-          </p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {sources.map((s) => (
-              <div
-                key={s.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  padding: "12px 16px",
-                  background: "var(--bg-secondary)",
-                  borderRadius: "var(--radius-sm)",
-                }}
-              >
-                <div style={{ flex: 1 }}>
-                  {renamingId === s.id ? (
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "8px",
-                        alignItems: "center",
-                      }}
-                    >
-                      <input
-                        value={renameValue}
-                        onChange={(e) => setRenameValue(e.target.value)}
-                        onKeyDown={(e) =>
-                          e.key === "Enter" && handleRename(s.id)
-                        }
+                {billing && billing.plan !== "FREE" && (
+                  <div
+                    style={{
+                      marginBottom: "16px",
+                      padding: "12px 16px",
+                      background: "var(--bg-secondary)",
+                      borderRadius: "var(--radius-sm)",
+                      fontSize: "13px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "6px",
+                    }}
+                  >
+                    <div>
+                      <span style={{ color: "var(--text-muted)" }}>
+                        {t("planStatus")}:{" "}
+                      </span>
+                      <span
                         style={{
-                          ...inputStyle,
-                          width: "200px",
-                          padding: "4px 8px",
+                          color:
+                            billing.status === "active"
+                              ? "var(--green)"
+                              : billing.status === "past_due"
+                                ? "var(--red)"
+                                : "var(--text-muted)",
+                          fontWeight: 500,
                         }}
-                        autoFocus
-                      />
+                      >
+                        {t(
+                          billing.status === "active"
+                            ? "statusActive"
+                            : billing.status === "past_due"
+                              ? "statusPastDue"
+                              : "statusCanceled",
+                        )}
+                      </span>
+                    </div>
+                    {billing.taxYear && (
+                      <div>
+                        <span style={{ color: "var(--text-muted)" }}>
+                          {t("taxYear")}:{" "}
+                        </span>
+                        <span style={{ color: "var(--text-primary)" }}>
+                          {billing.taxYear}
+                        </span>
+                      </div>
+                    )}
+                    {billing.currentPeriodEnd && (
+                      <div>
+                        <span style={{ color: "var(--text-muted)" }}>
+                          {t("expiresAt")}:{" "}
+                        </span>
+                        <span style={{ color: "var(--text-primary)" }}>
+                          {new Date(
+                            billing.currentPeriodEnd,
+                          ).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {(!billing || billing.plan === "FREE") && (
+                  <div
+                    style={{ display: "flex", gap: "10px", marginTop: "8px" }}
+                  >
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => handleCheckout("PRO")}
+                      disabled={upgrading !== null}
+                      style={{ flex: 1 }}
+                    >
+                      {upgrading === "PRO" ? t("upgrading") : t("upgradePro")}
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => handleCheckout("CPA")}
+                      disabled={upgrading !== null}
+                      style={{ flex: 1 }}
+                    >
+                      {upgrading === "CPA" ? t("upgrading") : t("upgradeCpa")}
+                    </button>
+                  </div>
+                )}
+
+                {billingError && (
+                  <div
+                    style={{
+                      marginTop: "12px",
+                      padding: "10px 14px",
+                      background: "rgba(239, 68, 68, 0.1)",
+                      border: "1px solid rgba(239, 68, 68, 0.3)",
+                      borderRadius: "var(--radius-sm)",
+                      color: "var(--red)",
+                      fontSize: "13px",
+                    }}
+                  >
+                    {billingError}
+                  </div>
+                )}
+
+                {billing && billing.plan !== "FREE" && (
+                  <button
+                    className="btn btn-secondary"
+                    onClick={handleManageSubscription}
+                    disabled={upgrading !== null}
+                    style={{ width: "100%" }}
+                  >
+                    {upgrading === "manage"
+                      ? t("upgrading")
+                      : t("manageSubscription")}
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Data Sources */}
+          <div className="card" style={{ padding: "24px" }}>
+            <h2
+              style={{ fontSize: "18px", fontWeight: 600, marginBottom: "4px" }}
+            >
+              {tDs("title")}
+            </h2>
+            <p
+              style={{
+                fontSize: "13px",
+                color: "var(--text-muted)",
+                marginBottom: "16px",
+              }}
+            >
+              {tDs("subtitle")}
+            </p>
+
+            {sources.length === 0 ? (
+              <p style={{ fontSize: "14px", color: "var(--text-muted)" }}>
+                {tDs("noSources")}
+              </p>
+            ) : (
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+              >
+                {sources.map((s) => (
+                  <div
+                    key={s.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      padding: "12px 16px",
+                      background: "var(--bg-secondary)",
+                      borderRadius: "var(--radius-sm)",
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      {renamingId === s.id ? (
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                            alignItems: "center",
+                          }}
+                        >
+                          <input
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onKeyDown={(e) =>
+                              e.key === "Enter" && handleRename(s.id)
+                            }
+                            style={{
+                              ...inputStyle,
+                              width: "200px",
+                              padding: "4px 8px",
+                            }}
+                            autoFocus
+                          />
+                          <button
+                            className="btn btn-primary"
+                            onClick={() => handleRename(s.id)}
+                            style={{ padding: "4px 10px", fontSize: "12px" }}
+                          >
+                            OK
+                          </button>
+                          <button
+                            className="btn btn-secondary"
+                            onClick={() => setRenamingId(null)}
+                            style={{ padding: "4px 10px", fontSize: "12px" }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div style={{ fontSize: "14px", fontWeight: 500 }}>
+                            {s.name}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "12px",
+                              color: "var(--text-muted)",
+                              marginTop: "2px",
+                            }}
+                          >
+                            {s.type === "EXCHANGE_API"
+                              ? "API"
+                              : s.type === "CSV_IMPORT"
+                                ? "CSV"
+                                : s.type}
+                            {" · "}
+                            {tDs("txCount", { count: s.transactionCount })}
+                            {" · "}
+                            {new Date(s.createdAt).toLocaleDateString()}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", gap: "6px" }}>
                       <button
-                        className="btn btn-primary"
-                        onClick={() => handleRename(s.id)}
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          setRenamingId(s.id);
+                          setRenameValue(s.name);
+                        }}
                         style={{ padding: "4px 10px", fontSize: "12px" }}
                       >
-                        OK
+                        {tDs("rename")}
                       </button>
                       <button
                         className="btn btn-secondary"
-                        onClick={() => setRenamingId(null)}
-                        style={{ padding: "4px 10px", fontSize: "12px" }}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <div style={{ fontSize: "14px", fontWeight: 500 }}>
-                        {s.name}
-                      </div>
-                      <div
+                        onClick={() => handleDeleteSource(s.id, s.name)}
                         style={{
+                          padding: "4px 10px",
                           fontSize: "12px",
-                          color: "var(--text-muted)",
-                          marginTop: "2px",
+                          color: "var(--red)",
                         }}
                       >
-                        {s.type === "EXCHANGE_API"
-                          ? "API"
-                          : s.type === "CSV_IMPORT"
-                            ? "CSV"
-                            : s.type}
-                        {" · "}
-                        {tDs("txCount", { count: s.transactionCount })}
-                        {" · "}
-                        {new Date(s.createdAt).toLocaleDateString()}
-                      </div>
-                    </>
-                  )}
-                </div>
-                <div style={{ display: "flex", gap: "6px" }}>
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => {
-                      setRenamingId(s.id);
-                      setRenameValue(s.name);
-                    }}
-                    style={{ padding: "4px 10px", fontSize: "12px" }}
-                  >
-                    {tDs("rename")}
-                  </button>
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => handleDeleteSource(s.id, s.name)}
-                    style={{
-                      padding: "4px 10px",
-                      fontSize: "12px",
-                      color: "var(--red)",
-                    }}
-                  >
-                    {tDs("delete")}
-                  </button>
-                </div>
+                        {tDs("delete")}
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        )}
+        </div>
+        {/* end right column */}
       </div>
+      {/* end grid */}
     </div>
   );
 }
