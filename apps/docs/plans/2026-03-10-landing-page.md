@@ -177,7 +177,7 @@ git commit -m "feat(web): add i18n messages for landing page (EN + ZH)"
 - Uses `useTranslations("landing")` for all text
 - Uses existing CSS variables from `globals.css`
 - All styles inline or using existing CSS classes (`.card`, `.btn-primary`, `.btn-secondary`, `.grid-3`, `.animate-in`)
-- Links to `/auth` for sign-up, `https://github.com/Phosmax/dtax` for GitHub
+- Links to `/auth` for sign-up, `https://github.com/dTaxLab/dtax` for GitHub
 
 **Step 1: Create the component file**
 
@@ -290,7 +290,7 @@ export function LandingPage() {
             {t("ctaGetStarted")}
           </a>
           <a
-            href="https://github.com/Phosmax/dtax"
+            href="https://github.com/dTaxLab/dtax"
             target="_blank"
             rel="noopener noreferrer"
             className="btn btn-secondary"

@@ -114,7 +114,7 @@ export default function DocsPage() {
           </p>
           <pre style={CODE_BLOCK_STYLE}>
             <code>{`# 1. ${t("stepClone")}
-git clone https://github.com/Phosmax/dtax.git
+git clone https://github.com/dTaxLab/dtax.git
 cd dtax
 
 # 2. ${t("stepEnv")}
@@ -444,7 +444,7 @@ docker-compose up -d`}</code>
           {t("ctaQuestion")}
         </p>
         <a
-          href="https://github.com/Phosmax/dtax"
+          href="https://github.com/dTaxLab/dtax"
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-primary"

@@ -7,9 +7,9 @@
     <em>Tax clarity in a decentralized world | 链上税务，智能了然</em>
   </p>
   <p align="center">
-    <a href="https://github.com/Phosmax/dtax/actions/workflows/ci.yml"><img src="https://github.com/Phosmax/dtax/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+    <a href="https://github.com/dTaxLab/dtax/actions/workflows/ci.yml"><img src="https://github.com/dTaxLab/dtax/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="License"></a>
-    <a href="https://github.com/Phosmax/dtax"><img src="https://img.shields.io/github/stars/Phosmax/dtax?style=social" alt="Stars"></a>
+    <a href="https://github.com/dTaxLab/dtax"><img src="https://img.shields.io/github/stars/dTaxLab/dtax?style=social" alt="Stars"></a>
   </p>
   <p align="center">
     <a href="https://getdtax.com">Website</a> ·
@@ -91,7 +91,7 @@ dtax export --format csv --output tax-report.csv
 
 ```bash
 # Clone the repository
-git clone https://github.com/Phosmax/dtax.git
+git clone https://github.com/dTaxLab/dtax.git
 cd dtax
 
 # Start with Docker
@@ -175,5 +175,5 @@ pnpm dev
 
 - 🌐 Website: [getdtax.com](https://getdtax.com)
 - 📚 Documentation: [dtax.dev](https://dtax.dev)
-- 🐛 Issues: [GitHub Issues](https://github.com/Phosmax/dtax/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/Phosmax/dtax/discussions)
+- 🐛 Issues: [GitHub Issues](https://github.com/dTaxLab/dtax/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/dTaxLab/dtax/discussions)

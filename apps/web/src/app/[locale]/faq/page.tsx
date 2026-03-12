@@ -186,7 +186,7 @@ export default function FaqPage() {
           {t("ctaText")}
         </p>
         <a
-          href="https://github.com/Phosmax/dtax/issues"
+          href="https://github.com/dTaxLab/dtax/issues"
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-primary"

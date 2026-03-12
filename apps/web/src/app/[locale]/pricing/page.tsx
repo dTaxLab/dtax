@@ -447,7 +447,7 @@ export default function PricingPage() {
             {t("ossBody")}
           </p>
           <a
-            href="https://github.com/Phosmax/dtax"
+            href="https://github.com/dTaxLab/dtax"
             target="_blank"
             rel="noopener noreferrer"
             className="btn btn-secondary"

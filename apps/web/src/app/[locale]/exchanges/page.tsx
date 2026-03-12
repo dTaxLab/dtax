@@ -270,7 +270,7 @@ export default function ExchangesPage() {
           {t("missingRequest")}
         </p>
         <a
-          href="https://github.com/Phosmax/dtax/issues/new?labels=exchange-request&template=feature_request.yml"
+          href="https://github.com/dTaxLab/dtax/issues/new?labels=exchange-request&template=feature_request.yml"
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-primary"

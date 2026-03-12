@@ -118,7 +118,7 @@ export default function SecurityPage() {
           {t("ctaQuestion")}
         </p>
         <a
-          href="https://github.com/Phosmax/dtax/issues"
+          href="https://github.com/dTaxLab/dtax/issues"
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-primary"

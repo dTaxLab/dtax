@@ -189,9 +189,9 @@ git branch -d <branch-name>
 
 | Remote       | URL                    | 用途         |
 | ------------ | ---------------------- | ------------ |
-| `origin`     | `Phosmax/dtax.git`     | 主仓库       |
-| `origin-web` | `Phosmax/dtax-web.git` | 前端私有仓库 |
-| `origin-api` | `Phosmax/dtax-api.git` | 后端私有仓库 |
+| `origin`     | `dTaxLab/dtax.git`     | 主仓库       |
+| `origin-web` | `dTaxLab/dtax-web.git` | 前端私有仓库 |
+| `origin-api` | `dTaxLab/dtax-api.git` | 后端私有仓库 |
 
 ### Package 命令
 

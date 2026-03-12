@@ -585,7 +585,7 @@ export default function Dashboard() {
         <span>{tf("version")}</span>
         <span>
           <a
-            href="https://github.com/Phosmax/dtax"
+            href="https://github.com/dTaxLab/dtax"
             style={{ color: "var(--accent)", textDecoration: "none" }}
           >
             {tf("github")}

@@ -202,7 +202,7 @@ export function LandingPage() {
             {t("ctaGetStarted")}
           </a>
           <a
-            href="https://github.com/Phosmax/dtax"
+            href="https://github.com/dTaxLab/dtax"
             target="_blank"
             rel="noopener noreferrer"
             className="btn btn-secondary"

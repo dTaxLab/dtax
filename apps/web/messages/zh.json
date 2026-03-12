@@ -759,7 +759,7 @@
     "accessFundsQ": "DTax 能动用我的资金吗？",
     "accessFundsA": "不能。DTax 仅使用只读 API 连接，不请求也不支持提款或交易权限。DTax 无法以任何方式移动、使用或访问您的资金。",
     "openSourceQ": "DTax 是开源的吗？",
-    "openSourceA": "是的。核心税务引擎基于 AGPL-3.0 许可证在 GitHub 上完全开源 (github.com/Phosmax/dtax)。每一个计算、解析器和算法都可供社区审计。",
+    "openSourceA": "是的。核心税务引擎基于 AGPL-3.0 许可证在 GitHub 上完全开源 (github.com/dTaxLab/dtax)。每一个计算、解析器和算法都可供社区审计。",
     "cpaUseQ": "我的会计师/CPA 可以使用 DTax 吗？",
     "cpaUseA": "可以。CPA 版 ($199/年/席位) 提供多客户管理、批量导入导出、白标报告及专属 SLA 支持。您的 CPA 可以在单一面板中管理所有客户。",
     "selfHostQ": "可以自托管 DTax 吗？",

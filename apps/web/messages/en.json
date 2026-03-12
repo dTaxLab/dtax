@@ -759,7 +759,7 @@
     "accessFundsQ": "Can DTax access my funds?",
     "accessFundsA": "No. DTax only uses read-only API connections. No withdrawal or trading permissions are requested or supported. DTax cannot move, spend, or access your funds in any way.",
     "openSourceQ": "Is DTax open source?",
-    "openSourceA": "Yes. The core tax engine is fully open source under the AGPL-3.0 license on GitHub (github.com/Phosmax/dtax). Every calculation, parser, and algorithm is community-auditable.",
+    "openSourceA": "Yes. The core tax engine is fully open source under the AGPL-3.0 license on GitHub (github.com/dTaxLab/dtax). Every calculation, parser, and algorithm is community-auditable.",
     "cpaUseQ": "Can my CPA use DTax?",
     "cpaUseA": "Yes. The CPA plan ($199/year/seat) provides multi-client management, bulk import/export, white-label reports, and dedicated support with SLA. Your CPA can manage all clients from a single dashboard.",
     "selfHostQ": "Can I self-host DTax?",
