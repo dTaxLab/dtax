@@ -67,15 +67,7 @@ function mapCryptoComType(
  */
 export function isCryptoComCsv(csv: string): boolean {
   const firstLine = csv.split("\n")[0]?.toLowerCase() || "";
-  // Newer format
-  if (
-    firstLine.includes("sent amount") &&
-    firstLine.includes("received amount") &&
-    firstLine.includes("fee currency")
-  ) {
-    return true;
-  }
-  // App format
+  // App format (distinctive: "transaction kind" + "native amount")
   if (
     firstLine.includes("transaction kind") &&
     firstLine.includes("native amount")
