@@ -26,6 +26,7 @@ import {
   detectWashSales,
   parse1099DA,
   reconcile,
+  simulateSale,
 } from "@dtax/tax-engine";
 import type {
   LotDateMap,
@@ -461,5 +462,58 @@ export async function taxRoutes(app: FastifyInstance) {
     }
 
     return { data: { results, method: "SPECIFIC_ID", taxYear: body.taxYear } };
+  });
+
+  // POST /tax/simulate — Simulate a hypothetical sale
+  app.post("/tax/simulate", async (request, _reply) => {
+    const body = z
+      .object({
+        asset: z.string().min(1),
+        amount: z.number().positive(),
+        pricePerUnit: z.number().nonnegative(),
+        method: z.enum(["FIFO", "LIFO", "HIFO"]).optional().default("FIFO"),
+        strictSilo: z.boolean().optional().default(false),
+      })
+      .parse(request.body);
+
+    // Fetch all acquisition lots (no year filter — simulator needs full history)
+    const acquisitions = await prisma.transaction.findMany({
+      where: {
+        userId: request.userId,
+        type: { in: [...ACQUISITION_TYPES] },
+      },
+      orderBy: { timestamp: "asc" },
+    });
+
+    const lots = acquisitions.map((tx) => ({
+      id: tx.id,
+      asset: tx.receivedAsset || "",
+      amount: Number(tx.receivedAmount || 0),
+      costBasisUsd: Number(tx.receivedValueUsd || 0),
+      acquiredAt: tx.timestamp,
+      sourceId: tx.sourceId || "unknown",
+    }));
+
+    // Build acquisition records for wash sale detection
+    const acqRecords: AcquisitionRecord[] = acquisitions.map((tx) => ({
+      lotId: tx.id,
+      asset: tx.receivedAsset || "",
+      amount: Number(tx.receivedAmount || 0),
+      acquiredAt: tx.timestamp,
+    }));
+
+    const result = simulateSale(
+      lots,
+      {
+        asset: body.asset,
+        amount: body.amount,
+        pricePerUnit: body.pricePerUnit,
+        method: body.method,
+        strictSilo: body.strictSilo,
+      },
+      acqRecords,
+    );
+
+    return { data: result };
   });
 }

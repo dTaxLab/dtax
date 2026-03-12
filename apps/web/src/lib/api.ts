@@ -712,6 +712,53 @@ export async function calculateSpecific(
   });
 }
 
+// ─── Tax Impact Simulator ────────────────────────
+
+export interface SimulatedLot {
+  lotId: string;
+  amount: number;
+  costBasis: number;
+  acquiredAt: string;
+  holdingPeriod: "SHORT_TERM" | "LONG_TERM";
+  gainLoss: number;
+}
+
+export interface SimulationResult {
+  projectedGainLoss: number;
+  holdingPeriod: "SHORT_TERM" | "LONG_TERM" | "MIXED";
+  shortTermGainLoss: number;
+  longTermGainLoss: number;
+  proceeds: number;
+  costBasis: number;
+  matchedLots: SimulatedLot[];
+  washSaleRisk: boolean;
+  washSaleDisallowed: number;
+  remainingPosition: {
+    totalAmount: number;
+    totalCostBasis: number;
+    avgCostPerUnit: number;
+  };
+  insufficientLots: boolean;
+  availableAmount: number;
+}
+
+export async function simulateSale(params: {
+  asset: string;
+  amount: number;
+  pricePerUnit: number;
+  method?: string;
+  strictSilo?: boolean;
+}): Promise<SimulationResult> {
+  const res = await apiFetch<{ data: SimulationResult }>(
+    "/api/v1/tax/simulate",
+    {
+      method: "POST",
+      body: JSON.stringify(params),
+    },
+  );
+  return res.data;
+}
+
 // ─── AI Classification ───────────────────────────
 
 export interface AiClassifyResult {

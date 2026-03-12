@@ -14,7 +14,8 @@
     "exchanges": "Exchanges",
     "signIn": "Sign In",
     "admin": "Admin",
-    "aiAssistant": "AI Assistant"
+    "aiAssistant": "AI Assistant",
+    "simulator": "Simulator"
   },
   "auth": {
     "login": "Login",
@@ -993,5 +994,33 @@
     "viewPlans": "View All Plans",
     "benefits": "Unlimited transactions, Form 8949 PDF, wash sale detection, and more.",
     "close": "Close"
+  },
+  "simulator": {
+    "title": "Tax Impact Simulator",
+    "subtitle": "Preview the tax impact of a hypothetical sale before you trade",
+    "asset": "Asset",
+    "amount": "Amount",
+    "pricePerUnit": "Price per Unit (USD)",
+    "method": "Cost Basis Method",
+    "simulate": "Simulate Sale",
+    "projectedGainLoss": "Projected Gain/Loss",
+    "holdingPeriod": "Holding Period",
+    "shortTerm": "Short-Term",
+    "longTerm": "Long-Term",
+    "mixed": "Mixed",
+    "proceeds": "Proceeds",
+    "costBasis": "Cost Basis",
+    "shortTermGL": "Short-Term Gain/Loss",
+    "longTermGL": "Long-Term Gain/Loss",
+    "washSaleWarning": "This sale may trigger a wash sale. Estimated disallowed: {amount}",
+    "matchedLots": "Matched Lots",
+    "lotId": "Lot ID",
+    "acquired": "Acquired",
+    "gainLoss": "Gain/Loss",
+    "remainingPosition": "Remaining Position",
+    "remaining": "Remaining",
+    "avgCost": "Avg Cost/Unit",
+    "insufficientLots": "You only have {available} of {requested} {asset} available",
+    "noResults": "Enter a hypothetical sale to preview its tax impact"
   }
 }

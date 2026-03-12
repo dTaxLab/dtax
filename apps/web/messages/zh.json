@@ -14,7 +14,8 @@
     "exchanges": "交易所",
     "signIn": "登录",
     "admin": "管理",
-    "aiAssistant": "AI 助手"
+    "aiAssistant": "AI 助手",
+    "simulator": "模拟器"
   },
   "auth": {
     "login": "登录",
@@ -993,5 +994,33 @@
     "viewPlans": "查看所有方案",
     "benefits": "无限交易、Form 8949 PDF、洗售检测等更多功能。",
     "close": "关闭"
+  },
+  "simulator": {
+    "title": "税务影响模拟器",
+    "subtitle": "在交易前预览假设卖出的税务影响",
+    "asset": "资产",
+    "amount": "数量",
+    "pricePerUnit": "单价 (USD)",
+    "method": "成本基础方法",
+    "simulate": "模拟卖出",
+    "projectedGainLoss": "预计盈亏",
+    "holdingPeriod": "持有期",
+    "shortTerm": "短期",
+    "longTerm": "长期",
+    "mixed": "混合",
+    "proceeds": "收入",
+    "costBasis": "成本基础",
+    "shortTermGL": "短期盈亏",
+    "longTermGL": "长期盈亏",
+    "washSaleWarning": "此交易可能触发洗售规则。预计不可抵扣金额：{amount}",
+    "matchedLots": "匹配批次",
+    "lotId": "批次 ID",
+    "acquired": "获取日期",
+    "gainLoss": "盈亏",
+    "remainingPosition": "剩余持仓",
+    "remaining": "剩余数量",
+    "avgCost": "平均成本/单位",
+    "insufficientLots": "你只有 {available} / {requested} {asset} 可用",
+    "noResults": "输入假设卖出参数以预览税务影响"
   }
 }

@@ -1816,3 +1816,52 @@ abc123,100,2024-01-15T10:00:00Z,${userAddr},xyz789,1.5,0.000005`;
     expect(body.data.imported).toBe(1);
   });
 });
+
+describe("Tax Simulate Route", () => {
+  let app: ReturnType<typeof buildApp>;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    app = buildApp();
+    const { taxRoutes } = await import("../routes/tax");
+    await app.register(taxRoutes, { prefix: "/api/v1" });
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it("POST /tax/simulate returns projected gain/loss", async () => {
+    const buyTx = mockTransaction({
+      id: "sim-buy-1",
+      type: "BUY",
+      receivedAsset: "ETH",
+      receivedAmount: 10,
+      receivedValueUsd: 20000,
+      timestamp: new Date("2024-01-15T00:00:00Z"),
+    });
+
+    mockPrisma.transaction.findMany.mockResolvedValueOnce([buyTx]);
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/tax/simulate",
+      payload: {
+        asset: "ETH",
+        amount: 5,
+        pricePerUnit: 3000,
+        method: "FIFO",
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data.projectedGainLoss).toBeDefined();
+    expect(body.data.proceeds).toBeCloseTo(15000, 0);
+    expect(body.data.costBasis).toBeCloseTo(10000, 0);
+    expect(body.data.projectedGainLoss).toBeCloseTo(5000, 0);
+    expect(body.data.matchedLots).toHaveLength(1);
+    expect(body.data.insufficientLots).toBe(false);
+    expect(body.data.remainingPosition.totalAmount).toBeCloseTo(5, 4);
+  });
+});
