@@ -28,7 +28,57 @@ export async function authRoutes(app: FastifyInstance) {
   // POST /auth/register（速率限制：每分钟 5 次）
   app.post(
     "/auth/register",
-    { config: { rateLimit: { max: 5, timeWindow: "1 minute" } } },
+    {
+      config: { rateLimit: { max: 5, timeWindow: "1 minute" } },
+      schema: {
+        tags: ["auth"],
+        summary: "Register a new account",
+        body: {
+          type: "object" as const,
+          required: ["email", "password"],
+          properties: {
+            email: { type: "string" as const, description: "Email address" },
+            password: {
+              type: "string" as const,
+              description: "Min 8 characters",
+            },
+            name: { type: "string" as const },
+          },
+        },
+        response: {
+          201: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              data: {
+                type: "object" as const,
+                additionalProperties: true,
+                properties: {
+                  token: { type: "string" as const },
+                  user: {
+                    type: "object" as const,
+                    additionalProperties: true,
+                    properties: {
+                      id: { type: "string" as const },
+                      email: { type: "string" as const },
+                      name: { type: "string" as const },
+                      role: { type: "string" as const },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          409: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+        },
+      },
+    },
     async (request, reply) => {
       const body = registerSchema.parse(request.body);
 
@@ -76,7 +126,53 @@ export async function authRoutes(app: FastifyInstance) {
   // POST /auth/login（速率限制：每分钟 10 次）
   app.post(
     "/auth/login",
-    { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
+    {
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
+      schema: {
+        tags: ["auth"],
+        summary: "Login with email and password",
+        body: {
+          type: "object" as const,
+          required: ["email", "password"],
+          properties: {
+            email: { type: "string" as const, description: "Email address" },
+            password: { type: "string" as const },
+          },
+        },
+        response: {
+          200: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              data: {
+                type: "object" as const,
+                additionalProperties: true,
+                properties: {
+                  token: { type: "string" as const },
+                  user: {
+                    type: "object" as const,
+                    additionalProperties: true,
+                    properties: {
+                      id: { type: "string" as const },
+                      email: { type: "string" as const },
+                      name: { type: "string" as const },
+                      role: { type: "string" as const },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+        },
+      },
+    },
     async (request, reply) => {
       const body = loginSchema.parse(request.body);
 
@@ -119,61 +215,147 @@ export async function authRoutes(app: FastifyInstance) {
   );
 
   // POST /auth/refresh — 刷新 token（需要有效的现有 token）
-  app.post("/auth/refresh", async (request, reply) => {
-    // request.userId is set by the auth plugin (token was valid)
-    const user = await prisma.user.findUnique({
-      where: { id: request.userId },
-      select: { id: true, role: true },
-    });
-
-    if (!user) {
-      return reply.status(401).send({
-        error: { code: "UNAUTHORIZED", message: "User not found" },
-      });
-    }
-
-    const token = app.jwt.sign({ sub: user.id, role: user.role });
-    return { data: { token } };
-  });
-
-  // GET /auth/verify-email — 验证邮箱（公共路由）
-  app.get("/auth/verify-email", async (request, reply) => {
-    const query = z.object({ token: z.string() }).parse(request.query);
-
-    try {
-      const decoded = app.jwt.verify(query.token) as {
-        sub: string;
-        purpose: string;
-      };
-      if (decoded.purpose !== "email-verify") {
-        return reply.status(400).send({
-          error: {
-            code: "INVALID_TOKEN",
-            message: "Invalid verification token",
+  app.post(
+    "/auth/refresh",
+    {
+      schema: {
+        tags: ["auth"],
+        summary: "Refresh JWT token",
+        response: {
+          200: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              data: {
+                type: "object" as const,
+                properties: { token: { type: "string" as const } },
+              },
+            },
           },
+          401: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      // request.userId is set by the auth plugin (token was valid)
+      const user = await prisma.user.findUnique({
+        where: { id: request.userId },
+        select: { id: true, role: true },
+      });
+
+      if (!user) {
+        return reply.status(401).send({
+          error: { code: "UNAUTHORIZED", message: "User not found" },
         });
       }
 
-      await prisma.user.update({
-        where: { id: decoded.sub },
-        data: { emailVerified: true },
-      });
+      const token = app.jwt.sign({ sub: user.id, role: user.role });
+      return { data: { token } };
+    },
+  );
 
-      return { data: { verified: true } };
-    } catch {
-      return reply.status(400).send({
-        error: {
-          code: "INVALID_TOKEN",
-          message: "Token expired or invalid",
+  // GET /auth/verify-email — 验证邮箱（公共路由）
+  app.get(
+    "/auth/verify-email",
+    {
+      schema: {
+        tags: ["auth"],
+        summary: "Verify email address via token",
+        querystring: {
+          type: "object" as const,
+          required: ["token"],
+          properties: { token: { type: "string" as const } },
         },
-      });
-    }
-  });
+        response: {
+          200: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              data: {
+                type: "object" as const,
+                properties: { verified: { type: "boolean" as const } },
+              },
+            },
+          },
+          400: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const query = z.object({ token: z.string() }).parse(request.query);
+
+      try {
+        const decoded = app.jwt.verify(query.token) as {
+          sub: string;
+          purpose: string;
+        };
+        if (decoded.purpose !== "email-verify") {
+          return reply.status(400).send({
+            error: {
+              code: "INVALID_TOKEN",
+              message: "Invalid verification token",
+            },
+          });
+        }
+
+        await prisma.user.update({
+          where: { id: decoded.sub },
+          data: { emailVerified: true },
+        });
+
+        return { data: { verified: true } };
+      } catch {
+        return reply.status(400).send({
+          error: {
+            code: "INVALID_TOKEN",
+            message: "Token expired or invalid",
+          },
+        });
+      }
+    },
+  );
 
   // POST /auth/forgot-password — 请求密码重置（速率限制：每分钟 3 次）
   app.post(
     "/auth/forgot-password",
-    { config: { rateLimit: { max: 3, timeWindow: "1 minute" } } },
+    {
+      config: { rateLimit: { max: 3, timeWindow: "1 minute" } },
+      schema: {
+        tags: ["auth"],
+        summary: "Request password reset email",
+        body: {
+          type: "object" as const,
+          required: ["email"],
+          properties: {
+            email: { type: "string" as const, description: "Email address" },
+          },
+        },
+        response: {
+          200: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              data: {
+                type: "object" as const,
+                properties: { message: { type: "string" as const } },
+              },
+            },
+          },
+        },
+      },
+    },
     async (request) => {
       const { email } = z
         .object({ email: z.string().email() })
@@ -207,62 +389,136 @@ export async function authRoutes(app: FastifyInstance) {
   );
 
   // POST /auth/reset-password — 重置密码
-  app.post("/auth/reset-password", async (request, reply) => {
-    const body = z
-      .object({
-        token: z.string(),
-        password: z.string().min(8),
-      })
-      .parse(request.body);
-
-    const reset = await prisma.passwordReset.findUnique({
-      where: { token: body.token },
-    });
-
-    if (!reset || reset.usedAt || reset.expiresAt < new Date()) {
-      return reply.status(400).send({
-        error: {
-          code: "INVALID_TOKEN",
-          message: "Token expired or already used",
+  app.post(
+    "/auth/reset-password",
+    {
+      schema: {
+        tags: ["auth"],
+        summary: "Reset password with token",
+        body: {
+          type: "object" as const,
+          required: ["token", "password"],
+          properties: {
+            token: { type: "string" as const },
+            password: {
+              type: "string" as const,
+              description: "Min 8 characters",
+            },
+          },
         },
+        response: {
+          200: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              data: {
+                type: "object" as const,
+                properties: { message: { type: "string" as const } },
+              },
+            },
+          },
+          400: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const body = z
+        .object({
+          token: z.string(),
+          password: z.string().min(8),
+        })
+        .parse(request.body);
+
+      const reset = await prisma.passwordReset.findUnique({
+        where: { token: body.token },
       });
-    }
 
-    const passwordHash = await bcrypt.hash(body.password, 12);
+      if (!reset || reset.usedAt || reset.expiresAt < new Date()) {
+        return reply.status(400).send({
+          error: {
+            code: "INVALID_TOKEN",
+            message: "Token expired or already used",
+          },
+        });
+      }
 
-    await Promise.all([
-      prisma.user.update({
-        where: { id: reset.userId },
-        data: { passwordHash },
-      }),
-      prisma.passwordReset.update({
-        where: { id: reset.id },
-        data: { usedAt: new Date() },
-      }),
-    ]);
+      const passwordHash = await bcrypt.hash(body.password, 12);
 
-    return { data: { message: "Password reset successful" } };
-  });
+      await Promise.all([
+        prisma.user.update({
+          where: { id: reset.userId },
+          data: { passwordHash },
+        }),
+        prisma.passwordReset.update({
+          where: { id: reset.id },
+          data: { usedAt: new Date() },
+        }),
+      ]);
+
+      return { data: { message: "Password reset successful" } };
+    },
+  );
 
   // GET /auth/me — 需要认证
-  app.get("/auth/me", async (request, reply) => {
-    const user = await prisma.user.findUnique({
-      where: { id: request.userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        createdAt: true,
+  app.get(
+    "/auth/me",
+    {
+      schema: {
+        tags: ["auth"],
+        summary: "Get current user profile",
+        response: {
+          200: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              data: {
+                type: "object" as const,
+                additionalProperties: true,
+                properties: {
+                  id: { type: "string" as const },
+                  email: { type: "string" as const },
+                  name: { type: "string" as const },
+                  role: { type: "string" as const },
+                  createdAt: { type: "string" as const },
+                },
+              },
+            },
+          },
+          404: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+        },
       },
-    });
-
-    if (!user) {
-      return reply.status(404).send({
-        error: { code: "NOT_FOUND", message: "User not found" },
+    },
+    async (request, reply) => {
+      const user = await prisma.user.findUnique({
+        where: { id: request.userId },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          createdAt: true,
+        },
       });
-    }
 
-    return { data: user };
-  });
+      if (!user) {
+        return reply.status(404).send({
+          error: { code: "NOT_FOUND", message: "User not found" },
+        });
+      }
+
+      return { data: user };
+    },
+  );
 }
