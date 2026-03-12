@@ -4,7 +4,13 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { parseArgs, toTaxLot, toTaxableEvent } from "../lib";
+import {
+  parseArgs,
+  toTaxLot,
+  toTaxableEvent,
+  formatComparisonTable,
+  formatComparisonJson,
+} from "../lib";
 import type { ParsedTransaction } from "@dtax/tax-engine";
 
 // ─── parseArgs ──────────────────────────────────
@@ -109,6 +115,16 @@ describe("parseArgs", () => {
     ]);
     expect(result.flags.currency).toBe("EUR");
     expect(result.flags.rate).toBe("0.92");
+  });
+
+  it("parses --compare flag", () => {
+    const result = parseArgs(["calculate", "f.csv", "--compare"]);
+    expect(result.flags.compare).toBe("true");
+  });
+
+  it("--compare flag is false by default", () => {
+    const result = parseArgs(["calculate", "f.csv"]);
+    expect(result.flags.compare).toBeUndefined();
   });
 });
 
@@ -315,5 +331,72 @@ describe("toTaxableEvent", () => {
   it("returns event when no year filter", () => {
     const event = toTaxableEvent(baseSell, 0, undefined);
     expect(event).not.toBeNull();
+  });
+});
+
+// ─── formatComparisonTable / formatComparisonJson ──
+
+import type { ComparisonResult } from "@dtax/tax-engine";
+
+const mockSimResult = {
+  projectedGainLoss: 500,
+  holdingPeriod: "SHORT_TERM" as const,
+  shortTermGainLoss: 500,
+  longTermGainLoss: 0,
+  proceeds: 10000,
+  costBasis: 9500,
+  matchedLots: [],
+  washSaleRisk: false,
+  washSaleDisallowed: 0,
+  remainingPosition: { totalAmount: 0, totalCostBasis: 0, avgCostPerUnit: 0 },
+  insufficientLots: false,
+  availableAmount: 1,
+};
+
+const mockComparison: ComparisonResult = {
+  fifo: { ...mockSimResult, projectedGainLoss: 500 },
+  lifo: { ...mockSimResult, projectedGainLoss: 200 },
+  hifo: { ...mockSimResult, projectedGainLoss: -100 },
+  recommended: "HIFO",
+  recommendedReason:
+    "HIFO provides the largest deductible loss, maximizing tax deductions.",
+  savings: 600,
+};
+
+describe("formatComparisonTable", () => {
+  it("returns lines with method names and recommended marker", () => {
+    const lines = formatComparisonTable(mockComparison);
+    const text = lines.join("\n");
+    expect(text).toContain("Method Comparison");
+    expect(text).toContain("FIFO");
+    expect(text).toContain("LIFO");
+    expect(text).toContain("HIFO");
+    expect(text).toContain("Recommended:  HIFO");
+    expect(text).toContain("Savings:");
+  });
+
+  it("applies currency rate conversion", () => {
+    const lines = formatComparisonTable(mockComparison, "EUR", 0.92);
+    const text = lines.join("\n");
+    // Savings 600 * 0.92 = 552
+    expect(text).toContain("552");
+  });
+});
+
+describe("formatComparisonJson", () => {
+  it("returns object with all methods and recommendation", () => {
+    const json = formatComparisonJson(mockComparison);
+    expect(json.recommended).toBe("HIFO");
+    expect(json.recommendedReason).toContain("HIFO");
+    expect(json.savings).toBe(600);
+    expect((json.fifo as Record<string, unknown>).projectedGainLoss).toBe(500);
+    expect((json.lifo as Record<string, unknown>).projectedGainLoss).toBe(200);
+    expect((json.hifo as Record<string, unknown>).projectedGainLoss).toBe(-100);
+  });
+
+  it("applies rate conversion to monetary values", () => {
+    const json = formatComparisonJson(mockComparison, 0.5);
+    expect(json.savings).toBe(300);
+    expect((json.fifo as Record<string, unknown>).projectedGainLoss).toBe(250);
   });
 });

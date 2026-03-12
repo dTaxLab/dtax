@@ -1,179 +1,167 @@
 <p align="center">
   <h1 align="center">DTax</h1>
   <p align="center">
-    <strong>AI-Powered Crypto Tax Intelligence Platform</strong>
-  </p>
-  <p align="center">
-    <em>Tax clarity in a decentralized world | 链上税务，智能了然</em>
+    <strong>The only complete TypeScript crypto tax engine on npm</strong>
   </p>
   <p align="center">
     <a href="https://github.com/dTaxLab/dtax/actions/workflows/ci.yml"><img src="https://github.com/dTaxLab/dtax/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="License"></a>
+    <a href="https://www.npmjs.com/package/@dtax/tax-engine"><img src="https://img.shields.io/npm/v/@dtax/tax-engine" alt="npm"></a>
     <a href="https://github.com/dTaxLab/dtax"><img src="https://img.shields.io/github/stars/dTaxLab/dtax?style=social" alt="Stars"></a>
-  </p>
-  <p align="center">
-    <a href="https://getdtax.com">Website</a> ·
-    <a href="https://dtax.dev">Docs</a> ·
-    <a href="#quick-start">Quick Start</a> ·
-    <a href="#contributing">Contributing</a>
   </p>
 </p>
 
 ---
 
-## What is DTax?
+**23 exchange parsers** | **FIFO / LIFO / HIFO / Specific ID** | **Form 8949 + Schedule D** | **Wash sale detection** | **What-if simulator**
 
-DTax is an open-core crypto tax calculation and portfolio management platform. The core tax engine is fully open source (AGPL-3.0), allowing you to audit every calculation. The cloud platform at [getdtax.com](https://getdtax.com) offers additional AI-powered features, multi-chain tracking, and compliance reports.
-
-### Why DTax?
-
-- 🔓 **Open Source Tax Engine** — Audit every tax calculation. No black boxes.
-- 🤖 **AI-Powered Classification** — Intelligent transaction categorization using LLMs
-- 📊 **Portfolio Tracking** — Real-time holdings, P&L, and historical performance
-- 💰 **Tax-Loss Harvesting** — AI identifies opportunities to reduce your tax bill
-- 🌐 **Multi-Chain Support** — CEX APIs (100+ via CCXT) + on-chain data
-- 📄 **Compliance Reports** — Form 8949, HMRC, and more
-- 🖥️ **Self-Hostable** — Run the open source version on your own infrastructure
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────┐
-│                   DTax Platform                      │
-├──────────────┬──────────────┬───────────────────────┤
-│  @dtax/web   │  @dtax/api   │     @dtax/cli        │
-│  Next.js UI  │  Fastify API │  CLI Tool             │
-├──────────────┴──────────────┴───────────────────────┤
-│              @dtax/tax-engine (AGPL-3.0)            │
-│              FIFO · LIFO · HIFO · Cost Basis        │
-├─────────────────────────────────────────────────────┤
-│              @dtax/shared-types                     │
-│              TypeScript Type Definitions             │
-└─────────────────────────────────────────────────────┘
-```
-
-## Project Structure
-
-This is a **monorepo** managed by [Turborepo](https://turbo.build):
-
-```
-dtax/
-├── apps/
-│   ├── web/                # Next.js frontend (getdtax.com)
-│   └── api/                # Fastify backend API
-├── packages/
-│   ├── tax-engine/         # 🔓 Core tax engine (AGPL-3.0, open source)
-│   ├── cli/                # 🔓 CLI tool (AGPL-3.0, open source)
-│   └── shared-types/       # 🔓 Shared TypeScript types (AGPL-3.0)
-├── docs/                   # Documentation (dtax.dev)
-└── docker/                 # Docker configurations
-```
-
-## Quick Start
-
-### Option 1: CLI Tool (Open Source)
+## Install
 
 ```bash
-# Install the CLI
+npm install @dtax/tax-engine
+```
+
+## Quick Example
+
+```typescript
+import {
+  parseCsv,
+  CostBasisCalculator,
+  generateForm8949,
+} from "@dtax/tax-engine";
+
+// 1. Parse any exchange CSV (auto-detects format)
+const { lots, events } = parseCsv(csvString);
+
+// 2. Calculate gains/losses
+const calc = new CostBasisCalculator("FIFO");
+calc.addLots(lots);
+const results = events.map((e) => calc.calculate(e));
+
+// 3. Generate IRS Form 8949
+const report = generateForm8949(results);
+```
+
+## CLI
+
+Calculate taxes from the command line without writing any code:
+
+```bash
+npx @dtax/cli calculate trades.csv --method FIFO
+npx @dtax/cli calculate trades.csv --method LIFO --year 2025 --json
+npx @dtax/cli calculate coinbase.csv binance.csv --method HIFO
+```
+
+Install globally for repeated use:
+
+```bash
 npm install -g @dtax/cli
-
-# Import transactions from a CSV
-dtax import --file trades.csv --exchange binance
-
-# Calculate taxes using FIFO
-dtax calculate --method fifo --year 2025
-
-# Export results
-dtax export --format csv --output tax-report.csv
+dtax calculate trades.csv --method FIFO --form8949 report.csv
+dtax calculate trades.csv --schedule-d --include-wash-sales
 ```
 
-### Option 2: Self-Hosted (Open Source)
+## Supported Exchanges (23 Parsers)
 
-```bash
-# Clone the repository
-git clone https://github.com/dTaxLab/dtax.git
-cd dtax
+All parsers auto-detect the CSV format. No configuration required.
 
-# Start with Docker
-docker compose up -d
+| Category  | Exchanges                                                                           |
+| --------- | ----------------------------------------------------------------------------------- |
+| Major     | Coinbase, Binance, Binance US, Kraken, Gemini                                       |
+| Global    | KuCoin, OKX, Bybit, Gate.io, Bitget, MEXC, HTX (Huobi)                              |
+| Other     | Crypto.com, Bitfinex, Poloniex                                                      |
+| On-chain  | Etherscan (ETH + ERC-20 + BSC/Polygon/Avalanche/Fantom), Solscan (SOL + SPL + DeFi) |
+| Migration | Koinly, CoinTracker, Cryptact (import from competitors)                             |
+| Fallback  | Generic CSV (map your own columns)                                                  |
 
-# Access the web UI at http://localhost:3000
+## Features
+
+- **4 cost basis methods** -- FIFO, LIFO, HIFO, Specific ID (IRS-compliant)
+- **Form 8949** -- CSV, PDF, and TXF (TurboTax) export with Box A-F classification
+- **Schedule D** -- Part I/II aggregation, $3,000 loss limit, carryover calculation
+- **Wash sale detection** -- 30-day window, partial disallowance, Form 8949 code W
+- **What-if simulator** -- Preview tax impact before selling (`simulateSale()`)
+- **Method comparison** -- Find the optimal method across FIFO/LIFO/HIFO (`compareAllMethods()`)
+- **DeFi + NFT support** -- LP deposits/withdrawals, staking, wraps, bridges, 12 DeFi tx types
+- **1099-DA reconciliation** -- 3-phase matching against broker-reported data
+- **Portfolio analysis** -- Holdings aggregation, unrealized P&L, tax-loss harvesting opportunities
+- **Wallet-siloed accounting** -- Strict per-wallet cost basis isolation
+- **Internal transfer matching** -- Auto-detect transfers between your own wallets
+
+## Comparison with Alternatives
+
+| Feature                |    DTax    |  Rotki  |   RP2    |
+| ---------------------- | :--------: | :-----: | :------: |
+| Language               | TypeScript | Python  |  Python  |
+| npm installable        |    Yes     |   No    |    No    |
+| Exchange parsers       |     23     |   15    |    8     |
+| Cost basis methods     |     4      |    3    |    3     |
+| Form 8949 PDF          |    Yes     |   No    |    No    |
+| TurboTax TXF export    |    Yes     |   No    |    No    |
+| Schedule D generation  |    Yes     |   No    |    No    |
+| Wash sale detection    |    Yes     |   Yes   |    No    |
+| What-if simulator      |    Yes     |   No    |    No    |
+| Method comparison      |    Yes     |   No    |    No    |
+| DeFi/NFT tx types      |     12     |    8    |    4     |
+| 1099-DA reconciliation |    Yes     |   No    |    No    |
+| Competitor CSV import  |    Yes     |   No    |    No    |
+| CLI tool               |    Yes     |   Yes   |   Yes    |
+| Browser/Node.js        |    Both    | Desktop | CLI only |
+
+## Packages
+
+| Package                                       | Description                               |
+| --------------------------------------------- | ----------------------------------------- |
+| [`@dtax/tax-engine`](packages/tax-engine)     | Core calculation engine, parsers, reports |
+| [`@dtax/cli`](packages/cli)                   | Command-line interface                    |
+| [`@dtax/shared-types`](packages/shared-types) | TypeScript type definitions               |
+
+## API Highlights
+
+```typescript
+// Cost basis calculation
+import { calculateFIFO, calculateLIFO, calculateHIFO } from "@dtax/tax-engine";
+
+// Reports
+import {
+  generateForm8949,
+  form8949ToCsv,
+  generateForm8949Pdf,
+} from "@dtax/tax-engine";
+import { generateScheduleD } from "@dtax/tax-engine";
+import { form8949ToTxf } from "@dtax/tax-engine"; // TurboTax
+
+// Analysis
+import { detectWashSales } from "@dtax/tax-engine";
+import { simulateSale } from "@dtax/tax-engine"; // what-if
+import { compareAllMethods } from "@dtax/tax-engine"; // optimizer
+import { analyzeHoldings } from "@dtax/tax-engine"; // portfolio
+
+// Parsers (auto-detect or use individually)
+import { parseCsv, detectCsvFormat } from "@dtax/tax-engine";
 ```
-
-### Option 3: Cloud Platform
-
-Visit [getdtax.com](https://getdtax.com) for the full-featured cloud version with AI classification, multi-chain tracking, and compliance reports.
-
-## Tech Stack
-
-| Layer    | Technology               |
-| -------- | ------------------------ |
-| Language | TypeScript (full-stack)  |
-| Frontend | Next.js 14 (App Router)  |
-| Backend  | Node.js + Fastify        |
-| Database | PostgreSQL               |
-| Cache    | Redis                    |
-| ORM      | Prisma                   |
-| Queue    | BullMQ                   |
-| AI       | OpenAI API (GPT-4o-mini) |
-| Data     | CCXT (100+ exchanges)    |
-| On-chain | Alchemy SDK / ethers.js  |
-| Testing  | Vitest + Playwright      |
-
-## Open Source vs Cloud
-
-| Feature                                      | Open Source (Free) | Cloud (Paid) |
-| -------------------------------------------- | ------------------ | ------------ |
-| Tax Calculation (FIFO/LIFO/HIFO/Specific ID) | ✅                 | ✅           |
-| CLI Tool                                     | ✅                 | ✅           |
-| Web UI (Dashboard + Reports)                 | ✅                 | ✅           |
-| CSV Import (16 exchanges)                    | ✅                 | ✅           |
-| Form 8949 + Schedule D                       | ✅                 | ✅           |
-| Wash Sale Detection                          | ✅                 | ✅           |
-| Tax-Loss Harvesting                          | ✅                 | ✅           |
-| Portfolio Holdings Analysis                  | ✅                 | ✅           |
-| DeFi/NFT Transaction Support                 | ✅                 | ✅           |
-| 1099-DA Reconciliation                       | ✅                 | ✅           |
-| AI Transaction Classification                | —                  | ✅           |
-| Multi-chain Auto-Tracking                    | —                  | ✅           |
-| Enterprise Features                          | —                  | ✅           |
-
-## Supported Exchanges (CSV Import)
-
-Coinbase · Binance · Binance US · Kraken · Gemini · Crypto.com · KuCoin · OKX · Bybit · Gate.io · Bitget · MEXC · HTX (Huobi) · Etherscan (ETH + ERC-20) · Generic CSV
-
-Auto-detection identifies your exchange format automatically. Manual format selection also available.
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Development Setup
+Contributions welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ```bash
-# Prerequisites: Node.js >= 20, pnpm >= 9, Docker
-
-# Install dependencies
+# Prerequisites: Node.js >= 20, pnpm >= 9
+git clone https://github.com/dTaxLab/dtax.git && cd dtax
 pnpm install
-
-# Start infrastructure (PostgreSQL + Redis)
-docker compose -f docker/docker-compose.dev.yml up -d
-
-# Run database migrations
-pnpm --filter @dtax/api db:migrate
-
-# Start development servers
-pnpm dev
+pnpm test        # 800+ tests across all packages
+pnpm build       # build all packages
 ```
 
 ## License
 
-- **Core Engine** (`packages/tax-engine`, `packages/cli`, `packages/shared-types`): [AGPL-3.0](LICENSE)
-- **Cloud Platform** (`apps/web`, `apps/api`): Proprietary — see [LICENSE-COMMERCIAL](LICENSE-COMMERCIAL)
+All packages in this repository are licensed under [AGPL-3.0](LICENSE).
+
+This means you can use DTax freely in your projects. If you modify the source and distribute it (including as a network service), you must release your modifications under AGPL-3.0.
+
+For commercial licensing inquiries: [getdtax.com](https://getdtax.com)
 
 ## Links
 
-- 🌐 Website: [getdtax.com](https://getdtax.com)
-- 📚 Documentation: [dtax.dev](https://dtax.dev)
-- 🐛 Issues: [GitHub Issues](https://github.com/dTaxLab/dtax/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/dTaxLab/dtax/discussions)
+- Website: [getdtax.com](https://getdtax.com)
+- Issues: [GitHub Issues](https://github.com/dTaxLab/dtax/issues)
+- Discussions: [GitHub Discussions](https://github.com/dTaxLab/dtax/discussions)
