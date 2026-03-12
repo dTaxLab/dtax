@@ -53,6 +53,8 @@ const formatSchema = z
     "solscan_defi",
     "bitfinex",
     "poloniex",
+    "koinly",
+    "cointracker",
   ])
   .optional();
 

@@ -125,6 +125,8 @@ export function ImportPanel({ onImported, onQuotaExceeded }: ImportPanelProps) {
             <option value="solscan_defi">Solscan (Solana DeFi)</option>
             <option value="bitfinex">Bitfinex</option>
             <option value="poloniex">Poloniex</option>
+            <option value="koinly">Koinly</option>
+            <option value="cointracker">CoinTracker</option>
             <option value="generic">Generic CSV</option>
           </select>
         </div>
