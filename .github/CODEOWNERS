@@ -2,16 +2,16 @@
 # These owners are automatically requested for review on PRs.
 
 # Core tax engine — requires careful review
-packages/tax-engine/ @Phosmax
+packages/tax-engine/ @dTaxLab
 
 # CLI tool
-packages/cli/ @Phosmax
+packages/cli/ @dTaxLab
 
 # Shared types — changes affect all packages
-packages/shared-types/ @Phosmax
+packages/shared-types/ @dTaxLab
 
 # Infrastructure
-.github/ @Phosmax
-docker-compose.yml @Phosmax
-apps/api/Dockerfile @Phosmax
-apps/web/Dockerfile @Phosmax
+.github/ @dTaxLab
+docker-compose.yml @dTaxLab
+apps/api/Dockerfile @dTaxLab
+apps/web/Dockerfile @dTaxLab
