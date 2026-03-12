@@ -7,10 +7,10 @@ import { parseCryptoComCsv, isCryptoComCsv } from "../parsers/crypto-com";
 import { parseCsv, detectCsvFormat } from "../parsers";
 
 describe("isCryptoComCsv", () => {
-  it("detects newer format by header", () => {
+  it("newer (Koinly-style) header is not auto-detected as crypto_com", () => {
     const csv =
       "Date,Sent Amount,Sent Currency,Received Amount,Received Currency,Fee Amount,Fee Currency,Net Worth Amount,Net Worth Currency,Label,Description,TxHash\n";
-    expect(isCryptoComCsv(csv)).toBe(true);
+    expect(isCryptoComCsv(csv)).toBe(false);
   });
 
   it("detects app format by header", () => {
@@ -27,9 +27,9 @@ describe("isCryptoComCsv", () => {
 });
 
 describe("detectCsvFormat", () => {
-  it("auto-detects Crypto.com newer format", () => {
+  it("auto-detects Crypto.com app format", () => {
     const csv =
-      "Date,Sent Amount,Sent Currency,Received Amount,Received Currency,Fee Amount,Fee Currency,Net Worth Amount,Net Worth Currency,Label,Description,TxHash\n";
+      "Timestamp (UTC),Transaction Description,Currency,Amount,To Currency,To Amount,Native Currency,Native Amount,Native Amount (in USD),Transaction Kind\n";
     expect(detectCsvFormat(csv)).toBe("crypto_com");
   });
 });
@@ -212,9 +212,18 @@ describe("parseCryptoComCsv — app format", () => {
 });
 
 describe("parseCsv integration", () => {
-  it("works via unified parseCsv for newer format", () => {
+  it("works via unified parseCsv with explicit format for newer format", () => {
     const csv = `Date,Sent Amount,Sent Currency,Received Amount,Received Currency,Fee Amount,Fee Currency,Net Worth Amount,Net Worth Currency,Label,Description,TxHash
 2025-01-15 10:30:00,,,1.0,BTC,,,45000,USD,crypto_purchase,Buy BTC,`;
+    const result = parseCsv(csv, { format: "crypto_com" });
+
+    expect(result.summary.format).toBe("crypto_com");
+    expect(result.transactions).toHaveLength(1);
+  });
+
+  it("works via unified parseCsv auto-detect for app format", () => {
+    const csv = `Timestamp (UTC),Transaction Description,Currency,Amount,To Currency,To Amount,Native Currency,Native Amount,Native Amount (in USD),Transaction Kind
+2025-01-15 10:30:00,Buy BTC,BTC,0.5,,,USD,25000,25000,crypto_purchase`;
     const result = parseCsv(csv);
 
     expect(result.summary.format).toBe("crypto_com");
