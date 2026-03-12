@@ -17,6 +17,7 @@ import {
   form8949ToCsv,
   generateScheduleD,
   detectWashSales,
+  compareAllMethods,
 } from "@dtax/tax-engine";
 import type {
   TaxLot,
@@ -30,7 +31,13 @@ import type {
   AcquisitionRecord,
   WashSaleAdjustment,
 } from "@dtax/tax-engine";
-import { parseArgs, toTaxLot, toTaxableEvent } from "./lib";
+import {
+  parseArgs,
+  toTaxLot,
+  toTaxableEvent,
+  formatComparisonTable,
+  formatComparisonJson,
+} from "./lib";
 
 const VERSION = "0.1.0";
 
@@ -65,6 +72,7 @@ function printCalculateHelp(): void {
   console.log("  --output <file>            Write Form 8949 CSV to file");
   console.log("  --include-wash-sales       Detect and report wash sales");
   console.log("  --schedule-d               Show Schedule D summary");
+  console.log("  --compare                  Compare FIFO/LIFO/HIFO methods");
   console.log("  --currency <CODE>          Display currency (default: USD)");
   console.log(
     "  --rate <number>            Exchange rate vs USD (e.g. 0.92 for EUR)",
@@ -265,6 +273,54 @@ function calculate(files: string[], flags: Record<string, string>): void {
     ? generateScheduleD(form8949Report)
     : undefined;
 
+  // Method comparison
+  const showCompare = flags.compare === "true";
+  let comparisonResults: Record<string, unknown>[] | undefined;
+  let comparisonLines: string[] | undefined;
+
+  if (showCompare && events.length > 0) {
+    // Aggregate dispositions by asset to run comparison per asset
+    const assetEvents = new Map<
+      string,
+      { totalAmount: number; totalProceeds: number }
+    >();
+    for (const evt of events) {
+      const existing = assetEvents.get(evt.asset) || {
+        totalAmount: 0,
+        totalProceeds: 0,
+      };
+      existing.totalAmount += evt.amount;
+      existing.totalProceeds += evt.proceedsUsd;
+      assetEvents.set(evt.asset, existing);
+    }
+
+    const acqRecords = lots.map((l) => ({
+      lotId: l.id,
+      asset: l.asset,
+      amount: l.amount,
+      acquiredAt: l.acquiredAt,
+    }));
+
+    comparisonResults = [];
+    comparisonLines = [];
+    for (const [asset, agg] of assetEvents) {
+      const pricePerUnit =
+        agg.totalAmount > 0 ? agg.totalProceeds / agg.totalAmount : 0;
+      const comparison = compareAllMethods(
+        lots,
+        { asset, amount: agg.totalAmount, pricePerUnit },
+        acqRecords,
+      );
+      comparisonResults.push({
+        asset,
+        ...formatComparisonJson(comparison, rate),
+      });
+      comparisonLines.push(
+        ...formatComparisonTable(comparison, currency, rate),
+      );
+    }
+  }
+
   // Output
   if (flags.json === "true") {
     const output: Record<string, unknown> = {
@@ -282,6 +338,9 @@ function calculate(files: string[], flags: Record<string, string>): void {
     };
     if (washSaleSummary) output.washSales = washSaleSummary;
     if (scheduleDReport) output.scheduleD = scheduleDReport;
+    if (showCompare) {
+      output.comparison = comparisonResults;
+    }
     console.log(JSON.stringify(output, null, 2));
   } else {
     const fmt = (n: number) => {
@@ -345,6 +404,12 @@ function calculate(files: string[], flags: Record<string, string>): void {
         );
       }
       console.log("=".repeat(39));
+    }
+
+    if (comparisonLines) {
+      for (const line of comparisonLines) {
+        console.log(line);
+      }
     }
   }
 

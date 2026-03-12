@@ -5,7 +5,12 @@
  * @license AGPL-3.0
  */
 
-import type { TaxLot, TaxableEvent, ParsedTransaction } from "@dtax/tax-engine";
+import type {
+  TaxLot,
+  TaxableEvent,
+  ParsedTransaction,
+  ComparisonResult,
+} from "@dtax/tax-engine";
 
 /** Parse CLI arguments into command, files, and flags */
 export function parseArgs(args: string[]): {
@@ -104,5 +109,99 @@ export function toTaxableEvent(
     date: eventDate,
     feeUsd: tx.feeValueUsd ?? 0,
     sourceId: "csv",
+  };
+}
+
+/**
+ * Format a ComparisonResult as a human-readable table for terminal output.
+ *
+ * @param comparison - The result from compareAllMethods
+ * @param currency - Currency code for formatting (default: "USD")
+ * @param rate - Exchange rate vs USD (default: 1)
+ * @returns Array of lines to print
+ */
+export function formatComparisonTable(
+  comparison: ComparisonResult,
+  currency: string = "USD",
+  rate: number = 1,
+): string[] {
+  const fmt = (n: number): string => {
+    const converted = n * rate;
+    try {
+      return converted.toLocaleString("en-US", {
+        style: "currency",
+        currency,
+      });
+    } catch {
+      return `${currency} ${converted.toFixed(2)}`;
+    }
+  };
+
+  const methods = [
+    { name: "FIFO", r: comparison.fifo },
+    { name: "LIFO", r: comparison.lifo },
+    { name: "HIFO", r: comparison.hifo },
+  ] as const;
+
+  const lines: string[] = [];
+  lines.push("");
+  lines.push("=".repeat(60));
+  lines.push("          Method Comparison (What-If Analysis)");
+  lines.push("=".repeat(60));
+  lines.push("");
+
+  // Header
+  lines.push(
+    `  ${"Method".padEnd(10)} ${"Gain/Loss".padEnd(16)} ${"Period".padEnd(12)} ${"Wash Risk"}`,
+  );
+  lines.push("  " + "-".repeat(54));
+
+  for (const m of methods) {
+    const rec = m.name === comparison.recommended ? " *" : "";
+    const gl = fmt(m.r.projectedGainLoss);
+    const period = m.r.holdingPeriod.replace("_", " ");
+    const wash = m.r.washSaleRisk ? "YES" : "no";
+    lines.push(
+      `  ${(m.name + rec).padEnd(10)} ${gl.padEnd(16)} ${period.padEnd(12)} ${wash}`,
+    );
+  }
+
+  lines.push("");
+  lines.push("-".repeat(60));
+  lines.push(`  Recommended:  ${comparison.recommended}`);
+  lines.push(`  Reason:       ${comparison.recommendedReason}`);
+  lines.push(`  Savings:      ${fmt(comparison.savings)}`);
+  lines.push("=".repeat(60));
+
+  return lines;
+}
+
+/**
+ * Format a ComparisonResult as a plain object for JSON output.
+ *
+ * @param comparison - The result from compareAllMethods
+ * @param rate - Exchange rate vs USD (default: 1)
+ * @returns Object suitable for JSON serialization
+ */
+export function formatComparisonJson(
+  comparison: ComparisonResult,
+  rate: number = 1,
+): Record<string, unknown> {
+  const convert = (r: ComparisonResult["fifo"]) => ({
+    projectedGainLoss: r.projectedGainLoss * rate,
+    holdingPeriod: r.holdingPeriod,
+    shortTermGainLoss: r.shortTermGainLoss * rate,
+    longTermGainLoss: r.longTermGainLoss * rate,
+    washSaleRisk: r.washSaleRisk,
+    washSaleDisallowed: r.washSaleDisallowed * rate,
+  });
+
+  return {
+    fifo: convert(comparison.fifo),
+    lifo: convert(comparison.lifo),
+    hifo: convert(comparison.hifo),
+    recommended: comparison.recommended,
+    recommendedReason: comparison.recommendedReason,
+    savings: comparison.savings * rate,
   };
 }
