@@ -48,7 +48,17 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const authHeaders: Record<string, string> = {};
   if (token) authHeaders["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  // Auto-inject clientId for CPA proxy access
+  let url = `${API_BASE}${path}`;
+  if (typeof window !== "undefined") {
+    const clientId = localStorage.getItem("dtax_active_client");
+    if (clientId) {
+      const separator = url.includes("?") ? "&" : "?";
+      url = `${url}${separator}clientId=${clientId}`;
+    }
+  }
+
+  const res = await fetch(url, {
     headers: {
       "Content-Type": "application/json",
       ...authHeaders,

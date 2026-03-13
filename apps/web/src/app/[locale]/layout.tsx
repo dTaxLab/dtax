@@ -6,8 +6,10 @@ import { routing } from "@/i18n/routing";
 import "../globals.css";
 import { LocaleNav } from "./nav";
 import { AuthProvider } from "@/lib/auth-context";
+import { ClientProvider } from "@/lib/client-context";
 import { ThemeProvider } from "@/lib/theme";
 import { AuthGuard } from "./auth-guard";
+import { ClientSwitcher } from "./client-switcher";
 import { JsonLd } from "./json-ld";
 
 type Props = {
@@ -83,12 +85,15 @@ export default async function LocaleLayout({ children, params }: Props) {
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
             <AuthProvider>
-              <AuthGuard>
-                <div className="container">
-                  <LocaleNav locale={locale} />
-                  {children}
-                </div>
-              </AuthGuard>
+              <ClientProvider>
+                <AuthGuard>
+                  <div className="container">
+                    <LocaleNav locale={locale} />
+                    <ClientSwitcher />
+                    {children}
+                  </div>
+                </AuthGuard>
+              </ClientProvider>
             </AuthProvider>
           </ThemeProvider>
         </NextIntlClientProvider>
