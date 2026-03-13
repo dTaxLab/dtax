@@ -320,6 +320,13 @@ model TaxReport {
   reportData Json?  @map("report_data") // Full line-item detail
   status     ReportStatus @default(DRAFT)
 
+  // Report file
+  fileType     String?    @map("file_type")    // "csv" | "pdf" | "txf"
+  fileName     String?    @map("file_name")    // User-visible filename
+  fileSize     Int?       @map("file_size")    // File size in bytes
+  filePath     String?    @map("file_path")    // Storage path
+  generatedAt  DateTime?  @map("generated_at") // Report generation time
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
