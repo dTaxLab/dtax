@@ -6,6 +6,7 @@ import { usePathname, Link } from "@/i18n/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getStoredToken } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme";
+import { NotificationBell } from "./notification-bell";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -224,6 +225,7 @@ export function LocaleNav({ locale }: { locale: string }) {
         ) : null}
 
         <span role="separator" aria-hidden="true" className="nav-divider" />
+        {user && <NotificationBell />}
         <button
           onClick={toggleTheme}
           className="nav-link nav-icon-btn"

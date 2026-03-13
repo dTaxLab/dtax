@@ -1214,6 +1214,41 @@ export async function deleteReportById(reportId: string) {
   });
 }
 
+// ── Notifications ──
+
+export async function getNotifications(limit = 20) {
+  return apiFetch<{
+    data: Array<{
+      id: string;
+      type: string;
+      title: string;
+      message: string;
+      data: Record<string, unknown> | null;
+      readAt: string | null;
+      createdAt: string;
+    }>;
+    unreadCount: number;
+  }>(`/api/v1/notifications?limit=${limit}`);
+}
+
+export async function markNotificationRead(id: string) {
+  return apiFetch<{ success: boolean }>(`/api/v1/notifications/${id}/read`, {
+    method: "POST",
+  });
+}
+
+export async function markAllNotificationsRead() {
+  return apiFetch<{ success: boolean }>("/api/v1/notifications/read-all", {
+    method: "POST",
+  });
+}
+
+export async function deleteNotificationById(id: string) {
+  return apiFetch<{ success: boolean }>(`/api/v1/notifications/${id}`, {
+    method: "DELETE",
+  });
+}
+
 export async function sendChatMessageStream(
   conversationId: string,
   content: string,
