@@ -1079,5 +1079,26 @@
     "deletionDate": "Scheduled for permanent deletion on",
     "cancelDeletion": "Cancel Account Deletion",
     "cancelSuccess": "Account deletion cancelled"
+  },
+  "clients": {
+    "title": "Client Management",
+    "invite": "Invite Client",
+    "email": "Client Email",
+    "name": "Client Name",
+    "notes": "Notes",
+    "status": "Status",
+    "pending": "Pending",
+    "active": "Active",
+    "revoked": "Revoked",
+    "inviteSent": "Invitation sent successfully",
+    "revokeConfirm": "Are you sure you want to revoke access for this client?",
+    "revokeSuccess": "Client access revoked",
+    "noClients": "No clients yet. Invite your first client to get started.",
+    "switchTo": "Switch to",
+    "viewingAs": "Viewing as",
+    "backToOwn": "Back to my account",
+    "transactions": "Transactions",
+    "taxSummary": "Tax Summary",
+    "batchReport": "Generate Batch Reports"
   }
 }

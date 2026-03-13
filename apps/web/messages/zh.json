@@ -1079,5 +1079,26 @@
     "deletionDate": "计划永久删除日期",
     "cancelDeletion": "取消删除账户",
     "cancelSuccess": "账户删除已取消"
+  },
+  "clients": {
+    "title": "客户管理",
+    "invite": "邀请客户",
+    "email": "客户邮箱",
+    "name": "客户名称",
+    "notes": "备注",
+    "status": "状态",
+    "pending": "待接受",
+    "active": "已激活",
+    "revoked": "已撤销",
+    "inviteSent": "邀请已成功发送",
+    "revokeConfirm": "确定要撤销该客户的访问权限吗？",
+    "revokeSuccess": "客户访问已撤销",
+    "noClients": "暂无客户。邀请您的第一个客户以开始使用。",
+    "switchTo": "切换到",
+    "viewingAs": "当前查看",
+    "backToOwn": "返回我的账户",
+    "transactions": "交易记录",
+    "taxSummary": "税务摘要",
+    "batchReport": "生成批量报告"
   }
 }

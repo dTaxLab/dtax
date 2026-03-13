@@ -1054,6 +1054,58 @@ export async function loginWith2FA(
   ).data;
 }
 
+// ── Client Management (CPA) ──
+
+export async function inviteClient(email: string, name?: string) {
+  return apiFetch<{ id: string; inviteToken: string; status: string }>(
+    "/clients/invite",
+    { method: "POST", body: JSON.stringify({ email, name }) },
+  );
+}
+
+export async function listClients() {
+  return apiFetch<
+    Array<{
+      id: string;
+      email: string;
+      name: string | null;
+      status: string;
+      userId: string | null;
+      createdAt: string;
+    }>
+  >("/clients");
+}
+
+export async function getClient(clientId: string) {
+  return apiFetch<{
+    id: string;
+    email: string;
+    name: string | null;
+    status: string;
+    notes: string | null;
+  }>(`/clients/${clientId}`);
+}
+
+export async function revokeClient(clientId: string) {
+  return apiFetch<{ success: boolean }>(`/clients/${clientId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function updateClientNotes(clientId: string, notes: string) {
+  return apiFetch<{ success: boolean }>(`/clients/${clientId}`, {
+    method: "PUT",
+    body: JSON.stringify({ notes }),
+  });
+}
+
+export async function acceptClientInvite(inviteToken: string) {
+  return apiFetch<{ status: string }>("/clients/accept", {
+    method: "POST",
+    body: JSON.stringify({ inviteToken }),
+  });
+}
+
 export async function sendChatMessageStream(
   conversationId: string,
   content: string,
