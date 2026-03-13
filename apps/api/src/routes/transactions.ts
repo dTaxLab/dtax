@@ -13,6 +13,7 @@ import { prisma } from "../lib/prisma";
 import { checkTransactionQuota } from "../plugins/plan-guard";
 import { resolveUserId } from "../plugins/resolve-user.js";
 import { logAudit } from "../lib/audit.js";
+import { apiCache } from "../lib/cache.js";
 
 // ─── Validation Schemas ─────────────────────────
 
@@ -278,6 +279,8 @@ export async function transactionRoutes(app: FastifyInstance) {
         ipAddress: request.ip,
         userAgent: request.headers["user-agent"],
       }).catch(() => {});
+
+      apiCache.invalidateByPrefix(`user:${request.userId}:`);
 
       return reply.status(201).send({
         data: transaction,
@@ -759,6 +762,8 @@ export async function transactionRoutes(app: FastifyInstance) {
         userAgent: request.headers["user-agent"],
       }).catch(() => {});
 
+      apiCache.invalidateByPrefix(`user:${request.userId}:`);
+
       return { data: updated };
     },
   );
@@ -823,6 +828,8 @@ export async function transactionRoutes(app: FastifyInstance) {
         userAgent: request.headers["user-agent"],
       }).catch(() => {});
 
+      apiCache.invalidateByPrefix(`user:${request.userId}:`);
+
       return { data: { deleted: deleted.count } };
     },
   );
@@ -883,6 +890,8 @@ export async function transactionRoutes(app: FastifyInstance) {
         ipAddress: request.ip,
         userAgent: request.headers["user-agent"],
       }).catch(() => {});
+
+      apiCache.invalidateByPrefix(`user:${request.userId}:`);
 
       return reply.status(204).send();
     },

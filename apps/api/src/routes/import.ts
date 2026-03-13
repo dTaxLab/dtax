@@ -18,6 +18,7 @@ import { checkTransactionQuota } from "../plugins/plan-guard";
 import { classifyBatch } from "../lib/ai-classifier";
 import { logAudit } from "../lib/audit.js";
 import { createNotification } from "../lib/notification.js";
+import { apiCache } from "../lib/cache.js";
 
 /** Generate a deterministic fingerprint for a parsed transaction */
 function txFingerprint(tx: ParsedTransaction): string {
@@ -369,6 +370,8 @@ export async function importRoutes(app: FastifyInstance) {
         message: `Successfully imported ${created.count} transactions`,
         data: { transactionCount: created.count },
       }).catch(() => {});
+
+      apiCache.invalidateByPrefix(`user:${request.userId}:`);
 
       return reply.status(201).send({
         data: {

@@ -8,6 +8,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { resolveUserId } from "../plugins/resolve-user.js";
 import { analyzeHoldings } from "@dtax/tax-engine";
+import { apiCache } from "../lib/cache.js";
 import type { TaxLot, PriceMap } from "@dtax/tax-engine";
 
 export async function portfolioRoutes(app: FastifyInstance) {
@@ -104,6 +105,10 @@ export async function portfolioRoutes(app: FastifyInstance) {
         }
       }
 
+      const cacheKey = `user:${userId}:portfolio:holdings`;
+      const cached = apiCache.get(cacheKey);
+      if (cached && !query.prices) return { data: cached };
+
       const acquisitions = await prisma.transaction.findMany({
         where: {
           userId,
@@ -187,6 +192,10 @@ export async function portfolioRoutes(app: FastifyInstance) {
       }
 
       const analysis = analyzeHoldings(remainingLots, currentPrices);
+
+      if (!query.prices) {
+        apiCache.set(cacheKey, analysis);
+      }
 
       return { data: analysis };
     },

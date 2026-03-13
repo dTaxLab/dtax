@@ -16,6 +16,7 @@ import { prisma } from "../lib/prisma";
 import { resolveUserId } from "../plugins/resolve-user.js";
 import { logAudit } from "../lib/audit.js";
 import { createNotification } from "../lib/notification.js";
+import { apiCache } from "../lib/cache.js";
 import {
   saveReport,
   getReport,
@@ -216,6 +217,8 @@ export async function taxRoutes(app: FastifyInstance) {
           status: "COMPLETE",
         },
       });
+
+      apiCache.invalidateByPrefix(`user:${request.userId}:`);
 
       logAudit({
         userId: request.userId,
@@ -669,6 +672,10 @@ export async function taxRoutes(app: FastifyInstance) {
         })
         .parse(request.query);
 
+      const cacheKey = `user:${userId}:tax:summary:${query.year}:${query.method}`;
+      const cached = apiCache.get(cacheKey);
+      if (cached) return { data: cached };
+
       const report = await prisma.taxReport.findUnique({
         where: {
           userId_taxYear_method: {
@@ -688,25 +695,27 @@ export async function taxRoutes(app: FastifyInstance) {
         });
       }
 
-      return {
-        data: {
-          taxYear: report.taxYear,
-          method: report.method,
-          shortTermGains: Number(report.shortTermGains),
-          shortTermLosses: Number(report.shortTermLosses),
-          longTermGains: Number(report.longTermGains),
-          longTermLosses: Number(report.longTermLosses),
-          netGainLoss:
-            Number(report.shortTermGains) -
-            Number(report.shortTermLosses) +
-            Number(report.longTermGains) -
-            Number(report.longTermLosses),
-          totalIncome: Number(report.totalIncome) || 0,
-          totalTransactions: report.totalTransactions,
-          status: report.status,
-          updatedAt: report.updatedAt.toISOString(),
-        },
+      const result = {
+        taxYear: report.taxYear,
+        method: report.method,
+        shortTermGains: Number(report.shortTermGains),
+        shortTermLosses: Number(report.shortTermLosses),
+        longTermGains: Number(report.longTermGains),
+        longTermLosses: Number(report.longTermLosses),
+        netGainLoss:
+          Number(report.shortTermGains) -
+          Number(report.shortTermLosses) +
+          Number(report.longTermGains) -
+          Number(report.longTermLosses),
+        totalIncome: Number(report.totalIncome) || 0,
+        totalTransactions: report.totalTransactions,
+        status: report.status,
+        updatedAt: report.updatedAt.toISOString(),
       };
+
+      apiCache.set(cacheKey, result);
+
+      return { data: result };
     },
   );
 
@@ -1370,6 +1379,8 @@ export async function taxRoutes(app: FastifyInstance) {
       }
 
       await prisma.taxReport.delete({ where: { id } });
+
+      apiCache.invalidateByPrefix(`user:${userId}:`);
 
       return reply.send({ data: { success: true } });
     },
