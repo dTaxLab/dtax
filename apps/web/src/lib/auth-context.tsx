@@ -14,6 +14,7 @@ import {
   useRef,
   ReactNode,
 } from "react";
+import { trackEvent, identifyUser, resetAnalytics } from "@/lib/analytics";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const TOKEN_KEY = "dtax_token";
@@ -157,6 +158,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(data.data.token);
     setUser(data.data.user);
     scheduleRefresh(data.data.token);
+    trackEvent("login");
+    identifyUser(data.data.user.id);
   }
 
   async function verifyTwoFactor(totpToken?: string, recoveryCode?: string) {
@@ -182,6 +185,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRequiresTwoFactor(false);
     setTempToken(null);
     scheduleRefresh(data.data.token);
+    trackEvent("login", { method: "2fa" });
+    identifyUser(data.data.user.id);
   }
 
   async function register(email: string, password: string, name?: string) {
@@ -203,6 +208,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(data.data.token);
     setUser(data.data.user);
     scheduleRefresh(data.data.token);
+    trackEvent("signup", { method: "email" });
+    identifyUser(data.data.user.id);
   }
 
   function logout() {
@@ -212,6 +219,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setRequiresTwoFactor(false);
     setTempToken(null);
+    resetAnalytics();
   }
 
   return (

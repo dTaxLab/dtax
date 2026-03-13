@@ -29,6 +29,7 @@ import {
 } from "@/lib/api";
 import type { DataSource } from "@/lib/api";
 import { getStoredToken } from "@/lib/auth-context";
+import { trackEvent } from "@/lib/analytics";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -301,6 +302,7 @@ export default function SettingsPage() {
   }
 
   async function handleCheckout(plan: "PRO" | "CPA") {
+    trackEvent("upgrade_click", { targetPlan: plan });
     setUpgrading(plan);
     setBillingError(null);
     try {

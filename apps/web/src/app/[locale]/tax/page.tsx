@@ -15,6 +15,7 @@ import {
 } from "@/lib/api";
 import type { TaxSummary, Form8949Report, ScheduleDReport } from "@/lib/api";
 import { getPreferences } from "@/lib/preferences";
+import { trackEvent } from "@/lib/analytics";
 import { useFiatFormatter } from "@/lib/use-fiat";
 import SpecificIdView from "./specific-id-view";
 import { RiskScan } from "./risk-scan";
@@ -116,6 +117,7 @@ export default function TaxPage() {
       setForm8949(f8949Res.data);
       setWashSaleSummary(f8949Res.data.washSaleSummary || null);
       setScheduleD(schDRes.data);
+      trackEvent("tax_calculate", { year, method });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
     }
@@ -778,6 +780,9 @@ export default function TaxPage() {
                     download
                     className="btn btn-primary"
                     style={{ fontSize: "13px", textDecoration: "none" }}
+                    onClick={() =>
+                      trackEvent("report_download", { type: "pdf" })
+                    }
                   >
                     {t("form8949.downloadPdf")}
                   </a>
@@ -786,6 +791,9 @@ export default function TaxPage() {
                     download
                     className="btn btn-secondary"
                     style={{ fontSize: "13px", textDecoration: "none" }}
+                    onClick={() =>
+                      trackEvent("report_download", { type: "txf" })
+                    }
                   >
                     {t("form8949.downloadTxf")}
                   </a>
@@ -794,6 +802,9 @@ export default function TaxPage() {
                     download
                     className="btn btn-secondary"
                     style={{ fontSize: "13px", textDecoration: "none" }}
+                    onClick={() =>
+                      trackEvent("report_download", { type: "csv" })
+                    }
                   >
                     {t("form8949.downloadCsv")}
                   </a>

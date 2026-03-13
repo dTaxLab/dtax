@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import { trackEvent } from "@/lib/analytics";
 
 const EXCHANGES = [
   "Coinbase",
@@ -190,7 +191,10 @@ export default function OnboardingPage() {
           <div style={{ marginTop: "24px", textAlign: "right" }}>
             <button
               className="btn btn-primary"
-              onClick={() => setStep(2)}
+              onClick={() => {
+                trackEvent("onboarding_step", { step: 2 });
+                setStep(2);
+              }}
               disabled={!role}
             >
               {t("next")}
@@ -279,7 +283,13 @@ export default function OnboardingPage() {
             <button className="btn btn-secondary" onClick={() => setStep(1)}>
               {t("back")}
             </button>
-            <button className="btn btn-primary" onClick={() => setStep(3)}>
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                trackEvent("onboarding_step", { step: 3 });
+                setStep(3);
+              }}
+            >
               {t("next")}
             </button>
           </div>

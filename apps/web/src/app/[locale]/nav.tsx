@@ -6,6 +6,7 @@ import { usePathname, Link } from "@/i18n/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getStoredToken } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme";
+import { initAnalytics, trackEvent } from "@/lib/analytics";
 import { NotificationBell } from "./notification-bell";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -42,6 +43,16 @@ export function LocaleNav({ locale }: { locale: string }) {
   const isOnboarding = pathname === "/onboarding";
   const isInMore =
     MORE_LINKS.some((l) => pathname === l.href) || pathname === "/clients";
+
+  // Initialize analytics
+  useEffect(() => {
+    initAnalytics();
+  }, []);
+
+  // Track page views
+  useEffect(() => {
+    trackEvent("$pageview", { path: pathname });
+  }, [pathname]);
 
   // Fetch billing status to detect CPA plan
   useEffect(() => {

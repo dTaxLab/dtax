@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { importCsv, ApiError } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 import type { ImportResult } from "@/lib/api";
 import { inputStyle, labelStyle } from "./shared";
 
@@ -42,6 +43,7 @@ export function ImportPanel({ onImported, onQuotaExceeded }: ImportPanelProps) {
         isEtherscan && chain !== "ETH" ? chain : undefined,
       );
       setImportResult(res.data);
+      trackEvent("csv_import", { transactionCount: res.data.imported });
       onImported();
     } catch (e) {
       if (e instanceof ApiError && e.code === "QUOTA_EXCEEDED") {
