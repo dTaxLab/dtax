@@ -10,7 +10,14 @@ import {
   SUPPORTED_FIATS,
 } from "@/lib/preferences";
 import type { FiatCurrency } from "@/lib/preferences";
-import { getDataSources, renameDataSource, deleteDataSource } from "@/lib/api";
+import {
+  getDataSources,
+  renameDataSource,
+  deleteDataSource,
+  exportAccountData,
+  requestAccountDeletion,
+  cancelAccountDeletion,
+} from "@/lib/api";
 import type { DataSource } from "@/lib/api";
 import { getStoredToken } from "@/lib/auth-context";
 
@@ -37,6 +44,7 @@ export default function SettingsPage() {
   const t = useTranslations("settings");
   const tTax = useTranslations("tax");
   const tDs = useTranslations("dataSources");
+  const tAcc = useTranslations("account");
   const { user, token } = useAuth();
   const searchParams = useSearchParams();
 
@@ -52,6 +60,18 @@ export default function SettingsPage() {
   const [billingLoading, setBillingLoading] = useState(true);
   const [upgrading, setUpgrading] = useState<string | null>(null);
   const [billingError, setBillingError] = useState<string | null>(null);
+
+  // GDPR / Account state
+  const [exporting, setExporting] = useState(false);
+  const [exportDone, setExportDone] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deletionScheduledAt, setDeletionScheduledAt] = useState<string | null>(
+    null,
+  );
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const [cancellingDeletion, setCancellingDeletion] = useState(false);
 
   const billingSuccess = searchParams.get("billing") === "success";
 
@@ -169,6 +189,60 @@ export default function SettingsPage() {
       loadSources();
     } catch {
       /* ignore */
+    }
+  }
+
+  async function handleExportData() {
+    setExporting(true);
+    setAccountError(null);
+    try {
+      const blob = await exportAccountData();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `dtax-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setExportDone(true);
+      setTimeout(() => setExportDone(false), 3000);
+    } catch (err) {
+      setAccountError(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (!deletePassword) return;
+    setDeleting(true);
+    setAccountError(null);
+    try {
+      const res = await requestAccountDeletion(
+        deletePassword,
+        deleteReason || undefined,
+      );
+      setDeletionScheduledAt(res.deletionScheduledAt);
+      setDeletePassword("");
+      setDeleteReason("");
+    } catch (err) {
+      setAccountError(
+        err instanceof Error ? err.message : "Deletion request failed",
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  async function handleCancelDeletion() {
+    setCancellingDeletion(true);
+    setAccountError(null);
+    try {
+      await cancelAccountDeletion();
+      setDeletionScheduledAt(null);
+    } catch (err) {
+      setAccountError(err instanceof Error ? err.message : "Cancel failed");
+    } finally {
+      setCancellingDeletion(false);
     }
   }
 
@@ -629,6 +703,183 @@ export default function SettingsPage() {
                 ))}
               </div>
             )}
+          </div>
+          {/* Data & Privacy (GDPR) */}
+          <div className="card" style={{ padding: "24px" }}>
+            <h2
+              style={{ fontSize: "18px", fontWeight: 600, marginBottom: "4px" }}
+            >
+              {tAcc("dataPrivacy")}
+            </h2>
+
+            {/* Export Data */}
+            <div style={{ marginTop: "16px", marginBottom: "24px" }}>
+              <p
+                style={{
+                  fontSize: "13px",
+                  color: "var(--text-muted)",
+                  marginBottom: "12px",
+                }}
+              >
+                {tAcc("exportDescription")}
+              </p>
+              <button
+                className="btn btn-secondary"
+                onClick={handleExportData}
+                disabled={exporting}
+                style={{ width: "100%" }}
+              >
+                {exporting ? tAcc("exportProcessing") : tAcc("exportData")}
+              </button>
+              {exportDone && (
+                <div
+                  style={{
+                    marginTop: "8px",
+                    padding: "8px",
+                    textAlign: "center",
+                    background: "rgba(34, 197, 94, 0.1)",
+                    border: "1px solid rgba(34, 197, 94, 0.3)",
+                    borderRadius: "var(--radius-sm)",
+                    color: "#22c55e",
+                    fontSize: "13px",
+                  }}
+                >
+                  {tAcc("exportSuccess")}
+                </div>
+              )}
+            </div>
+
+            {/* Delete Account */}
+            <div
+              style={{
+                borderTop: "1px solid var(--border)",
+                paddingTop: "20px",
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: "15px",
+                  fontWeight: 600,
+                  marginBottom: "12px",
+                  color: "var(--red)",
+                }}
+              >
+                {tAcc("deleteAccount")}
+              </h3>
+
+              {deletionScheduledAt ? (
+                <div>
+                  <div
+                    style={{
+                      padding: "12px 16px",
+                      background: "rgba(239, 68, 68, 0.08)",
+                      border: "1px solid rgba(239, 68, 68, 0.25)",
+                      borderRadius: "var(--radius-sm)",
+                      marginBottom: "12px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: 500,
+                        color: "var(--red)",
+                        marginBottom: "4px",
+                      }}
+                    >
+                      {tAcc("deletionPending")}
+                    </div>
+                    <div
+                      style={{ fontSize: "13px", color: "var(--text-muted)" }}
+                    >
+                      {tAcc("deletionDate")}{" "}
+                      {new Date(deletionScheduledAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={handleCancelDeletion}
+                    disabled={cancellingDeletion}
+                    style={{ width: "100%" }}
+                  >
+                    {tAcc("cancelDeletion")}
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div
+                    style={{
+                      padding: "12px 16px",
+                      background: "rgba(239, 68, 68, 0.08)",
+                      border: "1px solid rgba(239, 68, 68, 0.25)",
+                      borderRadius: "var(--radius-sm)",
+                      marginBottom: "16px",
+                      fontSize: "13px",
+                      color: "var(--text-muted)",
+                      lineHeight: "1.5",
+                    }}
+                  >
+                    {tAcc("deleteWarning")}
+                  </div>
+
+                  <div style={{ marginBottom: "12px" }}>
+                    <label style={labelStyle}>
+                      {tAcc("deleteConfirmPassword")}
+                    </label>
+                    <input
+                      type="password"
+                      style={inputStyle}
+                      value={deletePassword}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: "16px" }}>
+                    <label style={labelStyle}>{tAcc("deleteReason")}</label>
+                    <textarea
+                      style={{
+                        ...inputStyle,
+                        minHeight: "60px",
+                        resize: "vertical" as const,
+                      }}
+                      value={deleteReason}
+                      onChange={(e) => setDeleteReason(e.target.value)}
+                      placeholder={tAcc("deleteReasonPlaceholder")}
+                    />
+                  </div>
+
+                  <button
+                    className="btn"
+                    onClick={handleDeleteAccount}
+                    disabled={deleting || !deletePassword}
+                    style={{
+                      width: "100%",
+                      background: "var(--red)",
+                      color: "#fff",
+                      border: "none",
+                      opacity: deleting || !deletePassword ? 0.5 : 1,
+                    }}
+                  >
+                    {deleting ? "..." : tAcc("deleteButton")}
+                  </button>
+                </div>
+              )}
+
+              {accountError && (
+                <div
+                  style={{
+                    marginTop: "12px",
+                    padding: "10px 14px",
+                    background: "rgba(239, 68, 68, 0.1)",
+                    border: "1px solid rgba(239, 68, 68, 0.3)",
+                    borderRadius: "var(--radius-sm)",
+                    color: "var(--red)",
+                    fontSize: "13px",
+                  }}
+                >
+                  {accountError}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         {/* end right column */}

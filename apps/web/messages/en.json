@@ -1037,5 +1037,23 @@
     "recommendedReason": "Why this method?",
     "washSale": "Wash Sale Risk",
     "noSavings": "All methods produce identical results"
+  },
+  "account": {
+    "dataPrivacy": "Data & Privacy",
+    "exportData": "Export My Data",
+    "exportDescription": "Download all your data in JSON format (GDPR Article 20)",
+    "exportProcessing": "Preparing your data...",
+    "exportSuccess": "Data exported successfully",
+    "deleteAccount": "Delete Account",
+    "deleteWarning": "This will permanently delete your account and all data after a 30-day grace period. This action cannot be undone after the grace period.",
+    "deleteConfirmPassword": "Enter your password to confirm",
+    "deleteReason": "Reason for leaving (optional)",
+    "deleteReasonPlaceholder": "Help us improve...",
+    "deleteButton": "Delete My Account",
+    "deleteScheduled": "Account deletion scheduled",
+    "deletionPending": "Account deletion pending",
+    "deletionDate": "Scheduled for permanent deletion on",
+    "cancelDeletion": "Cancel Account Deletion",
+    "cancelSuccess": "Account deletion cancelled"
   }
 }

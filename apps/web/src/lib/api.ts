@@ -955,6 +955,46 @@ export interface StreamCallbacks {
  * Send a chat message via SSE streaming.
  * Parses Server-Sent Events from the response stream and invokes callbacks.
  */
+// ── Account (GDPR) ──
+
+export async function exportAccountData(): Promise<Blob> {
+  const token = getStoredToken();
+  const res = await fetch(`${API_BASE}/api/v1/account/export`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    const error = await res
+      .json()
+      .catch(() => ({ error: { message: res.statusText } }));
+    throwApiError(error);
+  }
+  const json = await res.json();
+  const blob = new Blob([JSON.stringify(json.data, null, 2)], {
+    type: "application/json",
+  });
+  return blob;
+}
+
+export async function requestAccountDeletion(
+  password: string,
+  reason?: string,
+) {
+  return apiFetch<{ deletionScheduledAt: string }>("/api/v1/account/delete", {
+    method: "POST",
+    body: JSON.stringify({ password, reason }),
+  });
+}
+
+export async function cancelAccountDeletion() {
+  return apiFetch<{ cancelled: boolean }>("/api/v1/account/cancel-deletion", {
+    method: "POST",
+  });
+}
+
 export async function sendChatMessageStream(
   conversationId: string,
   content: string,
