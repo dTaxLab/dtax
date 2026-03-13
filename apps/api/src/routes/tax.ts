@@ -8,6 +8,7 @@
  */
 
 import { FastifyInstance } from "fastify";
+import type { FastifyZodOpenApiTypeProvider } from "fastify-zod-openapi";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import {
@@ -34,32 +35,16 @@ import type {
   DtaxDisposition,
   AcquisitionRecord,
 } from "@dtax/tax-engine";
+import { errorResponseSchema } from "../schemas/common";
+import { costBasisMethodEnum, form8949FormatEnum } from "../schemas/enums";
 
-const calculateSchema = z.object({
-  taxYear: z.number().int().min(2009).max(2030),
-  method: z.enum(["FIFO", "LIFO", "HIFO", "SPECIFIC_ID"]).default("FIFO"),
-  strictSilo: z.boolean().default(false),
-});
-
-// ─── OpenAPI/Swagger Schemas (documentation only) ────────────
-// These schemas document the API for Swagger UI. Actual validation
-// is performed by Zod in each handler. Response schemas use
-// additionalProperties to avoid Fastify stripping extra fields.
-
-const errorSchema = {
-  type: "object" as const,
-  additionalProperties: true,
-  properties: {
-    error: {
-      type: "object" as const,
-      additionalProperties: true,
-      properties: {
-        message: { type: "string" as const },
-        code: { type: "string" as const },
-      },
-    },
-  },
-};
+const calculateSchema = z
+  .object({
+    taxYear: z.number().int().min(2009).max(2030),
+    method: costBasisMethodEnum.default("FIFO"),
+    strictSilo: z.boolean().default(false),
+  })
+  .openapi({ ref: "TaxCalculateInput" });
 
 /** Build wash sale adjustments map from lots + results */
 function buildWashSaleAdjustments(
@@ -85,64 +70,60 @@ function buildWashSaleAdjustments(
   };
 }
 
+const taxReportSchema = z
+  .object({
+    id: z.string().uuid(),
+    taxYear: z.number().int(),
+    method: z.string(),
+    shortTermGains: z.number(),
+    shortTermLosses: z.number(),
+    longTermGains: z.number(),
+    longTermLosses: z.number(),
+    netGainLoss: z.number(),
+    totalTransactions: z.number().int(),
+    income: z.any(),
+  })
+  .openapi({ ref: "TaxReport" });
+
+const taxSummarySchema = z
+  .object({
+    taxYear: z.number().int(),
+    method: z.string(),
+    shortTermGains: z.number(),
+    shortTermLosses: z.number(),
+    longTermGains: z.number(),
+    longTermLosses: z.number(),
+    netGainLoss: z.number(),
+    totalIncome: z.number(),
+    totalTransactions: z.number().int(),
+    status: z.string(),
+    updatedAt: z.date(),
+  })
+  .openapi({ ref: "TaxSummary" });
+
 export async function taxRoutes(app: FastifyInstance) {
+  const r = app.withTypeProvider<FastifyZodOpenApiTypeProvider>();
   // POST /tax/calculate — Run tax calculation
-  app.post(
+  r.post(
     "/tax/calculate",
     {
       schema: {
         tags: ["tax"],
-        summary: "Run tax calculation for a given year and method",
-        body: {
-          type: "object" as const,
-          additionalProperties: true,
-
-          properties: {
-            taxYear: { type: "integer" as const },
-            method: {
-              type: "string" as const,
-              default: "FIFO",
-            },
-            strictSilo: { type: "boolean" as const, default: false },
-          },
-        },
+        operationId: "calculateTax",
+        description:
+          "Run tax calculation for a given year and cost basis method",
+        body: calculateSchema,
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  report: {
-                    type: "object" as const,
-                    additionalProperties: true,
-                    properties: {
-                      id: { type: "string" as const },
-                      taxYear: { type: "integer" as const },
-                      method: { type: "string" as const },
-                      shortTermGains: { type: "number" as const },
-                      shortTermLosses: { type: "number" as const },
-                      longTermGains: { type: "number" as const },
-                      longTermLosses: { type: "number" as const },
-                      netGainLoss: { type: "number" as const },
-                      totalTransactions: { type: "integer" as const },
-                      income: {
-                        type: "object" as const,
-                        additionalProperties: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
+          200: z.object({
+            data: z.object({
+              report: taxReportSchema,
+            }),
+          }),
         },
       },
     },
     async (request, reply) => {
-      const body = calculateSchema.parse(request.body);
+      const body = request.body;
       const { lots, events } = await fetchTaxData({
         userId: request.userId,
         taxYear: body.taxYear,
@@ -229,74 +210,33 @@ export async function taxRoutes(app: FastifyInstance) {
   );
 
   // GET /tax/form8949 — Generate Form 8949 report (JSON or CSV)
-  app.get(
+  r.get(
     "/tax/form8949",
     {
       schema: {
         tags: ["tax"],
-        summary: "Generate Form 8949 report (JSON, CSV, PDF, or TXF)",
-        querystring: {
-          type: "object" as const,
-          additionalProperties: true,
-
-          properties: {
-            year: { type: "integer" as const },
-            method: {
-              type: "string" as const,
-              default: "FIFO",
-            },
-            format: {
-              type: "string" as const,
-              enum: ["json", "csv", "pdf", "txf"],
-              default: "json",
-            },
-            strictSilo: { type: "boolean" as const, default: false },
-            includeWashSales: { type: "boolean" as const, default: false },
-          },
-        },
+        operationId: "getForm8949",
+        description:
+          "Generate Form 8949 report in JSON, CSV, PDF, or TXF format",
+        querystring: z.object({
+          year: z.coerce.number().int().min(2009).max(2030),
+          method: costBasisMethodEnum.default("FIFO"),
+          format: form8949FormatEnum.default("json"),
+          strictSilo: z.coerce.boolean().default(false),
+          includeWashSales: z.coerce.boolean().default(false),
+        }),
         response: {
-          200: {
-            description:
-              "JSON response (csv/pdf/txf return file downloads instead)",
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  entries: {
-                    type: "array" as const,
-                    items: {
-                      type: "object" as const,
-                      additionalProperties: true,
-                    },
-                  },
-                  taxYear: { type: "integer" as const },
-                  washSaleSummary: {
-                    type: "object" as const,
-                    nullable: true,
-                    additionalProperties: true,
-                  },
-                },
-              },
-            },
-          },
+          200: z
+            .any()
+            .openapi({
+              description:
+                "Form 8949 report (format depends on query parameter)",
+            }),
         },
       },
     },
     async (request, reply) => {
-      const query = z
-        .object({
-          year: z.coerce.number().int().min(2009).max(2030),
-          method: z
-            .enum(["FIFO", "LIFO", "HIFO", "SPECIFIC_ID"])
-            .default("FIFO"),
-          format: z.enum(["json", "csv", "pdf", "txf"]).default("json"),
-          strictSilo: z.coerce.boolean().default(false),
-          includeWashSales: z.coerce.boolean().default(false),
-        })
-        .parse(request.query);
+      const query = request.query;
 
       const { lots, events } = await fetchTaxData({
         userId: request.userId,
@@ -367,68 +307,29 @@ export async function taxRoutes(app: FastifyInstance) {
   );
 
   // GET /tax/schedule-d — Generate Schedule D summary from Form 8949
-  app.get(
+  r.get(
     "/tax/schedule-d",
     {
       schema: {
         tags: ["tax"],
-        summary: "Generate Schedule D summary from Form 8949",
-        querystring: {
-          type: "object" as const,
-          additionalProperties: true,
-
-          properties: {
-            year: { type: "integer" as const },
-            method: {
-              type: "string" as const,
-              default: "FIFO",
-            },
-            strictSilo: { type: "boolean" as const, default: false },
-            includeWashSales: { type: "boolean" as const, default: false },
-            lossLimit: { type: "number" as const, default: 3000 },
-          },
-        },
+        operationId: "getScheduleD",
+        description: "Generate Schedule D summary from Form 8949 data",
+        querystring: z.object({
+          year: z.coerce.number().int().min(2009).max(2030),
+          method: costBasisMethodEnum.default("FIFO"),
+          strictSilo: z.coerce.boolean().default(false),
+          includeWashSales: z.coerce.boolean().default(false),
+          lossLimit: z.coerce.number().default(3000),
+        }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  partI: {
-                    type: "object" as const,
-                    additionalProperties: true,
-                  },
-                  partII: {
-                    type: "object" as const,
-                    additionalProperties: true,
-                  },
-                  netShortTerm: { type: "number" as const },
-                  netLongTerm: { type: "number" as const },
-                  totalNetGainLoss: { type: "number" as const },
-                  allowableLoss: { type: "number" as const },
-                  carryoverLoss: { type: "number" as const },
-                },
-              },
-            },
-          },
+          200: z.object({
+            data: z.any().openapi({ description: "Schedule D summary" }),
+          }),
         },
       },
     },
     async (request, _reply) => {
-      const query = z
-        .object({
-          year: z.coerce.number().int().min(2009).max(2030),
-          method: z
-            .enum(["FIFO", "LIFO", "HIFO", "SPECIFIC_ID"])
-            .default("FIFO"),
-          strictSilo: z.coerce.boolean().default(false),
-          includeWashSales: z.coerce.boolean().default(false),
-          lossLimit: z.coerce.number().default(3000),
-        })
-        .parse(request.query);
+      const query = request.query;
 
       const { lots, events } = await fetchTaxData({
         userId: request.userId,
@@ -469,61 +370,27 @@ export async function taxRoutes(app: FastifyInstance) {
   );
 
   // GET /tax/summary — Get tax summary for a year
-  app.get(
+  r.get(
     "/tax/summary",
     {
       schema: {
         tags: ["tax"],
-        summary: "Get saved tax summary for a year",
-        querystring: {
-          type: "object" as const,
-          additionalProperties: true,
-
-          properties: {
-            year: { type: "integer" as const },
-            method: {
-              type: "string" as const,
-              default: "FIFO",
-            },
-          },
-        },
+        operationId: "getTaxSummary",
+        description: "Get saved tax calculation summary for a year and method",
+        querystring: z.object({
+          year: z.coerce.number().int().min(2009).max(2030),
+          method: costBasisMethodEnum.default("FIFO"),
+        }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  taxYear: { type: "integer" as const },
-                  method: { type: "string" as const },
-                  shortTermGains: { type: "number" as const },
-                  shortTermLosses: { type: "number" as const },
-                  longTermGains: { type: "number" as const },
-                  longTermLosses: { type: "number" as const },
-                  netGainLoss: { type: "number" as const },
-                  totalIncome: { type: "number" as const },
-                  totalTransactions: { type: "integer" as const },
-                  status: { type: "string" as const },
-                  updatedAt: { type: "string" as const },
-                },
-              },
-            },
-          },
-          404: errorSchema,
+          200: z.object({
+            data: taxSummarySchema,
+          }),
+          404: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const query = z
-        .object({
-          year: z.coerce.number().int().min(2009).max(2030),
-          method: z
-            .enum(["FIFO", "LIFO", "HIFO", "SPECIFIC_ID"])
-            .default("FIFO"),
-        })
-        .parse(request.query);
+      const query = request.query;
 
       const report = await prisma.taxReport.findUnique({
         where: {
@@ -567,83 +434,30 @@ export async function taxRoutes(app: FastifyInstance) {
   );
 
   // POST /tax/reconcile — Upload 1099-DA CSV and reconcile
-  app.post(
+  r.post(
     "/tax/reconcile",
     {
       schema: {
         tags: ["tax"],
-        summary: "Upload 1099-DA CSV and reconcile against DTax calculations",
-        body: {
-          type: "object" as const,
-          additionalProperties: true,
-
-          properties: {
-            csvContent: { type: "string" as const },
-            brokerName: { type: "string" as const, default: "Unknown" },
-            taxYear: { type: "integer" as const },
-            method: {
-              type: "string" as const,
-              default: "FIFO",
-            },
-          },
-        },
+        operationId: "reconcileTax",
+        description:
+          "Upload 1099-DA CSV and reconcile against DTax calculations",
+        body: z.object({
+          csvContent: z.string().min(1),
+          brokerName: z.string().default("Unknown"),
+          taxYear: z.number().int().min(2009).max(2030),
+          method: costBasisMethodEnum.default("FIFO"),
+        }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  matched: {
-                    type: "array" as const,
-                    items: {
-                      type: "object" as const,
-                      additionalProperties: true,
-                    },
-                  },
-                  unmatched1099: {
-                    type: "array" as const,
-                    items: {
-                      type: "object" as const,
-                      additionalProperties: true,
-                    },
-                  },
-                  unmatchedDtax: {
-                    type: "array" as const,
-                    items: {
-                      type: "object" as const,
-                      additionalProperties: true,
-                    },
-                  },
-                  summary: {
-                    type: "object" as const,
-                    additionalProperties: true,
-                  },
-                  parseErrors: {
-                    type: "array" as const,
-                    items: { type: "string" as const },
-                  },
-                },
-              },
-            },
-          },
-          400: errorSchema,
+          200: z.object({
+            data: z.any().openapi({ description: "Reconciliation report" }),
+          }),
+          400: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const body = z
-        .object({
-          csvContent: z.string().min(1),
-          brokerName: z.string().default("Unknown"),
-          taxYear: z.number().int().min(2009).max(2030),
-          method: z
-            .enum(["FIFO", "LIFO", "HIFO", "SPECIFIC_ID"])
-            .default("FIFO"),
-        })
-        .parse(request.body);
+      const body = request.body;
 
       const parsed = parse1099DA(
         body.csvContent,
@@ -654,7 +468,7 @@ export async function taxRoutes(app: FastifyInstance) {
         return reply.status(400).send({
           error: {
             message: "No valid entries found in 1099-DA CSV",
-            details: parsed.errors,
+            details: parsed.errors as any,
           },
         });
       }
@@ -693,59 +507,38 @@ export async function taxRoutes(app: FastifyInstance) {
   );
 
   // GET /tax/available-lots — List available lots for Specific ID selection
-  app.get(
+  r.get(
     "/tax/available-lots",
     {
       schema: {
         tags: ["tax"],
-        summary: "List available lots for Specific ID selection",
-        querystring: {
-          type: "object" as const,
-          additionalProperties: true,
-
-          properties: {
-            year: { type: "integer" as const },
-            asset: { type: "string" as const },
-          },
-        },
+        operationId: "getAvailableLots",
+        description:
+          "List available tax lots for Specific ID cost basis method selection",
+        querystring: z.object({
+          year: z.coerce.number().int().min(2009).max(2030),
+          asset: z.string().optional(),
+        }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  lots: {
-                    type: "array" as const,
-                    items: {
-                      type: "object" as const,
-                      additionalProperties: true,
-                      properties: {
-                        id: { type: "string" as const },
-                        asset: { type: "string" as const },
-                        amount: { type: "number" as const },
-                        costBasisUsd: { type: "number" as const },
-                        acquiredAt: { type: "string" as const },
-                        sourceId: { type: "string" as const },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
+          200: z.object({
+            data: z.object({
+              lots: z.array(
+                z.object({
+                  id: z.string().uuid(),
+                  asset: z.string(),
+                  amount: z.number(),
+                  costBasisUsd: z.number(),
+                  acquiredAt: z.string().openapi({ format: "date-time" }),
+                  sourceId: z.string(),
+                }),
+              ),
+            }),
+          }),
         },
       },
     },
     async (request, _reply) => {
-      const query = z
-        .object({
-          year: z.coerce.number().int().min(2009).max(2030),
-          asset: z.string().optional(),
-        })
-        .parse(request.query);
+      const query = request.query;
 
       const yearEnd = new Date(`${query.year + 1}-01-01T00:00:00Z`);
 
@@ -776,75 +569,15 @@ export async function taxRoutes(app: FastifyInstance) {
   );
 
   // POST /tax/calculate-specific — Calculate with user-selected lots (Specific ID)
-  app.post(
+  r.post(
     "/tax/calculate-specific",
     {
       schema: {
         tags: ["tax"],
-        summary: "Calculate tax with user-selected lots (Specific ID method)",
-        body: {
-          type: "object" as const,
-          additionalProperties: true,
-
-          properties: {
-            taxYear: { type: "integer" as const },
-            selections: {
-              type: "array" as const,
-
-              items: {
-                type: "object" as const,
-                additionalProperties: true,
-
-                properties: {
-                  eventId: { type: "string" as const },
-                  lots: {
-                    type: "array" as const,
-                    items: {
-                      type: "object" as const,
-                      additionalProperties: true,
-
-                      properties: {
-                        lotId: { type: "string" as const },
-                        amount: {
-                          type: "number" as const,
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            strictSilo: { type: "boolean" as const, default: false },
-          },
-        },
-        response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  results: {
-                    type: "array" as const,
-                    items: {
-                      type: "object" as const,
-                      additionalProperties: true,
-                    },
-                  },
-                  taxYear: { type: "integer" as const },
-                },
-              },
-            },
-          },
-          400: errorSchema,
-        },
-      },
-    },
-    async (request, reply) => {
-      const body = z
-        .object({
+        operationId: "calculateSpecificId",
+        description:
+          "Calculate tax using user-selected lots (Specific ID method)",
+        body: z.object({
           taxYear: z.number().int().min(2009).max(2030),
           selections: z
             .array(
@@ -860,8 +593,21 @@ export async function taxRoutes(app: FastifyInstance) {
             )
             .min(1),
           strictSilo: z.boolean().default(false),
-        })
-        .parse(request.body);
+        }),
+        response: {
+          200: z.object({
+            data: z.object({
+              results: z.array(z.any()),
+              method: z.literal("SPECIFIC_ID"),
+              taxYear: z.number().int(),
+            }),
+          }),
+          400: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const body = request.body;
 
       const { lots, events } = await fetchTaxData({
         userId: request.userId,
@@ -893,70 +639,45 @@ export async function taxRoutes(app: FastifyInstance) {
       }
 
       return {
-        data: { results, method: "SPECIFIC_ID", taxYear: body.taxYear },
+        data: {
+          results,
+          method: "SPECIFIC_ID" as const,
+          taxYear: body.taxYear,
+        },
       };
     },
   );
 
   // POST /tax/simulate — Simulate a hypothetical sale
-  app.post(
+  r.post(
     "/tax/simulate",
     {
       schema: {
         tags: ["tax"],
-        summary: "Simulate a hypothetical sale with tax impact preview",
-        body: {
-          type: "object" as const,
-          additionalProperties: true,
-
-          properties: {
-            asset: { type: "string" as const },
-            amount: { type: "number" as const },
-            pricePerUnit: { type: "number" as const },
-            method: {
-              type: "string" as const,
-              enum: ["FIFO", "LIFO", "HIFO"],
-              default: "FIFO",
-            },
-            strictSilo: { type: "boolean" as const, default: false },
-          },
-        },
-        response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  proceeds: { type: "number" as const },
-                  costBasis: { type: "number" as const },
-                  gainLoss: { type: "number" as const },
-                  shortTermGainLoss: { type: "number" as const },
-                  longTermGainLoss: { type: "number" as const },
-                  lotsConsumed: { type: "integer" as const },
-                  washSaleRisk: { type: "boolean" as const },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    async (request, _reply) => {
-      const body = z
-        .object({
+        operationId: "simulateSale",
+        description: "Simulate a hypothetical sale to preview tax impact",
+        body: z.object({
           asset: z.string().min(1),
           amount: z.number().positive(),
           pricePerUnit: z.number().nonnegative(),
           method: z.enum(["FIFO", "LIFO", "HIFO"]).optional().default("FIFO"),
           strictSilo: z.boolean().optional().default(false),
-        })
-        .parse(request.body);
+        }),
+        response: {
+          200: z.object({
+            data: z.any().openapi({ description: "Simulation result" }),
+          }),
+        },
+      },
+    },
+    async (request, _reply) => {
+      const body = request.body;
 
       const acquisitions = await prisma.transaction.findMany({
-        where: { userId: request.userId, type: { in: [...ACQUISITION_TYPES] } },
+        where: {
+          userId: request.userId,
+          type: { in: [...ACQUISITION_TYPES] },
+        },
         orderBy: { timestamp: "asc" },
       });
 
@@ -994,55 +715,28 @@ export async function taxRoutes(app: FastifyInstance) {
 
   // ─── Compare All Methods ───────────────────────────
 
-  const compareSchema = z.object({
-    asset: z.string().min(1),
-    amount: z.number().positive(),
-    pricePerUnit: z.number().nonnegative(),
-  });
-
-  app.post(
+  r.post(
     "/tax/compare-methods",
     {
       schema: {
         tags: ["tax"],
-        summary: "Compare FIFO/LIFO/HIFO methods for a hypothetical sale",
-        body: {
-          type: "object" as const,
-          additionalProperties: true,
-
-          properties: {
-            asset: { type: "string" as const },
-            amount: { type: "number" as const },
-            pricePerUnit: { type: "number" as const },
-          },
-        },
+        operationId: "compareMethods",
+        description:
+          "Compare tax impact across all cost basis methods (FIFO, LIFO, HIFO)",
+        body: z.object({
+          asset: z.string().min(1),
+          amount: z.number().positive(),
+          pricePerUnit: z.number().nonnegative(),
+        }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  methods: {
-                    type: "array" as const,
-                    items: {
-                      type: "object" as const,
-                      additionalProperties: true,
-                    },
-                  },
-                  recommendation: { type: "string" as const },
-                  savings: { type: "number" as const },
-                },
-              },
-            },
-          },
+          200: z.object({
+            data: z.any().openapi({ description: "Method comparison results" }),
+          }),
         },
       },
     },
     async (request) => {
-      const body = compareSchema.parse(request.body);
+      const body = request.body;
 
       const acquisitions = await prisma.transaction.findMany({
         where: { userId: request.userId, type: { in: [...ACQUISITION_TYPES] } },

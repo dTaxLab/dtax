@@ -7,6 +7,7 @@
  */
 
 import { FastifyInstance } from "fastify";
+import type { FastifyZodOpenApiTypeProvider } from "fastify-zod-openapi";
 import { z } from "zod";
 import {
   fetchPrices,
@@ -15,69 +16,52 @@ import {
   fetchExchangeRates,
 } from "../lib/prices";
 import { prisma } from "../lib/prisma";
+import { errorResponseSchema } from "../schemas/common";
 
-const errorSchema = {
-  type: "object" as const,
-  additionalProperties: true,
-  properties: {
-    error: {
-      type: "object" as const,
-      additionalProperties: true,
-      properties: {
-        message: { type: "string" as const },
-        code: { type: "string" as const },
-      },
-    },
-  },
-};
+const priceDataSchema = z
+  .object({
+    prices: z.record(z.string(), z.number()),
+    fetchedAt: z.string().datetime(),
+  })
+  .openapi({ ref: "PriceData" });
+
+const historicalPriceSchema = z
+  .object({
+    asset: z.string(),
+    date: z.string(),
+    priceUsd: z.number().nullable(),
+  })
+  .openapi({ ref: "HistoricalPrice" });
 
 export async function priceRoutes(app: FastifyInstance) {
+  const r = app.withTypeProvider<FastifyZodOpenApiTypeProvider>();
   // GET /prices?assets=BTC,ETH,SOL
-  app.get(
+  r.get(
     "/prices",
     {
       schema: {
         tags: ["prices"],
-        summary: "Fetch current USD prices for one or more assets",
-        querystring: {
-          type: "object" as const,
-          additionalProperties: true,
-          required: ["assets"],
-          properties: {
-            assets: {
-              type: "string" as const,
-              minLength: 1,
-              description: "Comma-separated tickers, e.g. BTC,ETH,SOL",
-            },
-          },
-        },
+        operationId: "getPrices",
+        description: "Fetch current USD prices for one or more assets",
+        querystring: z.object({
+          assets: z
+            .string()
+            .min(1)
+            .openapi({
+              description: "Comma-separated asset tickers, e.g. BTC,ETH,SOL",
+            }),
+        }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  prices: {
-                    type: "object" as const,
-                    additionalProperties: true,
-                  },
-                  fetchedAt: { type: "string" as const, format: "date-time" },
-                },
-              },
-            },
-          },
-          400: errorSchema,
-          502: errorSchema,
+          200: z.object({
+            data: priceDataSchema,
+          }),
+          400: errorResponseSchema,
+          502: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const query = z
-        .object({ assets: z.string().min(1) })
-        .parse(request.query);
+      const query = request.query;
 
       const tickers = query.assets
         .split(",")
@@ -109,29 +93,17 @@ export async function priceRoutes(app: FastifyInstance) {
   );
 
   // GET /prices/supported
-  app.get(
+  r.get(
     "/prices/supported",
     {
       schema: {
         tags: ["prices"],
-        summary: "List all supported asset tickers",
+        operationId: "getSupportedTickers",
+        description: "List supported asset tickers",
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  tickers: {
-                    type: "array" as const,
-                    items: { type: "string" as const },
-                  },
-                },
-              },
-            },
-          },
+          200: z.object({
+            data: z.object({ tickers: z.array(z.string()) }),
+          }),
         },
       },
     },
@@ -141,97 +113,66 @@ export async function priceRoutes(app: FastifyInstance) {
   );
 
   // GET /prices/exchange-rates
-  app.get(
+  r.get(
     "/prices/exchange-rates",
     {
       schema: {
         tags: ["prices"],
-        summary:
-          "Get USD-relative exchange rates for supported fiat currencies",
+        operationId: "getExchangeRates",
+        description:
+          "USD-relative exchange rates for supported fiat currencies",
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  rates: {
-                    type: "object" as const,
-                    additionalProperties: true,
-                  },
-                  baseCurrency: { type: "string" as const },
-                },
-              },
-            },
-          },
-          502: errorSchema,
+          200: z.object({
+            data: z.object({
+              rates: z.record(z.string(), z.number()),
+              baseCurrency: z.literal("USD"),
+            }),
+          }),
+          502: errorResponseSchema,
         },
       },
     },
     async (_request, reply) => {
       try {
         const rates = await fetchExchangeRates();
-        return { data: { rates, baseCurrency: "USD" } };
+        return { data: { rates, baseCurrency: "USD" as const } };
       } catch (e) {
         const message =
           e instanceof Error ? e.message : "Exchange rate fetch failed";
-        return reply
-          .status(502)
-          .send({ error: { message, code: "EXCHANGE_RATE_ERROR" } });
+        return reply.status(502).send({
+          error: { message, code: "EXCHANGE_RATE_ERROR" },
+        });
       }
     },
   );
 
   // GET /prices/history?asset=BTC&date=2024-06-15
-  app.get(
+  r.get(
     "/prices/history",
     {
       schema: {
         tags: ["prices"],
-        summary: "Fetch historical USD price for a single asset on a date",
-        querystring: {
-          type: "object" as const,
-          additionalProperties: true,
-          required: ["asset", "date"],
-          properties: {
-            asset: { type: "string" as const, minLength: 1 },
-            date: {
-              type: "string" as const,
-              pattern: "^\\d{4}-\\d{2}-\\d{2}$",
-              description: "Date in YYYY-MM-DD format",
-            },
-          },
-        },
+        operationId: "getHistoricalPrice",
+        description:
+          "Fetch historical price for a single asset on a specific date",
+        querystring: z.object({
+          asset: z.string().min(1),
+          date: z
+            .string()
+            .regex(/^\d{4}-\d{2}-\d{2}$/)
+            .openapi({ description: "Date in YYYY-MM-DD format" }),
+        }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  asset: { type: "string" as const },
-                  date: { type: "string" as const },
-                  priceUsd: { type: "number" as const, nullable: true },
-                },
-              },
-            },
-          },
-          400: errorSchema,
-          502: errorSchema,
+          200: z.object({
+            data: historicalPriceSchema,
+          }),
+          400: errorResponseSchema,
+          502: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const query = z
-        .object({
-          asset: z.string().min(1),
-          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-        })
-        .parse(request.query);
+      const query = request.query;
 
       const date = new Date(query.date + "T12:00:00Z");
       if (isNaN(date.getTime())) {
@@ -259,58 +200,33 @@ export async function priceRoutes(app: FastifyInstance) {
   );
 
   // POST /prices/backfill
-  app.post(
+  r.post(
     "/prices/backfill",
     {
       schema: {
         tags: ["prices"],
-        summary:
-          "Backfill missing USD values for user transactions using historical prices",
-        body: {
-          type: "object" as const,
-          additionalProperties: true,
-          properties: {
-            limit: {
-              type: "integer" as const,
-              minimum: 1,
-              maximum: 100,
-              default: 50,
-            },
-            dryRun: { type: "boolean" as const, default: false },
-          },
-        },
+        operationId: "backfillPrices",
+        description:
+          "Backfill missing USD values for user's transactions using historical prices",
+        body: z.object({
+          limit: z.number().int().min(1).max(100).default(50),
+          dryRun: z.boolean().default(false),
+        }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  message: { type: "string" as const },
-                  updated: { type: "integer" as const },
-                  skipped: { type: "integer" as const },
-                  total: { type: "integer" as const },
-                  errors: {
-                    type: "array" as const,
-                    nullable: true,
-                    items: { type: "string" as const },
-                  },
-                },
-              },
-            },
-          },
+          200: z.object({
+            data: z.object({
+              message: z.string(),
+              updated: z.number().int(),
+              skipped: z.number().int(),
+              total: z.number().int(),
+              errors: z.array(z.string()).optional(),
+            }),
+          }),
         },
       },
     },
     async (request, _reply) => {
-      const body = z
-        .object({
-          limit: z.number().int().min(1).max(100).default(50),
-          dryRun: z.boolean().default(false),
-        })
-        .parse(request.body || {});
+      const body = request.body;
 
       const txsMissingValue = await prisma.transaction.findMany({
         where: {

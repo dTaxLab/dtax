@@ -10,6 +10,7 @@
  */
 
 import { FastifyInstance } from "fastify";
+import type { FastifyZodOpenApiTypeProvider } from "fastify-zod-openapi";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import {
@@ -18,51 +19,69 @@ import {
   type ChatMessage,
 } from "../lib/chat-service";
 import { checkChatQuota } from "../plugins/plan-guard";
+import { errorResponseSchema, idParamSchema } from "../schemas/common";
+
+const messageSchema = z
+  .object({
+    id: z.string().uuid(),
+    role: z.string().openapi({ description: "user or assistant" }),
+    content: z.string(),
+    toolCalls: z.any().optional(),
+    createdAt: z.date(),
+  })
+  .openapi({ ref: "ChatMessage" });
+
+const conversationSchema = z
+  .object({
+    id: z.string().uuid(),
+    title: z.string(),
+    createdAt: z.date(),
+    updatedAt: z.date(),
+  })
+  .openapi({ ref: "Conversation" });
+
+const conversationDetailSchema = z
+  .object({
+    id: z.string().uuid(),
+    title: z.string(),
+    createdAt: z.date(),
+    updatedAt: z.date(),
+    messages: z.array(messageSchema),
+  })
+  .openapi({ ref: "ConversationDetail" });
+
+const conversationListItemSchema = z
+  .object({
+    id: z.string().uuid(),
+    title: z.string(),
+    createdAt: z.date(),
+    updatedAt: z.date(),
+    messageCount: z.number().int(),
+  })
+  .openapi({ ref: "ConversationListItem" });
 
 export async function chatRoutes(app: FastifyInstance) {
+  const r = app.withTypeProvider<FastifyZodOpenApiTypeProvider>();
   // POST /chat/conversations — create new conversation
-  app.post(
+  r.post(
     "/chat/conversations",
     {
       schema: {
-        tags: ["chat"],
-        summary: "Create a new conversation",
-        body: {
-          type: "object" as const,
-          additionalProperties: true,
-          properties: { title: { type: "string" as const } },
-        },
+        tags: ["ai"],
+        operationId: "createConversation",
+        description: "Create a new chat conversation",
+        body: z.object({
+          title: z.string().max(200).optional(),
+        }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          429: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({
+            data: conversationSchema.extend({ userId: z.string().uuid() }),
+          }),
         },
       },
     },
     async (request) => {
-      const body = z
-        .object({
-          title: z.string().max(200).optional(),
-        })
-        .parse(request.body ?? {});
+      const body = request.body;
 
       const conversation = await prisma.chatConversation.create({
         data: {
@@ -76,53 +95,32 @@ export async function chatRoutes(app: FastifyInstance) {
   );
 
   // GET /chat/conversations — list user's conversations
-  app.get(
+  r.get(
     "/chat/conversations",
     {
       schema: {
-        tags: ["chat"],
-        summary: "List conversations (paginated)",
-        querystring: {
-          type: "object" as const,
-          additionalProperties: true,
-          properties: {
-            page: { type: "integer" as const },
-            limit: { type: "integer" as const },
-          },
-        },
+        tags: ["ai"],
+        operationId: "listConversations",
+        description: "List user's chat conversations (paginated)",
+        querystring: z.object({
+          page: z.coerce.number().int().min(1).default(1),
+          limit: z.coerce.number().int().min(1).max(50).default(20),
+        }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: { type: "array" as const },
-              meta: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          429: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({
+            data: z.array(conversationListItemSchema),
+            meta: z.object({
+              page: z.number().int(),
+              limit: z.number().int(),
+              total: z.number().int(),
+              totalPages: z.number().int(),
+            }),
+          }),
         },
       },
     },
     async (request) => {
-      const query = z
-        .object({
-          page: z.coerce.number().int().min(1).default(1),
-          limit: z.coerce.number().int().min(1).max(50).default(20),
-        })
-        .parse(request.query);
+      const query = request.query;
 
       const [conversations, total] = await Promise.all([
         prisma.chatConversation.findMany({
@@ -162,44 +160,24 @@ export async function chatRoutes(app: FastifyInstance) {
   );
 
   // GET /chat/conversations/:id — get conversation with messages
-  app.get(
+  r.get(
     "/chat/conversations/:id",
     {
       schema: {
-        tags: ["chat"],
-        summary: "Get conversation with messages",
-        params: {
-          type: "object" as const,
-          required: ["id"],
-          properties: { id: { type: "string" as const } },
-        },
+        tags: ["ai"],
+        operationId: "getConversation",
+        description: "Get a conversation with all its messages",
+        params: idParamSchema,
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          429: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({
+            data: conversationDetailSchema,
+          }),
+          404: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+      const { id } = request.params;
 
       const conversation = await prisma.chatConversation.findFirst({
         where: { id, userId: request.userId },
@@ -228,44 +206,22 @@ export async function chatRoutes(app: FastifyInstance) {
   );
 
   // DELETE /chat/conversations/:id
-  app.delete(
+  r.delete(
     "/chat/conversations/:id",
     {
       schema: {
-        tags: ["chat"],
-        summary: "Delete a conversation",
-        params: {
-          type: "object" as const,
-          required: ["id"],
-          properties: { id: { type: "string" as const } },
-        },
+        tags: ["ai"],
+        operationId: "deleteConversation",
+        description: "Delete a chat conversation",
+        params: idParamSchema,
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          429: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({ data: z.object({ deleted: z.boolean() }) }),
+          404: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+      const { id } = request.params;
 
       const conversation = await prisma.chatConversation.findFirst({
         where: { id, userId: request.userId },
@@ -284,58 +240,33 @@ export async function chatRoutes(app: FastifyInstance) {
   );
 
   // POST /chat/conversations/:id/messages — send message, get AI response
-  app.post(
+  r.post(
     "/chat/conversations/:id/messages",
     {
       schema: {
-        tags: ["chat"],
-        summary: "Send message and get AI response",
-        params: {
-          type: "object" as const,
-          required: ["id"],
-          properties: { id: { type: "string" as const } },
-        },
-        body: {
-          type: "object" as const,
-          additionalProperties: true,
-          required: ["content"],
-          properties: { content: { type: "string" as const } },
-        },
+        tags: ["ai"],
+        operationId: "sendChatMessage",
+        description: "Send a message and get AI response",
+        params: idParamSchema,
+        body: z.object({
+          content: z.string().min(1).max(10000),
+        }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          429: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({
+            data: z.object({
+              userMessage: messageSchema,
+              assistantMessage: messageSchema,
+            }),
+          }),
+          404: errorResponseSchema,
+          429: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+      const { id } = request.params;
+      const body = request.body;
 
-      const body = z
-        .object({
-          content: z.string().min(1).max(10000),
-        })
-        .parse(request.body);
-
-      // Verify conversation belongs to user
       const conversation = await prisma.chatConversation.findFirst({
         where: { id, userId: request.userId },
       });
@@ -346,7 +277,6 @@ export async function chatRoutes(app: FastifyInstance) {
         });
       }
 
-      // Check chat quota
       const quota = await checkChatQuota(request.userId);
       if (!quota.allowed) {
         return reply.status(429).send({
@@ -359,14 +289,12 @@ export async function chatRoutes(app: FastifyInstance) {
         });
       }
 
-      // Load conversation history
       const existingMessages = await prisma.chatMessage.findMany({
         where: { conversationId: id },
         orderBy: { createdAt: "asc" },
         select: { role: true, content: true },
       });
 
-      // Build message array for Claude
       const chatMessages: ChatMessage[] = [
         ...existingMessages.map((m) => ({
           role: m.role as "user" | "assistant",
@@ -375,7 +303,6 @@ export async function chatRoutes(app: FastifyInstance) {
         { role: "user" as const, content: body.content },
       ];
 
-      // Save user message
       const userMessage = await prisma.chatMessage.create({
         data: {
           conversationId: id,
@@ -384,12 +311,10 @@ export async function chatRoutes(app: FastifyInstance) {
         },
       });
 
-      // Get AI response
       const aiResponse = await chatCompletion(chatMessages, {
         userId: request.userId,
       });
 
-      // Save assistant message
       const assistantMessage = await prisma.chatMessage.create({
         data: {
           conversationId: id,
@@ -402,7 +327,6 @@ export async function chatRoutes(app: FastifyInstance) {
         },
       });
 
-      // Auto-generate title from first user message
       if (existingMessages.length === 0) {
         const title =
           body.content.length > 60
@@ -414,7 +338,6 @@ export async function chatRoutes(app: FastifyInstance) {
         });
       }
 
-      // Touch conversation updatedAt
       await prisma.chatConversation.update({
         where: { id },
         data: { updatedAt: new Date() },
@@ -441,33 +364,31 @@ export async function chatRoutes(app: FastifyInstance) {
   );
 
   // POST /chat/conversations/:id/messages/stream — SSE streaming message
-  app.post(
+  r.post(
     "/chat/conversations/:id/messages/stream",
     {
       schema: {
-        tags: ["chat"],
-        summary: "Send message and stream AI response via SSE",
-        params: {
-          type: "object" as const,
-          required: ["id"],
-          properties: { id: { type: "string" as const } },
-        },
-        body: {
-          type: "object" as const,
-          additionalProperties: true,
-          required: ["content"],
-          properties: { content: { type: "string" as const } },
+        tags: ["ai"],
+        operationId: "streamChatMessage",
+        description: "Send a message and get AI response via SSE stream",
+        params: idParamSchema,
+        body: z.object({ content: z.string().min(1).max(10000) }),
+        response: {
+          200: z
+            .object({
+              event: z.string(),
+              data: z.unknown(),
+            })
+            .openapi({ description: "Server-Sent Events stream" }),
+          404: errorResponseSchema,
+          429: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+      const { id } = request.params;
+      const body = request.body;
 
-      const body = z
-        .object({ content: z.string().min(1).max(10000) })
-        .parse(request.body);
-
-      // Verify ownership
       const conversation = await prisma.chatConversation.findFirst({
         where: { id, userId: request.userId },
       });
@@ -477,7 +398,6 @@ export async function chatRoutes(app: FastifyInstance) {
         });
       }
 
-      // Quota check
       const quota = await checkChatQuota(request.userId);
       if (!quota.allowed) {
         return reply.status(429).send({
@@ -490,7 +410,6 @@ export async function chatRoutes(app: FastifyInstance) {
         });
       }
 
-      // Load history
       const existingMessages = await prisma.chatMessage.findMany({
         where: { conversationId: id },
         orderBy: { createdAt: "asc" },
@@ -505,12 +424,10 @@ export async function chatRoutes(app: FastifyInstance) {
         { role: "user" as const, content: body.content },
       ];
 
-      // Save user message immediately
       const userMessage = await prisma.chatMessage.create({
         data: { conversationId: id, role: "user", content: body.content },
       });
 
-      // Set SSE headers
       reply.raw.writeHead(200, {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
@@ -518,12 +435,10 @@ export async function chatRoutes(app: FastifyInstance) {
         "X-Accel-Buffering": "no",
       });
 
-      // Send user message ID as first event
       reply.raw.write(
         `event: user_message\ndata: ${JSON.stringify({ id: userMessage.id })}\n\n`,
       );
 
-      // Stream AI response
       const gen = chatCompletionStream(chatMessages, {
         userId: request.userId,
       });
@@ -564,7 +479,6 @@ export async function chatRoutes(app: FastifyInstance) {
         }
       }
 
-      // Save assistant message after stream completes
       const assistantMessage = await prisma.chatMessage.create({
         data: {
           conversationId: id,
@@ -577,12 +491,10 @@ export async function chatRoutes(app: FastifyInstance) {
         },
       });
 
-      // Send saved message ID
       reply.raw.write(
         `event: saved\ndata: ${JSON.stringify({ assistantMessageId: assistantMessage.id })}\n\n`,
       );
 
-      // Auto-title on first message
       if (existingMessages.length === 0) {
         const title =
           body.content.length > 60

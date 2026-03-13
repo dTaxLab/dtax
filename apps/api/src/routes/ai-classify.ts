@@ -6,6 +6,7 @@
  */
 
 import { FastifyInstance } from "fastify";
+import type { FastifyZodOpenApiTypeProvider } from "fastify-zod-openapi";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { config } from "../config";
@@ -13,36 +14,39 @@ import {
   classifyTransaction,
   type ClassificationInput,
 } from "../lib/ai-classifier";
+import { errorResponseSchema } from "../schemas/common";
+
+const classificationResultSchema = z
+  .object({
+    processed: z.number().int(),
+    classified: z.number().int(),
+    results: z.array(
+      z.object({
+        id: z.string().uuid(),
+        originalType: z.string(),
+        newType: z.string(),
+        confidence: z.number(),
+      }),
+    ),
+  })
+  .openapi({ ref: "ClassificationResult" });
 
 export async function aiClassifyRoutes(app: FastifyInstance) {
+  const r = app.withTypeProvider<FastifyZodOpenApiTypeProvider>();
   // POST /transactions/ai-classify — classify specific transactions
-  app.post(
+  r.post(
     "/transactions/ai-classify",
     {
       schema: {
-        tags: ["transactions"],
-        summary: "AI-classify specific transactions by ID",
-        body: {
-          type: "object" as const,
-          additionalProperties: true,
-          required: ["ids"],
-          properties: { ids: { type: "array" as const } },
-        },
+        tags: ["ai"],
+        operationId: "aiClassifyTransactions",
+        description: "Classify specific transactions by ID using AI",
+        body: z.object({ ids: z.array(z.string().uuid()).min(1).max(100) }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          503: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({
+            data: classificationResultSchema,
+          }),
+          503: errorResponseSchema,
         },
       },
     },
@@ -57,9 +61,7 @@ export async function aiClassifyRoutes(app: FastifyInstance) {
         });
       }
 
-      const body = z
-        .object({ ids: z.array(z.string().uuid()).min(1).max(100) })
-        .parse(request.body);
+      const body = request.body;
 
       const transactions = await prisma.transaction.findMany({
         where: { id: { in: body.ids }, userId: request.userId },
@@ -119,27 +121,22 @@ export async function aiClassifyRoutes(app: FastifyInstance) {
   );
 
   // POST /transactions/ai-classify-all — reclassify all UNKNOWN
-  app.post(
+  r.post(
     "/transactions/ai-classify-all",
     {
       schema: {
-        tags: ["transactions"],
-        summary: "AI-reclassify all UNKNOWN transactions (batch up to 200)",
+        tags: ["ai"],
+        operationId: "aiClassifyAllUnknown",
+        description: "Reclassify all UNKNOWN transactions using AI",
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          503: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({
+            data: z.object({
+              processed: z.number().int(),
+              classified: z.number().int(),
+              remaining: z.string().optional(),
+            }),
+          }),
+          503: errorResponseSchema,
         },
       },
     },
@@ -156,7 +153,7 @@ export async function aiClassifyRoutes(app: FastifyInstance) {
 
       const unknownTxs = await prisma.transaction.findMany({
         where: { userId: request.userId, type: "UNKNOWN" },
-        take: 200, // Limit batch size
+        take: 200,
       });
 
       let classified = 0;
@@ -204,36 +201,22 @@ export async function aiClassifyRoutes(app: FastifyInstance) {
   );
 
   // GET /transactions/ai-stats — classification statistics
-  app.get(
+  r.get(
     "/transactions/ai-stats",
     {
       schema: {
-        tags: ["transactions"],
-        summary: "Get AI classification statistics",
+        tags: ["ai"],
+        operationId: "getAiClassificationStats",
+        description: "Get AI classification statistics for current user",
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  total: { type: "integer" as const },
-                  aiClassified: { type: "integer" as const },
-                  unknownCount: { type: "integer" as const },
-                  aiEnabled: { type: "boolean" as const },
-                },
-              },
-            },
-          },
-          503: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({
+            data: z.object({
+              total: z.number().int(),
+              aiClassified: z.number().int(),
+              unknownCount: z.number().int(),
+              aiEnabled: z.boolean(),
+            }),
+          }),
         },
       },
     },

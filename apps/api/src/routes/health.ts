@@ -3,24 +3,41 @@
  */
 
 import { FastifyInstance } from "fastify";
+import { z } from "zod";
+import type { FastifyZodOpenApiTypeProvider } from "fastify-zod-openapi";
 import { prisma } from "../lib/prisma";
 
+const healthStatusSchema = z
+  .object({
+    status: z.string(),
+    timestamp: z.string().datetime(),
+  })
+  .openapi({ ref: "HealthStatus" });
+
+const deepHealthStatusSchema = z
+  .object({
+    status: z.enum(["ok", "degraded"]),
+    timestamp: z.string().datetime(),
+    services: z.object({
+      database: z.enum(["connected", "disconnected"]),
+    }),
+  })
+  .openapi({ ref: "DeepHealthStatus" });
+
 export async function healthRoutes(app: FastifyInstance) {
+  const r = app.withTypeProvider<FastifyZodOpenApiTypeProvider>();
+
   // Basic health check
-  app.get(
+  r.get(
     "/health",
     {
       schema: {
         tags: ["health"],
-        summary: "Basic health check",
+        operationId: "healthCheck",
+        description: "Basic health check",
+        security: [],
         response: {
-          200: {
-            type: "object" as const,
-            properties: {
-              status: { type: "string" as const },
-              timestamp: { type: "string" as const },
-            },
-          },
+          200: healthStatusSchema,
         },
       },
     },
@@ -30,27 +47,16 @@ export async function healthRoutes(app: FastifyInstance) {
   );
 
   // Deep health check (includes DB)
-  app.get(
+  r.get(
     "/health/deep",
     {
       schema: {
         tags: ["health"],
-        summary: "Deep health check (includes database connectivity)",
+        operationId: "healthCheckDeep",
+        description: "Deep health check including database connectivity",
+        security: [],
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              status: { type: "string" as const },
-              timestamp: { type: "string" as const },
-              services: {
-                type: "object" as const,
-                properties: {
-                  database: { type: "string" as const },
-                },
-              },
-            },
-          },
+          200: deepHealthStatusSchema,
         },
       },
     },
@@ -58,18 +64,18 @@ export async function healthRoutes(app: FastifyInstance) {
       try {
         await prisma.$queryRaw`SELECT 1`;
         return {
-          status: "ok",
+          status: "ok" as const,
           timestamp: new Date().toISOString(),
           services: {
-            database: "connected",
+            database: "connected" as const,
           },
         };
       } catch {
         return {
-          status: "degraded",
+          status: "degraded" as const,
           timestamp: new Date().toISOString(),
           services: {
-            database: "disconnected",
+            database: "disconnected" as const,
           },
         };
       }

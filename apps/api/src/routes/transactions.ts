@@ -8,230 +8,94 @@
  */
 
 import { FastifyInstance } from "fastify";
+import type { FastifyZodOpenApiTypeProvider } from "fastify-zod-openapi";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { checkTransactionQuota } from "../plugins/plan-guard";
+import {
+  errorResponseSchema,
+  idParamSchema,
+  paginationMetaSchema,
+} from "../schemas/common";
+import { txTypeEnum } from "../schemas/enums";
 
 // ─── Validation Schemas ─────────────────────────
 
-const createTransactionSchema = z.object({
-  type: z.enum([
-    "BUY",
-    "SELL",
-    "TRADE",
-    "TRANSFER_IN",
-    "TRANSFER_OUT",
-    "AIRDROP",
-    "STAKING_REWARD",
-    "MINING_REWARD",
-    "INTEREST",
-    "GIFT_RECEIVED",
-    "GIFT_SENT",
-    "LOST",
-    "STOLEN",
-    "FORK",
-    "MARGIN_TRADE",
-    "LIQUIDATION",
-    "INTERNAL_TRANSFER",
-    "DEX_SWAP",
-    "LP_DEPOSIT",
-    "LP_WITHDRAWAL",
-    "LP_REWARD",
-    "WRAP",
-    "UNWRAP",
-    "BRIDGE_OUT",
-    "BRIDGE_IN",
-    "CONTRACT_APPROVAL",
-    "NFT_MINT",
-    "NFT_PURCHASE",
-    "NFT_SALE",
-    "UNKNOWN",
-  ]),
-  timestamp: z.string().datetime(),
-  sentAsset: z.string().optional(),
-  sentAmount: z.number().nonnegative().optional(),
-  sentValueUsd: z.number().nonnegative().optional(),
-  receivedAsset: z.string().optional(),
-  receivedAmount: z.number().nonnegative().optional(),
-  receivedValueUsd: z.number().nonnegative().optional(),
-  feeAsset: z.string().optional(),
-  feeAmount: z.number().nonnegative().optional(),
-  feeValueUsd: z.number().nonnegative().optional(),
-  notes: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  sourceId: z.string().uuid().optional(),
-});
+const createTransactionSchema = z
+  .object({
+    type: txTypeEnum,
+    timestamp: z.string().datetime(),
+    sentAsset: z.string().optional(),
+    sentAmount: z.number().nonnegative().optional(),
+    sentValueUsd: z.number().nonnegative().optional(),
+    receivedAsset: z.string().optional(),
+    receivedAmount: z.number().nonnegative().optional(),
+    receivedValueUsd: z.number().nonnegative().optional(),
+    feeAsset: z.string().optional(),
+    feeAmount: z.number().nonnegative().optional(),
+    feeValueUsd: z.number().nonnegative().optional(),
+    notes: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    sourceId: z.string().uuid().optional(),
+  })
+  .openapi({ ref: "CreateTransactionInput" });
 
-const listQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
-  asset: z.string().optional(),
-  type: z.string().optional(),
-  search: z.string().optional(),
-  from: z.string().datetime().optional(),
-  to: z.string().datetime().optional(),
-  sort: z
-    .enum([
-      "timestamp",
-      "type",
-      "sentAmount",
-      "receivedAmount",
-      "sentValueUsd",
-      "receivedValueUsd",
-      "feeValueUsd",
-    ])
-    .default("timestamp"),
-  order: z.enum(["asc", "desc"]).default("desc"),
-});
+const listQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+    asset: z.string().optional(),
+    type: z.string().optional(),
+    search: z.string().optional(),
+    from: z.string().datetime().optional(),
+    to: z.string().datetime().optional(),
+    sort: z
+      .enum([
+        "timestamp",
+        "type",
+        "sentAmount",
+        "receivedAmount",
+        "sentValueUsd",
+        "receivedValueUsd",
+        "feeValueUsd",
+      ])
+      .default("timestamp"),
+    order: z.enum(["asc", "desc"]).default("desc"),
+  })
+  .openapi({ ref: "ListTransactionsQuery" });
 
-// ─── OpenAPI/Swagger Schemas (documentation only) ────────────
-// These schemas document the API for Swagger UI. Actual validation
-// is performed by Zod in each handler. Response schemas use
-// additionalProperties to avoid Fastify stripping extra fields.
-
-const txTypeEnum = [
-  "BUY",
-  "SELL",
-  "TRADE",
-  "TRANSFER_IN",
-  "TRANSFER_OUT",
-  "AIRDROP",
-  "STAKING_REWARD",
-  "MINING_REWARD",
-  "INTEREST",
-  "GIFT_RECEIVED",
-  "GIFT_SENT",
-  "LOST",
-  "STOLEN",
-  "FORK",
-  "MARGIN_TRADE",
-  "LIQUIDATION",
-  "INTERNAL_TRANSFER",
-  "DEX_SWAP",
-  "LP_DEPOSIT",
-  "LP_WITHDRAWAL",
-  "LP_REWARD",
-  "WRAP",
-  "UNWRAP",
-  "BRIDGE_OUT",
-  "BRIDGE_IN",
-  "CONTRACT_APPROVAL",
-  "NFT_MINT",
-  "NFT_PURCHASE",
-  "NFT_SALE",
-  "UNKNOWN",
-] as const;
-
-const transactionObjectSchema = {
-  type: "object" as const,
-  additionalProperties: true,
-  properties: {
-    id: { type: "string", format: "uuid" },
-    userId: { type: "string", format: "uuid" },
-    type: { type: "string", enum: txTypeEnum },
-    timestamp: { type: "string", format: "date-time" },
-    sentAsset: { type: "string", nullable: true },
-    sentAmount: { type: "number", nullable: true },
-    sentValueUsd: { type: "number", nullable: true },
-    receivedAsset: { type: "string", nullable: true },
-    receivedAmount: { type: "number", nullable: true },
-    receivedValueUsd: { type: "number", nullable: true },
-    feeAsset: { type: "string", nullable: true },
-    feeAmount: { type: "number", nullable: true },
-    feeValueUsd: { type: "number", nullable: true },
-    notes: { type: "string", nullable: true },
-    tags: { type: "array", items: { type: "string" } },
-    sourceId: { type: "string", format: "uuid", nullable: true },
-    externalId: { type: "string", nullable: true },
-    originalType: { type: "string", nullable: true },
-    createdAt: { type: "string", format: "date-time" },
-    updatedAt: { type: "string", format: "date-time" },
-  },
-};
-
-const idParamSchema = {
-  type: "object" as const,
-  required: ["id"] as const,
-  properties: {
-    id: { type: "string", description: "Transaction UUID" },
-  },
-};
+const transactionSchema = z
+  .any()
+  .openapi({ ref: "Transaction", description: "Transaction object" });
 
 // ─── Routes ─────────────────────────────────────
 
 export async function transactionRoutes(app: FastifyInstance) {
+  const r = app.withTypeProvider<FastifyZodOpenApiTypeProvider>();
   // POST /transactions — Create transaction(s)
-  app.post(
+  r.post(
     "/transactions",
     {
       schema: {
         tags: ["transactions"],
-        summary: "Create a new transaction",
-        body: {
-          type: "object" as const,
-          additionalProperties: true,
-          properties: {
-            type: {
-              type: "string",
-              description:
-                "Transaction type. Required. One of: " + txTypeEnum.join(", "),
-            },
-            timestamp: {
-              type: "string",
-              format: "date-time",
-              description: "ISO 8601 timestamp. Required.",
-            },
-            sentAsset: { type: "string" },
-            sentAmount: { type: "number" },
-            sentValueUsd: { type: "number" },
-            receivedAsset: { type: "string" },
-            receivedAmount: { type: "number" },
-            receivedValueUsd: { type: "number" },
-            feeAsset: { type: "string" },
-            feeAmount: { type: "number" },
-            feeValueUsd: { type: "number" },
-            notes: { type: "string" },
-            tags: { type: "array", items: { type: "string" } },
-            sourceId: { type: "string", format: "uuid" },
-          },
-        },
+        operationId: "createTransaction",
+        description: "Create a new transaction",
+        body: createTransactionSchema,
         response: {
-          201: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: transactionObjectSchema,
-              meta: {
-                type: "object",
-                additionalProperties: true,
-                properties: {
-                  requestId: { type: "string" },
-                  timestamp: { type: "string", format: "date-time" },
-                },
-              },
-            },
-          },
-          403: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: {
-                type: "object",
-                additionalProperties: true,
-                properties: {
-                  code: { type: "string" },
-                  message: { type: "string" },
-                },
-              },
-            },
-          },
+          201: z.object({
+            data: transactionSchema,
+            meta: z.object({
+              requestId: z.string(),
+              timestamp: z.string().datetime(),
+            }),
+          }),
+          403: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const body = createTransactionSchema.parse(request.body);
+      const body = request.body;
 
-      // Enforce FREE plan transaction quota
       const quota = await checkTransactionQuota(request.userId);
       if (!quota.allowed) {
         return reply.status(403).send({
@@ -272,88 +136,27 @@ export async function transactionRoutes(app: FastifyInstance) {
   );
 
   // GET /transactions — List transactions (paginated)
-  app.get(
+  r.get(
     "/transactions",
     {
       schema: {
         tags: ["transactions"],
-        summary: "List transactions with pagination, filtering, and sorting",
-        querystring: {
-          type: "object" as const,
-          additionalProperties: true,
-          properties: {
-            page: {
-              type: "integer",
-              description: "Page number (min: 1, default: 1)",
-            },
-            limit: {
-              type: "integer",
-              description: "Items per page (1-100, default: 20)",
-            },
-            asset: { type: "string", description: "Filter by asset symbol" },
-            type: {
-              type: "string",
-              description: "Filter by transaction type",
-            },
-            search: {
-              type: "string",
-              description: "Search notes, sentAsset, receivedAsset, externalId",
-            },
-            from: {
-              type: "string",
-              format: "date-time",
-              description: "Start date filter",
-            },
-            to: {
-              type: "string",
-              format: "date-time",
-              description: "End date filter",
-            },
-            sort: {
-              type: "string",
-              enum: [
-                "timestamp",
-                "type",
-                "sentAmount",
-                "receivedAmount",
-                "sentValueUsd",
-                "receivedValueUsd",
-                "feeValueUsd",
-              ],
-              default: "timestamp",
-            },
-            order: { type: "string", enum: ["asc", "desc"], default: "desc" },
-          },
-        },
+        operationId: "listTransactions",
+        description:
+          "List transactions with pagination, filtering, and sorting",
+        querystring: listQuerySchema,
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "array",
-                items: transactionObjectSchema,
-              },
-              meta: {
-                type: "object",
-                additionalProperties: true,
-                properties: {
-                  total: { type: "integer" },
-                  page: { type: "integer" },
-                  limit: { type: "integer" },
-                  totalPages: { type: "integer" },
-                },
-              },
-            },
-          },
+          200: z.object({
+            data: z.array(transactionSchema),
+            meta: paginationMetaSchema,
+          }),
         },
       },
     },
     async (request) => {
-      const query = listQuerySchema.parse(request.query);
+      const query = request.query;
       const skip = (query.page - 1) * query.limit;
 
-      // Build where clause
       const where: Record<string, unknown> = { userId: request.userId };
       const andClauses: Record<string, unknown>[] = [];
       if (query.type) where.type = query.type;
@@ -407,46 +210,15 @@ export async function transactionRoutes(app: FastifyInstance) {
   );
 
   // GET /transactions/export-json — Export all data as JSON backup
-  app.get(
+  r.get(
     "/transactions/export-json",
     {
       schema: {
         tags: ["transactions"],
-        summary: "Export all user data as JSON backup (v1.1)",
+        operationId: "exportTransactionsJson",
+        description: "Export all user data as JSON backup",
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            description: "JSON backup file download",
-            properties: {
-              version: { type: "string" },
-              exportedAt: { type: "string", format: "date-time" },
-              user: {
-                type: "object",
-                additionalProperties: true,
-                properties: {
-                  email: { type: "string" },
-                  name: { type: "string", nullable: true },
-                  createdAt: { type: "string", format: "date-time" },
-                },
-              },
-              transactions: {
-                type: "array",
-                items: transactionObjectSchema,
-              },
-              dataSources: { type: "array", items: { type: "object" } },
-              taxReports: { type: "array", items: { type: "object" } },
-              meta: {
-                type: "object",
-                additionalProperties: true,
-                properties: {
-                  transactionCount: { type: "integer" },
-                  dataSourceCount: { type: "integer" },
-                  taxReportCount: { type: "integer" },
-                },
-              },
-            },
-          },
+          200: z.any().openapi({ description: "JSON backup file" }),
         },
       },
     },
@@ -494,43 +266,24 @@ export async function transactionRoutes(app: FastifyInstance) {
   );
 
   // GET /transactions/export — Export all transactions as CSV
-  app.get(
+  r.get(
     "/transactions/export",
     {
       schema: {
         tags: ["transactions"],
-        summary: "Export transactions as CSV file",
-        querystring: {
-          type: "object" as const,
-          additionalProperties: true,
-          properties: {
-            from: {
-              type: "string",
-              format: "date-time",
-              description: "Start date filter",
-            },
-            to: {
-              type: "string",
-              format: "date-time",
-              description: "End date filter",
-            },
-          },
-        },
+        operationId: "exportTransactionsCsv",
+        description: "Export transactions as CSV file",
+        querystring: z.object({
+          from: z.string().datetime().optional(),
+          to: z.string().datetime().optional(),
+        }),
         response: {
-          200: {
-            type: "string" as const,
-            description: "CSV file download",
-          },
+          200: z.any().openapi({ description: "CSV file content" }),
         },
       },
     },
     async (request, reply) => {
-      const query = z
-        .object({
-          from: z.string().datetime().optional(),
-          to: z.string().datetime().optional(),
-        })
-        .parse(request.query);
+      const query = request.query;
 
       const where: Record<string, unknown> = { userId: request.userId };
       if (query.from || query.to) {
@@ -602,40 +355,22 @@ export async function transactionRoutes(app: FastifyInstance) {
   );
 
   // GET /transactions/:id — Get single transaction
-  app.get(
+  r.get(
     "/transactions/:id",
     {
       schema: {
         tags: ["transactions"],
-        summary: "Get a single transaction by ID",
+        operationId: "getTransaction",
+        description: "Get a single transaction by ID",
         params: idParamSchema,
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: transactionObjectSchema,
-            },
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: {
-                type: "object",
-                additionalProperties: true,
-                properties: {
-                  code: { type: "string" },
-                  message: { type: "string" },
-                },
-              },
-            },
-          },
+          200: z.object({ data: transactionSchema }),
+          404: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const { id } = request.params;
 
       const transaction = await prisma.transaction.findFirst({
         where: { id, userId: request.userId },
@@ -655,62 +390,24 @@ export async function transactionRoutes(app: FastifyInstance) {
   );
 
   // PUT /transactions/:id — Update transaction
-  app.put(
+  r.put(
     "/transactions/:id",
     {
       schema: {
         tags: ["transactions"],
-        summary: "Update an existing transaction",
+        operationId: "updateTransaction",
+        description: "Update a transaction",
         params: idParamSchema,
-        body: {
-          type: "object" as const,
-          additionalProperties: true,
-          description: "Partial transaction fields to update",
-          properties: {
-            type: { type: "string", enum: txTypeEnum },
-            timestamp: { type: "string", format: "date-time" },
-            sentAsset: { type: "string" },
-            sentAmount: { type: "number", minimum: 0 },
-            sentValueUsd: { type: "number", minimum: 0 },
-            receivedAsset: { type: "string" },
-            receivedAmount: { type: "number", minimum: 0 },
-            receivedValueUsd: { type: "number", minimum: 0 },
-            feeAsset: { type: "string" },
-            feeAmount: { type: "number", minimum: 0 },
-            feeValueUsd: { type: "number", minimum: 0 },
-            notes: { type: "string" },
-            tags: { type: "array", items: { type: "string" } },
-            sourceId: { type: "string", format: "uuid" },
-          },
-        },
+        body: createTransactionSchema.partial(),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: transactionObjectSchema,
-            },
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: {
-                type: "object",
-                additionalProperties: true,
-                properties: {
-                  code: { type: "string" },
-                  message: { type: "string" },
-                },
-              },
-            },
-          },
+          200: z.object({ data: transactionSchema }),
+          404: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
-      const body = createTransactionSchema.partial().parse(request.body);
+      const { id } = request.params;
+      const body = request.body;
 
       const existing = await prisma.transaction.findFirst({
         where: { id, userId: request.userId },
@@ -738,48 +435,23 @@ export async function transactionRoutes(app: FastifyInstance) {
   );
 
   // DELETE /transactions/bulk — Bulk delete transactions
-  app.delete(
+  r.delete(
     "/transactions/bulk",
     {
       schema: {
         tags: ["transactions"],
-        summary: "Bulk delete transactions by IDs",
-        body: {
-          type: "object" as const,
-          additionalProperties: true,
-          required: ["ids"] as const,
-          properties: {
-            ids: {
-              type: "array",
-              items: { type: "string", format: "uuid" },
-              minItems: 1,
-              maxItems: 500,
-            },
-          },
-        },
+        operationId: "bulkDeleteTransactions",
+        description: "Bulk delete transactions by ID",
+        body: z.object({
+          ids: z.array(z.string().uuid()).min(1).max(500),
+        }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object",
-                additionalProperties: true,
-                properties: {
-                  deleted: { type: "integer" },
-                },
-              },
-            },
-          },
+          200: z.object({ data: z.object({ deleted: z.number().int() }) }),
         },
       },
     },
     async (request, _reply) => {
-      const body = z
-        .object({
-          ids: z.array(z.string().uuid()).min(1).max(500),
-        })
-        .parse(request.body);
+      const body = request.body;
 
       const deleted = await prisma.transaction.deleteMany({
         where: {
@@ -793,37 +465,24 @@ export async function transactionRoutes(app: FastifyInstance) {
   );
 
   // DELETE /transactions/:id — Delete transaction
-  app.delete(
+  r.delete(
     "/transactions/:id",
     {
       schema: {
         tags: ["transactions"],
-        summary: "Delete a single transaction",
+        operationId: "deleteTransaction",
+        description: "Delete a single transaction",
         params: idParamSchema,
         response: {
-          204: {
-            type: "null" as const,
-            description: "Transaction deleted successfully",
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: {
-                type: "object",
-                additionalProperties: true,
-                properties: {
-                  code: { type: "string" },
-                  message: { type: "string" },
-                },
-              },
-            },
-          },
+          204: z
+            .any()
+            .openapi({ type: "string", description: "Transaction deleted" }),
+          404: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const { id } = request.params;
 
       const existing = await prisma.transaction.findFirst({
         where: { id, userId: request.userId },

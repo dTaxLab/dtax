@@ -8,6 +8,7 @@
  */
 
 import { FastifyInstance } from "fastify";
+import type { FastifyZodOpenApiTypeProvider } from "fastify-zod-openapi";
 import { z } from "zod";
 import { createHash } from "crypto";
 import { prisma } from "../lib/prisma";
@@ -16,6 +17,8 @@ import { parseCsv } from "@dtax/tax-engine";
 import type { CsvFormat, ParsedTransaction } from "@dtax/tax-engine";
 import { checkTransactionQuota } from "../plugins/plan-guard";
 import { classifyBatch } from "../lib/ai-classifier";
+import { errorResponseSchema } from "../schemas/common";
+import { csvFormatEnum } from "../schemas/enums";
 
 /** Generate a deterministic fingerprint for a parsed transaction */
 function txFingerprint(tx: ParsedTransaction): string {
@@ -31,103 +34,90 @@ function txFingerprint(tx: ParsedTransaction): string {
   return "csv:" + createHash("sha256").update(key).digest("hex").slice(0, 16);
 }
 
-const formatSchema = z
-  .enum([
-    "generic",
-    "coinbase",
-    "binance",
-    "binance_us",
-    "kraken",
-    "etherscan",
-    "etherscan_erc20",
-    "gemini",
-    "crypto_com",
-    "kucoin",
-    "okx",
-    "bybit",
-    "gate",
-    "bitget",
-    "mexc",
-    "htx",
-    "solscan",
-    "solscan_defi",
-    "bitfinex",
-    "poloniex",
-    "koinly",
-    "cointracker",
-    "cryptact",
-  ])
-  .optional();
+const importResultSchema = z
+  .object({
+    imported: z.number().int(),
+    skipped: z.number().int(),
+    aiClassified: z.number().int(),
+    errors: z.array(z.any()).optional(),
+    summary: z.any(),
+    sourceId: z.string().uuid(),
+    sourceName: z.string(),
+  })
+  .openapi({ ref: "ImportResult" });
 
 export async function importRoutes(app: FastifyInstance) {
+  const r = app.withTypeProvider<FastifyZodOpenApiTypeProvider>();
   // POST /transactions/import — CSV file upload
-  app.post(
+  r.post(
     "/transactions/import",
     {
       schema: {
         tags: ["transactions"],
-        summary: "Import transactions from CSV file",
-        querystring: {
-          type: "object" as const,
-          additionalProperties: true,
-          properties: {
-            format: { type: "string" as const },
-            source: { type: "string" as const },
-            userAddress: { type: "string" as const },
-            nativeAsset: { type: "string" as const },
-          },
-        },
+        operationId: "importTransactions",
+        description:
+          "Upload CSV file, parse, and bulk insert transactions. Supports multiple exchange formats with auto-detection.",
+        querystring: z.object({
+          format: csvFormatEnum.optional(),
+          source: z
+            .string()
+            .optional()
+            .openapi({ description: "Custom data source name" }),
+          userAddress: z
+            .string()
+            .optional()
+            .openapi({
+              description: "User wallet address (for blockchain explorers)",
+            }),
+          nativeAsset: z
+            .string()
+            .optional()
+            .openapi({
+              description: "Native asset symbol (for blockchain explorers)",
+            }),
+        }),
         response: {
-          201: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: { type: "object" as const, additionalProperties: true },
-              meta: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          400: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          403: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          413: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          201: z.object({
+            data: importResultSchema,
+            meta: z.object({
+              requestId: z.string(),
+              timestamp: z.string().datetime(),
+              format: z.string(),
+            }),
+          }),
+          200: z.object({
+            data: z.object({
+              imported: z.number().int(),
+              skipped: z.number().int(),
+              errors: z.array(z.any()).optional(),
+              summary: z.any(),
+            }),
+            meta: z.object({
+              requestId: z.string(),
+              timestamp: z.string().datetime(),
+              format: z.string(),
+              message: z.string().optional(),
+            }),
+          }),
+          400: z
+            .any()
+            .openapi({
+              description: "Bad request (no transactions, invalid content)",
+            }),
+          403: errorResponseSchema,
+          413: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      // Get optional format and source from query
-      const query = request.query as Record<string, string>;
-      const formatParam = formatSchema.parse(query.format);
+      const query = request.query;
+      const formatParam = query.format;
       const sourceName = query.source || undefined;
       const userAddress = query.userAddress || undefined;
       const nativeAsset = query.nativeAsset || undefined;
 
       let csvContent: string;
 
-      // Try multipart file upload first
       const contentType = request.headers["content-type"] || "";
 
       if (contentType.includes("multipart/form-data")) {
@@ -138,7 +128,6 @@ export async function importRoutes(app: FastifyInstance) {
           });
         }
 
-        // Read file content
         const chunks: Buffer[] = [];
         for await (const chunk of file.file) {
           chunks.push(chunk);
@@ -148,8 +137,7 @@ export async function importRoutes(app: FastifyInstance) {
         contentType.includes("text/csv") ||
         contentType.includes("text/plain")
       ) {
-        // Accept raw text body
-        csvContent = (await request.body) as string;
+        csvContent = (await request.body) as unknown as string;
       } else {
         return reply.status(400).send({
           error: {
@@ -165,7 +153,6 @@ export async function importRoutes(app: FastifyInstance) {
         });
       }
 
-      // Reject excessively large CSV bodies (10MB limit, matching multipart)
       const MAX_CSV_BYTES = 10 * 1024 * 1024;
       if (Buffer.byteLength(csvContent, "utf-8") > MAX_CSV_BYTES) {
         return reply.status(413).send({
@@ -176,7 +163,6 @@ export async function importRoutes(app: FastifyInstance) {
         });
       }
 
-      // Parse CSV
       const parseResult = parseCsv(csvContent, {
         format: formatParam as CsvFormat | undefined,
         userAddress,
@@ -190,18 +176,16 @@ export async function importRoutes(app: FastifyInstance) {
             message: "No valid transactions found in CSV",
           },
           data: {
-            errors: parseResult.errors.slice(0, 10), // Limit error count
+            errors: parseResult.errors.slice(0, 10),
             summary: parseResult.summary,
           },
         });
       }
 
-      // Generate fingerprints for deduplication
       const fingerprints = parseResult.transactions.map((tx) =>
         txFingerprint(tx),
       );
 
-      // Check which fingerprints already exist in DB
       const existing = await prisma.transaction.findMany({
         where: {
           userId: request.userId,
@@ -211,7 +195,6 @@ export async function importRoutes(app: FastifyInstance) {
       });
       const existingSet = new Set(existing.map((e) => e.externalId));
 
-      // Filter out duplicates
       const newTxs: { tx: ParsedTransaction; fp: string }[] = [];
       let skipped = 0;
       for (let i = 0; i < parseResult.transactions.length; i++) {
@@ -222,7 +205,6 @@ export async function importRoutes(app: FastifyInstance) {
         }
       }
 
-      // Enforce FREE plan transaction quota before insert
       const quota = await checkTransactionQuota(request.userId);
       if (!quota.allowed) {
         return reply.status(403).send({
@@ -266,7 +248,6 @@ export async function importRoutes(app: FastifyInstance) {
         });
       }
 
-      // Create a DataSource to track the import origin
       const dsName =
         sourceName || parseResult.summary.format.toUpperCase() + " Import";
       const dataSource = await prisma.dataSource.create({
@@ -278,7 +259,6 @@ export async function importRoutes(app: FastifyInstance) {
         },
       });
 
-      // Bulk insert into database with sourceId and externalId
       const dbRecords = newTxs.map(({ tx, fp }) => ({
         userId: request.userId,
         sourceId: dataSource.id,
@@ -302,7 +282,6 @@ export async function importRoutes(app: FastifyInstance) {
         data: dbRecords,
       });
 
-      // AI-classify UNKNOWN transactions (async, best-effort)
       let aiClassified = 0;
       try {
         const unknownTxs = await prisma.transaction.findMany({

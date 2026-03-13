@@ -42,6 +42,7 @@ async function authPlugin(app: FastifyInstance) {
 
       // 公共路由无需认证
       if (
+        url.startsWith("/docs") ||
         url.startsWith("/api/health") ||
         url.startsWith("/api/v1/auth/register") ||
         url.startsWith("/api/v1/auth/login") ||

@@ -7,80 +7,79 @@
 
 import crypto from "crypto";
 import { FastifyInstance } from "fastify";
+import type { FastifyZodOpenApiTypeProvider } from "fastify-zod-openapi";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma";
 import { config } from "../config";
 import { sendEmail, verificationEmail, resetPasswordEmail } from "../lib/email";
+import { errorResponseSchema } from "../schemas/common";
+import { userRoleEnum } from "../schemas/enums";
 
-const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  name: z.string().optional(),
-});
+const registerSchema = z
+  .object({
+    email: z.string().email(),
+    password: z.string().min(8),
+    name: z.string().optional(),
+  })
+  .openapi({ ref: "RegisterInput" });
 
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string(),
-});
+const loginSchema = z
+  .object({
+    email: z.string().email(),
+    password: z.string(),
+  })
+  .openapi({ ref: "LoginInput" });
+
+const authUserSchema = z
+  .object({
+    id: z.string().uuid(),
+    email: z.string().email(),
+    name: z.string().nullable(),
+    role: userRoleEnum,
+  })
+  .openapi({ ref: "AuthUser" });
+
+const tokenResponseSchema = z
+  .object({
+    data: z.object({
+      token: z.string(),
+      user: authUserSchema,
+    }),
+  })
+  .openapi({ ref: "AuthResponse" });
+
+const userProfileSchema = z
+  .object({
+    id: z.string().uuid(),
+    email: z.string().email(),
+    name: z.string().nullable(),
+    role: userRoleEnum,
+    createdAt: z.date(),
+  })
+  .openapi({ ref: "UserProfile" });
 
 export async function authRoutes(app: FastifyInstance) {
+  const r = app.withTypeProvider<FastifyZodOpenApiTypeProvider>();
   // POST /auth/register（速率限制：每分钟 5 次）
-  app.post(
+  r.post(
     "/auth/register",
     {
       config: { rateLimit: { max: 5, timeWindow: "1 minute" } },
       schema: {
         tags: ["auth"],
-        summary: "Register a new account",
-        body: {
-          type: "object" as const,
-          required: ["email", "password"],
-          properties: {
-            email: { type: "string" as const, description: "Email address" },
-            password: {
-              type: "string" as const,
-              description: "Min 8 characters",
-            },
-            name: { type: "string" as const },
-          },
-        },
+        operationId: "register",
+        description: "Register a new user account",
+        security: [],
+        body: registerSchema,
         response: {
-          201: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  token: { type: "string" as const },
-                  user: {
-                    type: "object" as const,
-                    additionalProperties: true,
-                    properties: {
-                      id: { type: "string" as const },
-                      email: { type: "string" as const },
-                      name: { type: "string" as const },
-                      role: { type: "string" as const },
-                    },
-                  },
-                },
-              },
-            },
-          },
-          409: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          201: tokenResponseSchema,
+          409: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const body = registerSchema.parse(request.body);
+      const body = request.body;
 
       const existing = await prisma.user.findUnique({
         where: { email: body.email },
@@ -124,57 +123,24 @@ export async function authRoutes(app: FastifyInstance) {
   );
 
   // POST /auth/login（速率限制：每分钟 10 次）
-  app.post(
+  r.post(
     "/auth/login",
     {
       config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
       schema: {
         tags: ["auth"],
-        summary: "Login with email and password",
-        body: {
-          type: "object" as const,
-          required: ["email", "password"],
-          properties: {
-            email: { type: "string" as const, description: "Email address" },
-            password: { type: "string" as const },
-          },
-        },
+        operationId: "login",
+        description: "Login with email and password to get a JWT token",
+        security: [],
+        body: loginSchema,
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  token: { type: "string" as const },
-                  user: {
-                    type: "object" as const,
-                    additionalProperties: true,
-                    properties: {
-                      id: { type: "string" as const },
-                      email: { type: "string" as const },
-                      name: { type: "string" as const },
-                      role: { type: "string" as const },
-                    },
-                  },
-                },
-              },
-            },
-          },
-          401: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: tokenResponseSchema,
+          401: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const body = loginSchema.parse(request.body);
+      const body = request.body;
 
       const user = await prisma.user.findUnique({
         where: { email: body.email },
@@ -215,35 +181,20 @@ export async function authRoutes(app: FastifyInstance) {
   );
 
   // POST /auth/refresh — 刷新 token（需要有效的现有 token）
-  app.post(
+  r.post(
     "/auth/refresh",
     {
       schema: {
         tags: ["auth"],
-        summary: "Refresh JWT token",
+        operationId: "refreshToken",
+        description: "Refresh JWT token (requires valid existing token)",
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                properties: { token: { type: "string" as const } },
-              },
-            },
-          },
-          401: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({ data: z.object({ token: z.string() }) }),
+          401: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      // request.userId is set by the auth plugin (token was valid)
       const user = await prisma.user.findUnique({
         where: { id: request.userId },
         select: { id: true, role: true },
@@ -261,40 +212,23 @@ export async function authRoutes(app: FastifyInstance) {
   );
 
   // GET /auth/verify-email — 验证邮箱（公共路由）
-  app.get(
+  r.get(
     "/auth/verify-email",
     {
       schema: {
         tags: ["auth"],
-        summary: "Verify email address via token",
-        querystring: {
-          type: "object" as const,
-          required: ["token"],
-          properties: { token: { type: "string" as const } },
-        },
+        operationId: "verifyEmail",
+        description: "Verify email address using the token sent via email",
+        security: [],
+        querystring: z.object({ token: z.string() }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                properties: { verified: { type: "boolean" as const } },
-              },
-            },
-          },
-          400: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({ data: z.object({ verified: z.boolean() }) }),
+          400: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const query = z.object({ token: z.string() }).parse(request.query);
+      const query = request.query;
 
       try {
         const decoded = app.jwt.verify(query.token) as {
@@ -328,38 +262,23 @@ export async function authRoutes(app: FastifyInstance) {
   );
 
   // POST /auth/forgot-password — 请求密码重置（速率限制：每分钟 3 次）
-  app.post(
+  r.post(
     "/auth/forgot-password",
     {
       config: { rateLimit: { max: 3, timeWindow: "1 minute" } },
       schema: {
         tags: ["auth"],
-        summary: "Request password reset email",
-        body: {
-          type: "object" as const,
-          required: ["email"],
-          properties: {
-            email: { type: "string" as const, description: "Email address" },
-          },
-        },
+        operationId: "forgotPassword",
+        description: "Request a password reset email",
+        security: [],
+        body: z.object({ email: z.string().email() }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                properties: { message: { type: "string" as const } },
-              },
-            },
-          },
+          200: z.object({ data: z.object({ message: z.string() }) }),
         },
       },
     },
     async (request) => {
-      const { email } = z
-        .object({ email: z.string().email() })
-        .parse(request.body);
+      const { email } = request.body;
 
       const user = await prisma.user.findUnique({ where: { email } });
       if (user) {
@@ -389,51 +308,26 @@ export async function authRoutes(app: FastifyInstance) {
   );
 
   // POST /auth/reset-password — 重置密码
-  app.post(
+  r.post(
     "/auth/reset-password",
     {
       schema: {
         tags: ["auth"],
-        summary: "Reset password with token",
-        body: {
-          type: "object" as const,
-          required: ["token", "password"],
-          properties: {
-            token: { type: "string" as const },
-            password: {
-              type: "string" as const,
-              description: "Min 8 characters",
-            },
-          },
-        },
+        operationId: "resetPassword",
+        description: "Reset password using the token from the reset email",
+        security: [],
+        body: z.object({
+          token: z.string(),
+          password: z.string().min(8),
+        }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                properties: { message: { type: "string" as const } },
-              },
-            },
-          },
-          400: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({ data: z.object({ message: z.string() }) }),
+          400: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const body = z
-        .object({
-          token: z.string(),
-          password: z.string().min(8),
-        })
-        .parse(request.body);
+      const body = request.body;
 
       const reset = await prisma.passwordReset.findUnique({
         where: { token: body.token },
@@ -466,37 +360,18 @@ export async function authRoutes(app: FastifyInstance) {
   );
 
   // GET /auth/me — 需要认证
-  app.get(
+  r.get(
     "/auth/me",
     {
       schema: {
         tags: ["auth"],
-        summary: "Get current user profile",
+        operationId: "getMe",
+        description: "Get current authenticated user profile",
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  id: { type: "string" as const },
-                  email: { type: "string" as const },
-                  name: { type: "string" as const },
-                  role: { type: "string" as const },
-                  createdAt: { type: "string" as const },
-                },
-              },
-            },
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({
+            data: userProfileSchema,
+          }),
+          404: errorResponseSchema,
         },
       },
     },

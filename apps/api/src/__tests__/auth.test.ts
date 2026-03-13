@@ -3,10 +3,16 @@
  * 测试注册、登录、me 端点
  */
 
+import "zod-openapi/extend";
+
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import Fastify from "fastify";
 import jwt from "@fastify/jwt";
 import { ZodError } from "zod";
+import {
+  fastifyZodOpenApiPlugin,
+  validatorCompiler,
+} from "fastify-zod-openapi";
 import { authRoutes } from "../routes/auth";
 
 // 模拟 Prisma
@@ -63,6 +69,10 @@ const mockBcrypt = vi.mocked(bcrypt);
 function buildAuthApp() {
   const app = Fastify({ logger: false });
 
+  app.register(fastifyZodOpenApiPlugin);
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(() => (data) => JSON.stringify(data));
+
   // 注册 JWT（auth 路由需要 app.jwt.sign）
   app.register(jwt, { secret: "test-secret", sign: { expiresIn: "7d" } });
 
@@ -76,6 +86,19 @@ function buildAuthApp() {
 
   // 全局错误处理
   app.setErrorHandler((error: Error, _request, reply) => {
+    const errAny = error as Error & {
+      validation?: unknown[];
+      statusCode?: number;
+    };
+    if (errAny.validation) {
+      return reply.status(400).send({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Request validation failed",
+          details: errAny.validation,
+        },
+      });
+    }
     if (error instanceof ZodError) {
       return reply.status(400).send({
         error: {
