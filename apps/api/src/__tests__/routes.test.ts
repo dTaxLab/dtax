@@ -7,6 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { buildApp, mockTransaction } from "./test-helpers";
+import { apiCache } from "../lib/cache.js";
 
 // ─── Mock Prisma ────────────────────────────────
 
@@ -406,6 +407,7 @@ describe("Tax Routes", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    apiCache.clear();
     app = buildApp();
     const { taxRoutes } = await import("../routes/tax");
     await app.register(taxRoutes, { prefix: "/api/v1" });
