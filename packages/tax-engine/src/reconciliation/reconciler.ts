@@ -102,6 +102,34 @@ function generateRebuttal(item: ReconciliationItem): string | undefined {
   }
 }
 
+/**
+ * Classify whether a broker entry represents a "covered" or "noncovered" security.
+ * Starting 2026, brokers must report cost basis for "covered" securities:
+ * assets bought on/after Jan 1, 2026 AND kept on the same exchange until sold.
+ */
+function classifyCoverage(
+  brokerEntry: Form1099DAEntry | null,
+): "covered" | "noncovered" | "unknown" {
+  if (!brokerEntry) return "unknown";
+
+  // If broker didn't provide cost basis, it's noncovered
+  if (brokerEntry.costBasis == null || brokerEntry.costBasis === 0) {
+    return "noncovered";
+  }
+
+  // If acquired before 2026-01-01, it's noncovered
+  if (brokerEntry.dateAcquired) {
+    const cutoff = new Date("2026-01-01");
+    if (brokerEntry.dateAcquired < cutoff) {
+      return "noncovered";
+    }
+    return "covered";
+  }
+
+  // No acquisition date = likely transferred in = noncovered
+  return "noncovered";
+}
+
 export interface ReconcileOptions {
   taxYear: number;
   brokerName: string;
@@ -143,6 +171,7 @@ export function reconcile(
           proceedsDiff: broker.grossProceeds - dtax.proceeds,
           costBasisDiff: (broker.costBasis ?? dtax.costBasis) - dtax.costBasis,
           gainLossDiff: (broker.gainLoss ?? dtax.gainLoss) - dtax.gainLoss,
+          coverageStatus: classifyCoverage(broker),
         };
         item.rebuttalSuggestion = generateRebuttal(item);
         items.push(item);
@@ -196,6 +225,7 @@ export function reconcile(
         proceedsDiff: broker.grossProceeds - dtax.proceeds,
         costBasisDiff: (broker.costBasis ?? dtax.costBasis) - dtax.costBasis,
         gainLossDiff: (broker.gainLoss ?? dtax.gainLoss) - dtax.gainLoss,
+        coverageStatus: classifyCoverage(broker),
       };
       item.rebuttalSuggestion = generateRebuttal(item);
       items.push(item);
@@ -227,6 +257,7 @@ export function reconcile(
       proceedsDiff: broker.grossProceeds,
       costBasisDiff: broker.costBasis ?? 0,
       gainLossDiff: broker.gainLoss ?? 0,
+      coverageStatus: classifyCoverage(broker),
     };
     item.rebuttalSuggestion = generateRebuttal(item);
     items.push(item);
@@ -244,6 +275,7 @@ export function reconcile(
       proceedsDiff: -dtax.proceeds,
       costBasisDiff: -dtax.costBasis,
       gainLossDiff: -dtax.gainLoss,
+      coverageStatus: "unknown",
     };
     item.rebuttalSuggestion = generateRebuttal(item);
     items.push(item);
@@ -268,6 +300,9 @@ export function reconcile(
       Math.round(items.reduce((s, i) => s + i.proceedsDiff, 0) * 100) / 100,
     netGainLossDiff:
       Math.round(items.reduce((s, i) => s + i.gainLossDiff, 0) * 100) / 100,
+    coveredCount: items.filter((i) => i.coverageStatus === "covered").length,
+    noncoveredCount: items.filter((i) => i.coverageStatus === "noncovered")
+      .length,
   };
 
   return {
