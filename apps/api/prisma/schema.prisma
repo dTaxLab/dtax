@@ -50,6 +50,7 @@ model User {
   cpaClients        Client[]           @relation("CpaClients")
   clientOf          Client?            @relation("ClientUser")
   auditLogs         AuditLog[]
+  notifications     Notification[]
 
   @@map("users")
 }
@@ -404,6 +405,34 @@ model ChatConversation {
 
   @@index([userId, createdAt])
   @@map("chat_conversations")
+}
+
+// ─── Notification ────────────────────────────
+// In-app notification system
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?
+  readAt    DateTime?        @map("read_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  IMPORT_COMPLETE
+  TAX_CALCULATED
+  WASH_SALE_DETECTED
+  PRICE_ALERT
+  QUOTA_WARNING
+  SYSTEM
 }
 
 model ChatMessage {
