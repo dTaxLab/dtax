@@ -49,6 +49,9 @@ blob-report/
 # Docker
 docker/data/
 
+# Report files
+data/reports/
+
 # Memory & AI context (sensitive)
 .memory/
 .claude/
