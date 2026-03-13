@@ -28,6 +28,12 @@ model User {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
+  // TOTP 2FA
+  totpSecret       String?          @map("totp_secret")
+  totpEnabled      Boolean          @default(false) @map("totp_enabled")
+  recoveryCodes    String[]         @map("recovery_codes")
+  totpVerifiedAt   DateTime?        @map("totp_verified_at")
+
   // GDPR soft-delete
   deletedAt          DateTime?  @map("deleted_at")
   deletionRequestedAt DateTime? @map("deletion_requested_at")
