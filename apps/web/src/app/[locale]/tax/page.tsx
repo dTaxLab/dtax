@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import {
   calculateTax,
@@ -9,6 +9,9 @@ import {
   getForm8949PdfUrl,
   getForm8949TxfUrl,
   getScheduleD,
+  getReportHistory,
+  getReportDownloadUrl,
+  deleteReportById,
 } from "@/lib/api";
 import type { TaxSummary, Form8949Report, ScheduleDReport } from "@/lib/api";
 import { getPreferences } from "@/lib/preferences";
@@ -36,6 +39,7 @@ const labelStyle = {
 
 export default function TaxPage() {
   const t = useTranslations("tax");
+  const tReport = useTranslations("reportHistory");
   const { formatFiat } = useFiatFormatter();
 
   const prefs = typeof window !== "undefined" ? getPreferences() : null;
@@ -52,6 +56,52 @@ export default function TaxPage() {
   const [scheduleD, setScheduleD] = useState<ScheduleDReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Report History state
+  const [reports, setReports] = useState<
+    Array<{
+      id: string;
+      taxYear: number;
+      method: string;
+      fileType: string | null;
+      fileName: string | null;
+      fileSize: number | null;
+      filePath?: string | null;
+      generatedAt: string | null;
+      status: string;
+      createdAt: string;
+    }>
+  >([]);
+  const [reportsTotal, setReportsTotal] = useState(0);
+  const [reportsOffset, setReportsOffset] = useState(0);
+
+  const fetchReports = async (offset = 0) => {
+    try {
+      const result = await getReportHistory({ limit: 10, offset });
+      setReports(offset === 0 ? result.data : [...reports, ...result.data]);
+      setReportsTotal(result.total);
+      setReportsOffset(offset + 10);
+    } catch {
+      // silently ignore
+    }
+  };
+
+  useEffect(() => {
+    fetchReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleDeleteReport = async (id: string) => {
+    if (!confirm(tReport("deleteConfirm"))) return;
+    await deleteReportById(id);
+    fetchReports(0);
+  };
+
+  const formatSize = (bytes: number | null) => {
+    if (!bytes) return "-";
+    if (bytes > 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  };
 
   async function handleCalculate() {
     setLoading(true);
@@ -906,6 +956,90 @@ export default function TaxPage() {
       )}
 
       {report && <RiskScan year={year} />}
+
+      {/* Report History */}
+      <div style={{ marginTop: 40 }}>
+        <h2 style={{ fontSize: "18px", fontWeight: 600, marginBottom: "16px" }}>
+          {tReport("title")}
+        </h2>
+        {reports.length === 0 ? (
+          <p style={{ color: "var(--text-muted)" }}>{tReport("noReports")}</p>
+        ) : (
+          <div className="table-container">
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left", padding: 8 }}>
+                    {tReport("type")}
+                  </th>
+                  <th style={{ textAlign: "left", padding: 8 }}>
+                    {tReport("year")}
+                  </th>
+                  <th style={{ textAlign: "left", padding: 8 }}>
+                    {tReport("method")}
+                  </th>
+                  <th style={{ textAlign: "left", padding: 8 }}>
+                    {tReport("generatedAt")}
+                  </th>
+                  <th style={{ textAlign: "left", padding: 8 }}>
+                    {tReport("fileSize")}
+                  </th>
+                  <th style={{ textAlign: "right", padding: 8 }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {reports.map((r) => (
+                  <tr key={r.id}>
+                    <td style={{ padding: 8 }}>
+                      {r.fileType?.toUpperCase() || "\u2014"}
+                    </td>
+                    <td style={{ padding: 8 }}>{r.taxYear}</td>
+                    <td style={{ padding: 8 }}>{r.method}</td>
+                    <td style={{ padding: 8 }}>
+                      {r.generatedAt
+                        ? new Date(r.generatedAt).toLocaleDateString()
+                        : "\u2014"}
+                    </td>
+                    <td style={{ padding: 8 }}>{formatSize(r.fileSize)}</td>
+                    <td style={{ padding: 8, textAlign: "right" }}>
+                      {r.filePath && (
+                        <a
+                          href={getReportDownloadUrl(r.id)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ marginRight: 8 }}
+                        >
+                          {tReport("download")}
+                        </a>
+                      )}
+                      <button
+                        onClick={() => handleDeleteReport(r.id)}
+                        style={{
+                          color: "#ef4444",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {tReport("delete")}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {reports.length < reportsTotal && (
+          <button
+            onClick={() => fetchReports(reportsOffset)}
+            className="btn btn-secondary"
+            style={{ marginTop: 8 }}
+          >
+            Show More
+          </button>
+        )}
+      </div>
     </div>
   );
 }

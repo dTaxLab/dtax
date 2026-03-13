@@ -1132,5 +1132,18 @@
     "LOGOUT": "Logout",
     "SETTINGS_CHANGE": "Settings Changed",
     "SUBSCRIPTION_CHANGE": "Plan Changed"
+  },
+  "reportHistory": {
+    "title": "Report History",
+    "noReports": "No reports generated yet. Calculate your taxes to generate reports.",
+    "type": "Type",
+    "year": "Year",
+    "method": "Method",
+    "generatedAt": "Generated",
+    "fileSize": "Size",
+    "download": "Download",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this report?",
+    "deleted": "Report deleted"
   }
 }

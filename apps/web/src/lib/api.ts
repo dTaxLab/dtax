@@ -1172,6 +1172,48 @@ export async function getAuditLogs(params?: {
   }>(`/api/v1/audit${qs ? `?${qs}` : ""}`);
 }
 
+// ── Report History ──
+
+export async function getReportHistory(params?: {
+  limit?: number;
+  offset?: number;
+}) {
+  const searchParams = new URLSearchParams();
+  if (params?.limit) searchParams.set("limit", String(params.limit));
+  if (params?.offset) searchParams.set("offset", String(params.offset));
+  const qs = searchParams.toString();
+  return apiFetch<{
+    data: Array<{
+      id: string;
+      taxYear: number;
+      method: string;
+      fileType: string | null;
+      fileName: string | null;
+      fileSize: number | null;
+      generatedAt: string | null;
+      status: string;
+      shortTermGains: string;
+      shortTermLosses: string;
+      longTermGains: string;
+      longTermLosses: string;
+      createdAt: string;
+    }>;
+    total: number;
+  }>(`/api/v1/tax/reports${qs ? `?${qs}` : ""}`);
+}
+
+export function getReportDownloadUrl(reportId: string): string {
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("dtax_token") : null;
+  return `${API_BASE}/api/v1/tax/reports/${reportId}/download${token ? `?token=${token}` : ""}`;
+}
+
+export async function deleteReportById(reportId: string) {
+  return apiFetch<{ success: boolean }>(`/api/v1/tax/reports/${reportId}`, {
+    method: "DELETE",
+  });
+}
+
 export async function sendChatMessageStream(
   conversationId: string,
   content: string,

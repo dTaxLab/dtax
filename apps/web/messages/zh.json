@@ -1132,5 +1132,18 @@
     "LOGOUT": "注销",
     "SETTINGS_CHANGE": "设置更改",
     "SUBSCRIPTION_CHANGE": "套餐变更"
+  },
+  "reportHistory": {
+    "title": "报告历史",
+    "noReports": "暂无报告。计算税务后将自动生成报告。",
+    "type": "类型",
+    "year": "年份",
+    "method": "方法",
+    "generatedAt": "生成时间",
+    "fileSize": "大小",
+    "download": "下载",
+    "delete": "删除",
+    "deleteConfirm": "确定删除此报告？",
+    "deleted": "报告已删除"
   }
 }
