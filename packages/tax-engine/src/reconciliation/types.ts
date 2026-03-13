@@ -74,6 +74,8 @@ export interface ReconciliationItem {
   costBasisDiff: number;
   /** Difference in gain/loss */
   gainLossDiff: number;
+  /** Whether the broker considers this a "covered" security (basis reported to IRS) */
+  coverageStatus: "covered" | "noncovered" | "unknown";
   /** Suggested action for rebuttal */
   rebuttalSuggestion?: string;
 }
@@ -96,6 +98,10 @@ export interface ReconciliationReport {
     netProceedsDiff: number;
     /** Net difference in gain/loss */
     netGainLossDiff: number;
+    /** Count of covered securities (basis reported to IRS) */
+    coveredCount: number;
+    /** Count of noncovered securities (user self-reports basis) */
+    noncoveredCount: number;
   };
   items: ReconciliationItem[];
 }
