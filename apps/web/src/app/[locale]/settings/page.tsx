@@ -21,6 +21,7 @@ import {
   verify2FA,
   disable2FA,
   get2FAStatus,
+  getAuditLogs,
 } from "@/lib/api";
 import type { DataSource } from "@/lib/api";
 import { getStoredToken } from "@/lib/auth-context";
@@ -50,6 +51,7 @@ export default function SettingsPage() {
   const tDs = useTranslations("dataSources");
   const tAcc = useTranslations("account");
   const t2fa = useTranslations("twoFactor");
+  const tAudit = useTranslations("audit");
   const { user, token } = useAuth();
   const searchParams = useSearchParams();
 
@@ -92,7 +94,41 @@ export default function SettingsPage() {
   const [twoFAError, setTwoFAError] = useState<string | null>(null);
   const [twoFASubmitting, setTwoFASubmitting] = useState(false);
 
+  // Audit Log state
+  const [auditLogs, setAuditLogs] = useState<
+    Array<{
+      id: string;
+      action: string;
+      entityType: string;
+      entityId: string | null;
+      details: Record<string, unknown> | null;
+      ipAddress: string | null;
+      createdAt: string;
+    }>
+  >([]);
+  const [auditTotal, setAuditTotal] = useState(0);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditOffset, setAuditOffset] = useState(0);
+
   const billingSuccess = searchParams.get("billing") === "success";
+
+  async function fetchAuditLogs(offset = 0) {
+    setAuditLoading(true);
+    try {
+      const result = await getAuditLogs({ limit: 20, offset });
+      if (offset === 0) {
+        setAuditLogs(result.data || []);
+      } else {
+        setAuditLogs((prev) => [...prev, ...(result.data || [])]);
+      }
+      setAuditTotal(result.total || 0);
+      setAuditOffset(offset + 20);
+    } catch {
+      /* silently fail */
+    } finally {
+      setAuditLoading(false);
+    }
+  }
 
   useEffect(() => {
     const prefs = getPreferences();
@@ -102,6 +138,7 @@ export default function SettingsPage() {
     loadSources();
     loadBillingStatus();
     load2FAStatus();
+    fetchAuditLogs();
   }, []);
 
   async function loadSources() {
@@ -1222,6 +1259,58 @@ export default function SettingsPage() {
                 </div>
               )}
             </div>
+          </div>
+          {/* Activity Log */}
+          <div className="card" style={{ padding: "24px" }}>
+            <h2
+              style={{
+                fontSize: "18px",
+                fontWeight: 600,
+                marginBottom: "16px",
+              }}
+            >
+              {tAudit("title")}
+            </h2>
+
+            {auditLogs.length === 0 ? (
+              <p style={{ fontSize: "14px", color: "var(--text-muted)" }}>
+                {tAudit("noLogs")}
+              </p>
+            ) : (
+              <div>
+                {auditLogs.map((log) => (
+                  <div
+                    key={log.id}
+                    style={{
+                      borderBottom: "1px solid var(--border)",
+                      padding: "8px 0",
+                      fontSize: 13,
+                    }}
+                  >
+                    <span style={{ color: "var(--text-muted)" }}>
+                      {new Date(log.createdAt).toLocaleString()}
+                    </span>
+                    <span style={{ marginLeft: 8, fontWeight: 600 }}>
+                      {tAudit(log.action as Parameters<typeof tAudit>[0])}
+                    </span>
+                    <span style={{ marginLeft: 8 }}>
+                      {log.entityType}
+                      {log.entityId && ` #${log.entityId.slice(0, 8)}`}
+                    </span>
+                  </div>
+                ))}
+                {auditLogs.length < auditTotal && (
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => fetchAuditLogs(auditOffset)}
+                    disabled={auditLoading}
+                    style={{ width: "100%", marginTop: "12px" }}
+                  >
+                    {tAudit("showMore")}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
         {/* end right column */}

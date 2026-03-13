@@ -1139,6 +1139,39 @@ export async function batchReport(
   });
 }
 
+// ── Audit Log ──
+
+export async function getAuditLogs(params?: {
+  action?: string;
+  entityType?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const searchParams = new URLSearchParams();
+  if (params?.action) searchParams.set("action", params.action);
+  if (params?.entityType) searchParams.set("entityType", params.entityType);
+  if (params?.from) searchParams.set("from", params.from);
+  if (params?.to) searchParams.set("to", params.to);
+  if (params?.limit) searchParams.set("limit", String(params.limit));
+  if (params?.offset) searchParams.set("offset", String(params.offset));
+
+  const qs = searchParams.toString();
+  return apiFetch<{
+    data: Array<{
+      id: string;
+      action: string;
+      entityType: string;
+      entityId: string | null;
+      details: Record<string, unknown> | null;
+      ipAddress: string | null;
+      createdAt: string;
+    }>;
+    total: number;
+  }>(`/api/v1/audit${qs ? `?${qs}` : ""}`);
+}
+
 export async function sendChatMessageStream(
   conversationId: string,
   content: string,

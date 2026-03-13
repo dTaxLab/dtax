@@ -1106,5 +1106,31 @@
     "longTermGL": "长期",
     "netGainLoss": "净盈亏",
     "income": "收入"
+  },
+  "audit": {
+    "title": "操作日志",
+    "action": "操作",
+    "entityType": "类型",
+    "entityId": "ID",
+    "details": "详情",
+    "timestamp": "时间",
+    "ipAddress": "IP地址",
+    "noLogs": "暂无操作记录",
+    "showMore": "加载更多",
+    "CREATE": "创建",
+    "UPDATE": "更新",
+    "DELETE": "删除",
+    "BULK_DELETE": "批量删除",
+    "IMPORT": "导入",
+    "EXPORT": "导出",
+    "CALCULATE": "计算",
+    "GENERATE_REPORT": "生成报告",
+    "AI_CLASSIFY": "AI分类",
+    "AI_CONFIRM": "AI确认",
+    "AI_CORRECT": "AI修正",
+    "LOGIN": "登录",
+    "LOGOUT": "注销",
+    "SETTINGS_CHANGE": "设置更改",
+    "SUBSCRIPTION_CHANGE": "套餐变更"
   }
 }

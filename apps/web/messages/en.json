@@ -1106,5 +1106,31 @@
     "longTermGL": "Long-Term",
     "netGainLoss": "Net G/L",
     "income": "Income"
+  },
+  "audit": {
+    "title": "Activity Log",
+    "action": "Action",
+    "entityType": "Type",
+    "entityId": "ID",
+    "details": "Details",
+    "timestamp": "Time",
+    "ipAddress": "IP",
+    "noLogs": "No activity recorded yet",
+    "showMore": "Show More",
+    "CREATE": "Created",
+    "UPDATE": "Updated",
+    "DELETE": "Deleted",
+    "BULK_DELETE": "Bulk Deleted",
+    "IMPORT": "Imported",
+    "EXPORT": "Exported",
+    "CALCULATE": "Calculated",
+    "GENERATE_REPORT": "Report Generated",
+    "AI_CLASSIFY": "AI Classified",
+    "AI_CONFIRM": "AI Confirmed",
+    "AI_CORRECT": "AI Corrected",
+    "LOGIN": "Login",
+    "LOGOUT": "Logout",
+    "SETTINGS_CHANGE": "Settings Changed",
+    "SUBSCRIPTION_CHANGE": "Plan Changed"
   }
 }
