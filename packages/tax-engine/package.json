@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "description": "Open source crypto tax calculation engine - FIFO, LIFO, HIFO, Specific ID",
   "license": "AGPL-3.0",
-  "homepage": "https://github.com/dTaxLab/dtax/tree/main/packages/tax-engine",
+  "homepage": "https://getdtax.com",
+  "bugs": "https://github.com/dTaxLab/dtax/issues",
   "repository": {
     "type": "git",
     "url": "https://github.com/dTaxLab/dtax.git",
@@ -20,7 +21,9 @@
     "form-8949",
     "schedule-d",
     "wash-sale",
-    "csv-parser"
+    "csv-parser",
+    "ethereum",
+    "capital-gains"
   ],
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -34,8 +37,15 @@
   },
   "files": [
     "dist",
-    "LICENSE"
+    "LICENSE",
+    "README.md"
   ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
