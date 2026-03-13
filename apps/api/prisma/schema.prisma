@@ -49,6 +49,7 @@ model User {
   chatConversations ChatConversation[]
   cpaClients        Client[]           @relation("CpaClients")
   clientOf          Client?            @relation("ClientUser")
+  auditLogs         AuditLog[]
 
   @@map("users")
 }
@@ -91,6 +92,45 @@ enum ClientStatus {
   PENDING
   ACTIVE
   REVOKED
+}
+
+// ─── Audit Log ─────────────────────────────────
+// Compliance audit trail for all user actions
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  userId     String      @map("user_id")
+  user       User        @relation(fields: [userId], references: [id])
+  action     AuditAction
+  entityType String      @map("entity_type")
+  entityId   String?     @map("entity_id")
+  details    Json?
+  ipAddress  String?     @map("ip_address")
+  userAgent  String?     @map("user_agent")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@index([userId, action])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  BULK_DELETE
+  IMPORT
+  EXPORT
+  CALCULATE
+  GENERATE_REPORT
+  AI_CLASSIFY
+  AI_CONFIRM
+  AI_CORRECT
+  LOGIN
+  LOGOUT
+  SETTINGS_CHANGE
+  SUBSCRIPTION_CHANGE
 }
 
 // ─── Data Source ────────────────────────────────
