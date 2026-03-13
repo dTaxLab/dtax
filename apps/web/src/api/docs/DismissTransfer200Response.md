@@ -1,0 +1,19 @@
+# DismissTransfer200Response
+
+## Properties
+
+| Name     | Type                                                                    | Description | Notes                  |
+| -------- | ----------------------------------------------------------------------- | ----------- | ---------------------- |
+| **data** | [**DismissTransfer200ResponseData**](DismissTransfer200ResponseData.md) |             | [default to undefined] |
+
+## Example
+
+```typescript
+import { DismissTransfer200Response } from "./api";
+
+const instance: DismissTransfer200Response = {
+  data,
+};
+```
+
+[[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

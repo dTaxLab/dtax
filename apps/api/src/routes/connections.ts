@@ -4,66 +4,62 @@
  */
 
 import { FastifyInstance } from "fastify";
+import type { FastifyZodOpenApiTypeProvider } from "fastify-zod-openapi";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { DataSourceType, DataSourceStatus } from "@prisma/client";
 import { encryptKey, CcxtService } from "../services/ccxt";
+import { errorResponseSchema, idParamSchema } from "../schemas/common";
 
-const ConnectionSchema = z.object({
-  exchangeId: z.string().min(1), // e.g., 'binance', 'okx'
-  apiKey: z.string().min(5),
-  apiSecret: z.string().min(5),
-  apiPassword: z.string().optional(),
-});
+const ConnectionSchema = z
+  .object({
+    exchangeId: z.string().min(1),
+    apiKey: z.string().min(5),
+    apiSecret: z.string().min(5),
+    apiPassword: z.string().optional(),
+  })
+  .openapi({ ref: "ConnectionInput" });
+
+const connectionResponseSchema = z
+  .object({
+    id: z.string().uuid(),
+    name: z.string(),
+    status: z.string(),
+  })
+  .openapi({ ref: "ConnectionResponse" });
+
+const dataSourceSchema = z
+  .object({
+    id: z.string().uuid(),
+    name: z.string(),
+    type: z.string(),
+    status: z.string(),
+    lastSyncAt: z.date().nullable(),
+    createdAt: z.date(),
+    transactionCount: z.number().int().optional(),
+  })
+  .openapi({ ref: "DataSource" });
 
 export async function connectionRoutes(app: FastifyInstance) {
+  const r = app.withTypeProvider<FastifyZodOpenApiTypeProvider>();
   // 1. Setup new API connection
-  app.post(
+  r.post(
     "/connections",
     {
       schema: {
         tags: ["connections"],
-        summary: "Create a new exchange API connection",
-        body: {
-          type: "object" as const,
-          additionalProperties: true,
-          required: ["exchangeId", "apiKey", "apiSecret"],
-          properties: {
-            exchangeId: { type: "string" as const },
-            apiKey: { type: "string" as const },
-            apiSecret: { type: "string" as const },
-            apiPassword: { type: "string" as const },
-          },
-        },
+        operationId: "createConnection",
+        description: "Setup a new exchange API connection",
+        body: ConnectionSchema,
         response: {
-          201: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          400: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          201: z.object({ data: connectionResponseSchema }),
+          400: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const body = ConnectionSchema.parse(request.body);
+      const body = request.body;
 
-      // Test the connection via CCXT first
       const isValid = await CcxtService.testConnection(
         body.exchangeId,
         {
@@ -83,7 +79,6 @@ export async function connectionRoutes(app: FastifyInstance) {
         });
       }
 
-      // Encrypt credentials before storing
       const secureConfig = {
         exchangeId: body.exchangeId,
         apiKey: encryptKey(body.apiKey),
@@ -91,7 +86,6 @@ export async function connectionRoutes(app: FastifyInstance) {
         ...(body.apiPassword && { apiPassword: encryptKey(body.apiPassword) }),
       };
 
-      // Store DataSource
       const dataSource = await prisma.dataSource.create({
         data: {
           userId: request.userId,
@@ -113,32 +107,25 @@ export async function connectionRoutes(app: FastifyInstance) {
   );
 
   // 2. List all connections
-  app.get(
+  r.get(
     "/connections",
     {
       schema: {
         tags: ["connections"],
-        summary: "List all exchange API connections",
+        operationId: "listConnections",
+        description: "List all exchange API connections",
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: { data: { type: "array" as const } },
-          },
-          400: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({
+            data: z.array(
+              z.object({
+                id: z.string().uuid(),
+                name: z.string(),
+                status: z.string(),
+                lastSyncAt: z.date().nullable(),
+                createdAt: z.date(),
+              }),
+            ),
+          }),
         },
       },
     },
@@ -159,32 +146,17 @@ export async function connectionRoutes(app: FastifyInstance) {
   );
 
   // 2b. List all data sources (connections + CSV imports)
-  app.get(
+  r.get(
     "/data-sources",
     {
       schema: {
         tags: ["connections"],
-        summary: "List all data sources (connections + CSV imports)",
+        operationId: "listDataSources",
+        description: "List all data sources (connections + CSV imports)",
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: { data: { type: "array" as const } },
-          },
-          400: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({
+            data: z.array(dataSourceSchema),
+          }),
         },
       },
     },
@@ -202,7 +174,6 @@ export async function connectionRoutes(app: FastifyInstance) {
         orderBy: { createdAt: "desc" },
       });
 
-      // Count transactions per source
       const counts = await prisma.transaction.groupBy({
         by: ["sourceId"],
         where: { userId: request.userId, sourceId: { not: null } },
@@ -220,53 +191,26 @@ export async function connectionRoutes(app: FastifyInstance) {
   );
 
   // 2c. Rename a data source
-  app.put(
+  r.put(
     "/data-sources/:id",
     {
       schema: {
         tags: ["connections"],
-        summary: "Rename a data source",
-        params: {
-          type: "object" as const,
-          required: ["id"],
-          properties: { id: { type: "string" as const } },
-        },
-        body: {
-          type: "object" as const,
-          additionalProperties: true,
-          required: ["name"],
-          properties: { name: { type: "string" as const } },
-        },
+        operationId: "renameDataSource",
+        description: "Rename a data source",
+        params: idParamSchema,
+        body: z.object({ name: z.string().min(1).max(100) }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          400: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({
+            data: z.object({ id: z.string().uuid(), name: z.string() }),
+          }),
+          404: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
-      const body = z
-        .object({ name: z.string().min(1).max(100) })
-        .parse(request.body);
+      const { id } = request.params;
+      const body = request.body;
 
       const source = await prisma.dataSource.findFirst({
         where: { id, userId: request.userId },
@@ -287,21 +231,25 @@ export async function connectionRoutes(app: FastifyInstance) {
   );
 
   // 2d. Delete a data source (unlinks transactions, does NOT delete them)
-  app.delete(
+  r.delete(
     "/data-sources/:id",
     {
       schema: {
         tags: ["connections"],
-        summary: "Delete a data source (unlinks transactions)",
-        params: {
-          type: "object" as const,
-          required: ["id"],
-          properties: { id: { type: "string" as const } },
+        operationId: "deleteDataSource",
+        description:
+          "Delete a data source (unlinks transactions, does NOT delete them)",
+        params: idParamSchema,
+        response: {
+          204: z
+            .any()
+            .openapi({ type: "string", description: "Data source deleted" }),
+          404: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const { id } = request.params;
 
       const source = await prisma.dataSource.findFirst({
         where: { id, userId: request.userId },
@@ -312,7 +260,6 @@ export async function connectionRoutes(app: FastifyInstance) {
         });
       }
 
-      // Unlink transactions (set sourceId to null)
       await prisma.transaction.updateMany({
         where: { sourceId: id, userId: request.userId },
         data: { sourceId: null },
@@ -325,45 +272,27 @@ export async function connectionRoutes(app: FastifyInstance) {
   );
 
   // 3. Sync a specific connection (trigger CCXT fetch)
-  // Note: This blocks until sync completes. In production, use BullMQ for background syncs.
-  app.post(
+  r.post(
     "/connections/:id/sync",
     {
       schema: {
         tags: ["connections"],
-        summary: "Trigger sync for an exchange connection",
-        params: {
-          type: "object" as const,
-          required: ["id"],
-          properties: { id: { type: "string" as const } },
-        },
+        operationId: "syncConnection",
+        description: "Trigger sync for a specific exchange connection",
+        params: idParamSchema,
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          400: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({
+            data: z.object({
+              status: z.string(),
+              message: z.string(),
+            }),
+          }),
+          404: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const { id } = request.params;
 
       const connection = await prisma.dataSource.findUnique({
         where: { id, userId: request.userId },
@@ -374,13 +303,6 @@ export async function connectionRoutes(app: FastifyInstance) {
           .send({ error: { message: "Connection not found" } });
       }
 
-      // We skip actual sync logic for safety in MVP endpoint, returning simulated result or just calling the test
-      // Decrypt the secrets to use CCXT
-      // const config = connection.config as any;
-      // const creds = { apiKey: decryptKey(config.apiKey), secret: decryptKey(config.apiSecret) };
-      // const trades = await CcxtService.fetchMyTrades(config.exchangeId, creds);
-
-      // Mark as synced
       await prisma.dataSource.update({
         where: { id },
         data: { lastSyncAt: new Date(), status: DataSourceStatus.ACTIVE },

@@ -4,6 +4,8 @@
  * Fastify-based REST API for the DTax cloud platform.
  */
 
+import "./lib/zod-openapi"; // Must be imported before any Zod schema definitions
+
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
@@ -49,7 +51,23 @@ async function main() {
 
   // Global error handler
   app.setErrorHandler((error: Error, request, reply) => {
-    // Zod validation errors → 400
+    // Fastify validation errors (from validatorCompiler) → 400
+    const errWithValidation = error as Error & {
+      validation?: unknown[];
+      validationContext?: string;
+      statusCode?: number;
+    };
+    if (errWithValidation.validation) {
+      return reply.status(400).send({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Request validation failed",
+          details: errWithValidation.validation,
+        },
+      });
+    }
+
+    // Zod validation errors (from manual .parse()) → 400
     if (error instanceof ZodError) {
       const issues = error.issues.map((i) => ({
         path: i.path.join("."),

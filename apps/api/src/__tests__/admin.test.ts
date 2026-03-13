@@ -2,9 +2,15 @@
  * Admin 路由测试
  */
 
+import "zod-openapi/extend";
+
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import Fastify from "fastify";
 import { ZodError } from "zod";
+import {
+  fastifyZodOpenApiPlugin,
+  validatorCompiler,
+} from "fastify-zod-openapi";
 import { adminRoutes } from "../routes/admin";
 import "../plugins/auth";
 
@@ -30,14 +36,31 @@ const mockPrisma = vi.mocked(prisma);
 function buildAdminApp(role = "ADMIN") {
   const app = Fastify({ logger: false });
 
+  app.register(fastifyZodOpenApiPlugin);
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(() => (data) => JSON.stringify(data));
+
   app.decorateRequest("userId", "");
   app.decorateRequest("userRole", "");
   app.addHook("onRequest", async (request) => {
-    request.userId = "admin-1";
+    request.userId = "00000000-0000-0000-0000-00000000000a";
     request.userRole = role;
   });
 
   app.setErrorHandler((error: Error, _request, reply) => {
+    const errAny = error as Error & {
+      validation?: unknown[];
+      statusCode?: number;
+    };
+    if (errAny.validation) {
+      return reply.status(400).send({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Validation failed",
+          details: errAny.validation,
+        },
+      });
+    }
     if (error instanceof ZodError) {
       return reply.status(400).send({
         error: { code: "VALIDATION_ERROR", message: "Validation failed" },
@@ -128,7 +151,7 @@ describe("Admin Routes", () => {
 
       const res = await app.inject({
         method: "GET",
-        url: "/api/v1/admin/users/u1",
+        url: "/api/v1/admin/users/00000000-0000-0000-0000-000000000011",
       });
       expect(res.statusCode).toBe(200);
       expect(JSON.parse(res.body).data.email).toBe("a@b.com");
@@ -138,7 +161,7 @@ describe("Admin Routes", () => {
       mockPrisma.user.findUnique.mockResolvedValueOnce(null);
       const res = await app.inject({
         method: "GET",
-        url: "/api/v1/admin/users/nonexistent",
+        url: "/api/v1/admin/users/00000000-0000-0000-0000-000000000404",
       });
       expect(res.statusCode).toBe(404);
     });
@@ -158,7 +181,7 @@ describe("Admin Routes", () => {
 
       const res = await app.inject({
         method: "PATCH",
-        url: "/api/v1/admin/users/u2/role",
+        url: "/api/v1/admin/users/00000000-0000-0000-0000-000000000012/role",
         payload: { role: "ADMIN" },
       });
       expect(res.statusCode).toBe(200);
@@ -168,7 +191,7 @@ describe("Admin Routes", () => {
     it("防止自我降级", async () => {
       const res = await app.inject({
         method: "PATCH",
-        url: "/api/v1/admin/users/admin-1/role",
+        url: "/api/v1/admin/users/00000000-0000-0000-0000-00000000000a/role",
         payload: { role: "USER" },
       });
       expect(res.statusCode).toBe(400);

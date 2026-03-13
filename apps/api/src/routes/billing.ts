@@ -8,85 +8,53 @@
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import type { FastifyZodOpenApiTypeProvider } from "fastify-zod-openapi";
 import { z } from "zod";
 import Stripe from "stripe";
 import { prisma } from "../lib/prisma";
+import { errorResponseSchema } from "../schemas/common";
 
-const stripeKey = process.env.STRIPE_SECRET_KEY;
-const stripe = stripeKey ? new Stripe(stripeKey) : null;
+let stripe: Stripe | null = null;
 
 function requireStripe(reply: FastifyReply): Stripe {
   if (!stripe) {
-    reply.code(503).send({
-      data: null,
-      error: {
-        message: "Stripe not configured",
-        code: "STRIPE_NOT_CONFIGURED",
-      },
-    });
-    throw new Error("Stripe not configured");
+    if (!process.env.STRIPE_SECRET_KEY) {
+      reply.status(503).send({
+        error: {
+          code: "STRIPE_NOT_CONFIGURED",
+          message: "Stripe is not configured",
+        },
+      });
+      throw new Error("Stripe not configured");
+    }
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   }
   return stripe;
 }
 
+const billingStatusSchema = z
+  .object({
+    plan: z.string(),
+    status: z.string(),
+    taxYear: z.number().int().nullable(),
+    currentPeriodEnd: z.date().nullable(),
+  })
+  .openapi({ ref: "BillingStatus" });
+
 export async function billingRoutes(app: FastifyInstance) {
-  /**
-   * GET /billing/status — Get current subscription status.
-   *
-   * Returns:
-   *   plan, status, taxYear, currentPeriodEnd
-   */
-  app.get(
+  const r = app.withTypeProvider<FastifyZodOpenApiTypeProvider>();
+  // GET /billing/status
+  r.get(
     "/billing/status",
     {
       schema: {
         tags: ["billing"],
-        summary: "Get current subscription status",
+        operationId: "getBillingStatus",
+        description: "Get current subscription status",
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  plan: { type: "string" as const },
-                  status: { type: "string" as const },
-                  taxYear: { type: "integer" as const },
-                  currentPeriodEnd: { type: "string" as const },
-                },
-              },
-            },
-          },
-          400: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          500: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          503: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({
+            data: billingStatusSchema,
+          }),
         },
       },
     },
@@ -105,81 +73,29 @@ export async function billingRoutes(app: FastifyInstance) {
     },
   );
 
-  /**
-   * POST /billing/checkout — Create a Stripe Checkout Session.
-   *
-   * Body:
-   *   plan: "PRO" | "CPA"
-   *   taxYear?: number (2020–2030)
-   *
-   * Returns:
-   *   url: Stripe Checkout Session URL
-   */
-  app.post(
+  // POST /billing/checkout
+  r.post(
     "/billing/checkout",
     {
       schema: {
         tags: ["billing"],
-        summary: "Create Stripe Checkout Session",
-        body: {
-          type: "object" as const,
-          additionalProperties: true,
-          required: ["plan"],
-          properties: {
-            plan: { type: "string" as const, enum: ["PRO", "CPA"] },
-            taxYear: { type: "integer" as const },
-          },
-        },
+        operationId: "createCheckoutSession",
+        description: "Create a Stripe Checkout Session for plan upgrade",
+        body: z.object({
+          plan: z.enum(["PRO", "CPA"]),
+          taxYear: z.number().int().min(2020).max(2030).optional(),
+        }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                properties: { url: { type: "string" as const } },
-              },
-            },
-          },
-          400: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          500: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          503: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({ data: z.object({ url: z.string().nullable() }) }),
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+          503: errorResponseSchema,
         },
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const s = requireStripe(reply);
-      const body = z
-        .object({
-          plan: z.enum(["PRO", "CPA"]),
-          taxYear: z.number().int().min(2020).max(2030).optional(),
-        })
-        .parse(request.body);
+      const body = request.body as { plan: "PRO" | "CPA"; taxYear?: number };
 
       const user = await prisma.user.findUnique({
         where: { id: request.userId },
@@ -188,7 +104,6 @@ export async function billingRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: { message: "User not found" } });
       }
 
-      // Get or create Stripe customer
       let sub = await prisma.subscription.findUnique({
         where: { userId: user.id },
       });
@@ -229,7 +144,7 @@ export async function billingRoutes(app: FastifyInstance) {
 
       const session = await s.checkout.sessions.create({
         customer: customerId,
-        mode: "payment", // one-time for per-tax-year
+        mode: "payment",
         line_items: [{ price: priceId, quantity: 1 }],
         success_url: `${process.env.WEB_URL || "http://localhost:3000"}/settings?billing=success`,
         cancel_url: `${process.env.WEB_URL || "http://localhost:3000"}/pricing`,
@@ -244,57 +159,18 @@ export async function billingRoutes(app: FastifyInstance) {
     },
   );
 
-  /**
-   * POST /billing/portal — Create a Stripe Customer Portal Session.
-   *
-   * Returns:
-   *   url: Stripe Billing Portal URL
-   */
-  app.post(
+  // POST /billing/portal
+  r.post(
     "/billing/portal",
     {
       schema: {
         tags: ["billing"],
-        summary: "Create Stripe Customer Portal Session",
+        operationId: "createBillingPortal",
+        description: "Create a Stripe Customer Portal Session",
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                properties: { url: { type: "string" as const } },
-              },
-            },
-          },
-          400: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          500: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          503: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({ data: z.object({ url: z.string() }) }),
+          400: errorResponseSchema,
+          503: errorResponseSchema,
         },
       },
     },
@@ -316,53 +192,21 @@ export async function billingRoutes(app: FastifyInstance) {
     },
   );
 
-  /**
-   * POST /billing/webhook — Stripe webhook handler.
-   *
-   * No JWT auth; uses Stripe signature verification.
-   * Handles: checkout.session.completed, customer.subscription.updated,
-   *          customer.subscription.deleted
-   */
-  app.post(
+  // POST /billing/webhook — Stripe webhook handler (no JWT auth)
+  r.post(
     "/billing/webhook",
     {
       schema: {
         tags: ["billing"],
-        summary: "Stripe webhook handler (signature verified, no JWT)",
+        operationId: "handleStripeWebhook",
+        description:
+          "Stripe webhook handler (signature verification, no JWT auth)",
+        security: [],
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: { received: { type: "boolean" as const } },
-          },
-          400: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          500: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          503: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({ received: z.boolean() }),
+          400: errorResponseSchema,
+          500: errorResponseSchema,
+          503: errorResponseSchema,
         },
       },
     },
@@ -378,8 +222,6 @@ export async function billingRoutes(app: FastifyInstance) {
 
       let event: Stripe.Event;
       try {
-        // Use raw body string for signature verification; fall back to
-        // stringified body when rawBody is not available.
         const payload =
           (request as unknown as { rawBody?: string }).rawBody ||
           JSON.stringify(request.body);
@@ -417,7 +259,6 @@ export async function billingRoutes(app: FastifyInstance) {
       if (event.type === "customer.subscription.updated") {
         const sub = event.data.object as Stripe.Subscription;
         const customerId = sub.customer as string;
-        // Derive period end from the first subscription item, if available
         const periodEnd = sub.items?.data?.[0]?.current_period_end;
         await prisma.subscription.updateMany({
           where: { stripeCustomerId: customerId },

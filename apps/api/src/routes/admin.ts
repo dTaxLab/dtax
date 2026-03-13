@@ -9,8 +9,15 @@
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import type { FastifyZodOpenApiTypeProvider } from "fastify-zod-openapi";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
+import {
+  errorResponseSchema,
+  idParamSchema,
+  paginationQuerySchema,
+} from "../schemas/common";
+import { userRoleEnum } from "../schemas/enums";
 
 // 管理员权限守卫
 async function adminGuard(request: FastifyRequest, reply: FastifyReply) {
@@ -21,36 +28,47 @@ async function adminGuard(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
+const adminStatsSchema = z
+  .object({
+    users: z.number().int(),
+    transactions: z.number().int(),
+    dataSources: z.number().int(),
+    taxReports: z.number().int(),
+    proUsers: z.number().int(),
+    cpaUsers: z.number().int(),
+  })
+  .openapi({ ref: "AdminStats" });
+
+const adminUserListItemSchema = z
+  .object({
+    id: z.string().uuid(),
+    email: z.string().email(),
+    name: z.string().nullable(),
+    role: userRoleEnum,
+    createdAt: z.date(),
+    _count: z.object({
+      transactions: z.number().int(),
+      dataSources: z.number().int(),
+    }),
+  })
+  .openapi({ ref: "AdminUserListItem" });
+
 export async function adminRoutes(app: FastifyInstance) {
-  // 所有 admin 路由添加权限检查
   app.addHook("onRequest", adminGuard);
+  const r = app.withTypeProvider<FastifyZodOpenApiTypeProvider>();
 
   // GET /admin/stats — 系统概览统计
-  app.get(
+  r.get(
     "/admin/stats",
     {
       schema: {
         tags: ["admin"],
-        summary: "System overview statistics",
+        operationId: "getAdminStats",
+        description: "System overview statistics",
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "object" as const,
-                additionalProperties: true,
-                properties: {
-                  users: { type: "integer" as const },
-                  transactions: { type: "integer" as const },
-                  dataSources: { type: "integer" as const },
-                  taxReports: { type: "integer" as const },
-                  proUsers: { type: "integer" as const },
-                  cpaUsers: { type: "integer" as const },
-                },
-              },
-            },
-          },
+          200: z.object({
+            data: adminStatsSchema,
+          }),
         },
       },
     },
@@ -83,55 +101,29 @@ export async function adminRoutes(app: FastifyInstance) {
   );
 
   // GET /admin/users — 用户列表（分页）
-  app.get(
+  r.get(
     "/admin/users",
     {
       schema: {
         tags: ["admin"],
-        summary: "List users (paginated)",
-        querystring: {
-          type: "object" as const,
-          properties: {
-            page: { type: "integer" as const, default: 1, minimum: 1 },
-            limit: {
-              type: "integer" as const,
-              default: 20,
-              minimum: 1,
-              maximum: 100,
-            },
-          },
-        },
+        operationId: "listAdminUsers",
+        description: "List all users (paginated)",
+        querystring: paginationQuerySchema,
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: {
-                type: "array" as const,
-                items: { type: "object" as const, additionalProperties: true },
-              },
-              meta: {
-                type: "object" as const,
-                properties: {
-                  total: { type: "integer" as const },
-                  page: { type: "integer" as const },
-                  limit: { type: "integer" as const },
-                  totalPages: { type: "integer" as const },
-                },
-              },
-            },
-          },
+          200: z.object({
+            data: z.array(adminUserListItemSchema),
+            meta: z.object({
+              total: z.number().int(),
+              page: z.number().int(),
+              limit: z.number().int(),
+              totalPages: z.number().int(),
+            }),
+          }),
         },
       },
     },
     async (request) => {
-      const query = z
-        .object({
-          page: z.coerce.number().int().min(1).default(1),
-          limit: z.coerce.number().int().min(1).max(100).default(20),
-        })
-        .parse(request.query);
-
+      const query = request.query;
       const skip = (query.page - 1) * query.limit;
 
       const [users, total] = await Promise.all([
@@ -166,36 +158,37 @@ export async function adminRoutes(app: FastifyInstance) {
   );
 
   // GET /admin/users/:id — 用户详情
-  app.get(
+  r.get(
     "/admin/users/:id",
     {
       schema: {
         tags: ["admin"],
-        summary: "Get user detail",
-        params: {
-          type: "object" as const,
-          properties: { id: { type: "string" as const } },
-        },
+        operationId: "getAdminUser",
+        description: "Get user details by ID",
+        params: idParamSchema,
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({
+            data: z.object({
+              id: z.string().uuid(),
+              email: z.string().email(),
+              name: z.string().nullable(),
+              role: userRoleEnum,
+              createdAt: z.date(),
+              updatedAt: z.date(),
+              _count: z.object({
+                transactions: z.number().int(),
+                dataSources: z.number().int(),
+                taxLots: z.number().int(),
+                taxReports: z.number().int(),
+              }),
+            }),
+          }),
+          404: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const { id } = request.params;
 
       const user = await prisma.user.findUnique({
         where: { id },
@@ -228,57 +221,34 @@ export async function adminRoutes(app: FastifyInstance) {
   );
 
   // PATCH /admin/users/:id/role — 修改用户角色
-  app.patch(
+  r.patch(
     "/admin/users/:id/role",
     {
       schema: {
         tags: ["admin"],
-        summary: "Update user role",
-        params: {
-          type: "object" as const,
-          properties: { id: { type: "string" as const } },
-        },
-        body: {
-          type: "object" as const,
-          required: ["role"],
-          properties: {
-            role: { type: "string" as const, enum: ["USER", "ADMIN"] },
-          },
-        },
+        operationId: "updateUserRole",
+        description: "Change a user's role",
+        params: idParamSchema,
+        body: z.object({
+          role: userRoleEnum,
+        }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          400: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
-          404: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              error: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({
+            data: z.object({
+              id: z.string().uuid(),
+              email: z.string().email(),
+              role: userRoleEnum,
+            }),
+          }),
+          400: errorResponseSchema,
+          404: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
-      const body = z
-        .object({
-          role: z.enum(["USER", "ADMIN"]),
-        })
-        .parse(request.body);
+      const { id } = request.params;
+      const body = request.body;
 
-      // 防止管理员降级自己
       if (id === request.userId && body.role !== "ADMIN") {
         return reply.status(400).send({
           error: {

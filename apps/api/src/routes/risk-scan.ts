@@ -4,40 +4,35 @@
  */
 
 import { FastifyInstance } from "fastify";
+import type { FastifyZodOpenApiTypeProvider } from "fastify-zod-openapi";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { scanRisks, type RiskScanTransaction } from "@dtax/tax-engine";
 
 export async function riskScanRoutes(app: FastifyInstance) {
-  app.post(
+  const r = app.withTypeProvider<FastifyZodOpenApiTypeProvider>();
+  r.post(
     "/tax/risk-scan",
     {
       schema: {
         tags: ["tax"],
-        summary: "Run pre-audit risk scan for a tax year",
-        body: {
-          type: "object" as const,
-          additionalProperties: true,
-          required: ["year"],
-          properties: { year: { type: "integer" as const } },
-        },
+        operationId: "runRiskScan",
+        description: "Run pre-audit risk scan for a tax year",
+        body: z.object({
+          year: z.number().int().min(2009).max(2030),
+        }),
         response: {
-          200: {
-            type: "object" as const,
-            additionalProperties: true,
-            properties: {
-              data: { type: "object" as const, additionalProperties: true },
-            },
-          },
+          200: z.object({
+            data: z.any().openapi({
+              ref: "RiskScanResult",
+              description: "Risk scan report",
+            }),
+          }),
         },
       },
     },
     async (request) => {
-      const body = z
-        .object({
-          year: z.number().int().min(2009).max(2030),
-        })
-        .parse(request.body);
+      const body = request.body;
 
       const transactions = await prisma.transaction.findMany({
         where: { userId: request.userId },

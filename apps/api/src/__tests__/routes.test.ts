@@ -150,7 +150,7 @@ describe("Transaction Routes", () => {
 
     expect(res.statusCode).toBe(201);
     const body = JSON.parse(res.body);
-    expect(body.data.id).toBe("tx-001");
+    expect(body.data.id).toBe("00000000-0000-0000-0000-000000000099");
     expect(body.data.receivedAsset).toBe("BTC");
   });
 
@@ -219,12 +219,12 @@ describe("Transaction Routes", () => {
 
     const res = await app.inject({
       method: "GET",
-      url: "/api/v1/transactions/tx-001",
+      url: "/api/v1/transactions/00000000-0000-0000-0000-000000000099",
     });
 
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    expect(body.data.id).toBe("tx-001");
+    expect(body.data.id).toBe("00000000-0000-0000-0000-000000000099");
   });
 
   it("GET /transactions/:id returns 404 for missing", async () => {
@@ -232,7 +232,7 @@ describe("Transaction Routes", () => {
 
     const res = await app.inject({
       method: "GET",
-      url: "/api/v1/transactions/nonexistent",
+      url: "/api/v1/transactions/00000000-0000-0000-0000-000000000404",
     });
 
     expect(res.statusCode).toBe(404);
@@ -248,7 +248,7 @@ describe("Transaction Routes", () => {
 
     const res = await app.inject({
       method: "PUT",
-      url: "/api/v1/transactions/tx-001",
+      url: "/api/v1/transactions/00000000-0000-0000-0000-000000000099",
       payload: { notes: "Updated" },
     });
 
@@ -262,7 +262,7 @@ describe("Transaction Routes", () => {
 
     const res = await app.inject({
       method: "PUT",
-      url: "/api/v1/transactions/nonexistent",
+      url: "/api/v1/transactions/00000000-0000-0000-0000-000000000404",
       payload: { notes: "test" },
     });
 
@@ -277,7 +277,7 @@ describe("Transaction Routes", () => {
 
     const res = await app.inject({
       method: "DELETE",
-      url: "/api/v1/transactions/tx-001",
+      url: "/api/v1/transactions/00000000-0000-0000-0000-000000000099",
     });
 
     expect(res.statusCode).toBe(204);
@@ -288,7 +288,7 @@ describe("Transaction Routes", () => {
 
     const res = await app.inject({
       method: "DELETE",
-      url: "/api/v1/transactions/nonexistent",
+      url: "/api/v1/transactions/00000000-0000-0000-0000-000000000404",
     });
 
     expect(res.statusCode).toBe(404);
@@ -1357,7 +1357,7 @@ describe("Connection Routes", () => {
     ).mockResolvedValueOnce(true);
 
     mockPrisma.dataSource.create.mockResolvedValueOnce({
-      id: "ds-001",
+      id: "00000000-0000-0000-0000-0000000000d1",
       name: "BINANCE",
       status: "ACTIVE",
     });
@@ -1374,7 +1374,7 @@ describe("Connection Routes", () => {
 
     expect(res.statusCode).toBe(201);
     const body = JSON.parse(res.body);
-    expect(body.data.id).toBe("ds-001");
+    expect(body.data.id).toBe("00000000-0000-0000-0000-0000000000d1");
     expect(body.data.name).toBe("BINANCE");
     expect(body.data.status).toBe("ACTIVE");
   });
@@ -1432,7 +1432,7 @@ describe("Connection Routes", () => {
   it("GET /connections returns user connections", async () => {
     mockPrisma.dataSource.findMany.mockResolvedValueOnce([
       {
-        id: "ds-001",
+        id: "00000000-0000-0000-0000-0000000000d1",
         name: "BINANCE",
         status: "ACTIVE",
         lastSyncAt: null,
@@ -1456,7 +1456,7 @@ describe("Connection Routes", () => {
   it("GET /data-sources returns sources with transaction counts", async () => {
     mockPrisma.dataSource.findMany.mockResolvedValueOnce([
       {
-        id: "ds-001",
+        id: "00000000-0000-0000-0000-0000000000d1",
         name: "BINANCE",
         type: "EXCHANGE_API",
         status: "ACTIVE",
@@ -1494,17 +1494,17 @@ describe("Connection Routes", () => {
 
   it("PUT /data-sources/:id renames source", async () => {
     mockPrisma.dataSource.findFirst.mockResolvedValueOnce({
-      id: "ds-001",
+      id: "00000000-0000-0000-0000-0000000000d1",
       userId: "00000000-0000-0000-0000-000000000001",
     });
     mockPrisma.dataSource.update.mockResolvedValueOnce({
-      id: "ds-001",
+      id: "00000000-0000-0000-0000-0000000000d1",
       name: "My Binance",
     });
 
     const res = await app.inject({
       method: "PUT",
-      url: "/api/v1/data-sources/ds-001",
+      url: "/api/v1/data-sources/00000000-0000-0000-0000-0000000000d1",
       payload: { name: "My Binance" },
     });
 
@@ -1518,7 +1518,7 @@ describe("Connection Routes", () => {
 
     const res = await app.inject({
       method: "PUT",
-      url: "/api/v1/data-sources/nonexistent",
+      url: "/api/v1/data-sources/00000000-0000-0000-0000-000000000404",
       payload: { name: "Test" },
     });
 
@@ -1529,7 +1529,7 @@ describe("Connection Routes", () => {
 
   it("DELETE /data-sources/:id unlinks and deletes", async () => {
     mockPrisma.dataSource.findFirst.mockResolvedValueOnce({
-      id: "ds-001",
+      id: "00000000-0000-0000-0000-0000000000d1",
       userId: "00000000-0000-0000-0000-000000000001",
     });
     mockPrisma.transaction.updateMany.mockResolvedValueOnce({ count: 5 });
@@ -1537,14 +1537,16 @@ describe("Connection Routes", () => {
 
     const res = await app.inject({
       method: "DELETE",
-      url: "/api/v1/data-sources/ds-001",
+      url: "/api/v1/data-sources/00000000-0000-0000-0000-0000000000d1",
     });
 
     expect(res.statusCode).toBe(204);
     // Verify transactions were unlinked before deletion
     expect(mockPrisma.transaction.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ sourceId: "ds-001" }),
+        where: expect.objectContaining({
+          sourceId: "00000000-0000-0000-0000-0000000000d1",
+        }),
         data: { sourceId: null },
       }),
     );
@@ -1555,7 +1557,7 @@ describe("Connection Routes", () => {
 
     const res = await app.inject({
       method: "DELETE",
-      url: "/api/v1/data-sources/nonexistent",
+      url: "/api/v1/data-sources/00000000-0000-0000-0000-000000000404",
     });
 
     expect(res.statusCode).toBe(404);
@@ -1565,19 +1567,19 @@ describe("Connection Routes", () => {
 
   it("POST /connections/:id/sync marks connection as synced", async () => {
     mockPrisma.dataSource.findUnique.mockResolvedValueOnce({
-      id: "ds-001",
+      id: "00000000-0000-0000-0000-0000000000d1",
       userId: "00000000-0000-0000-0000-000000000001",
       type: "EXCHANGE_API",
     });
     mockPrisma.dataSource.update.mockResolvedValueOnce({
-      id: "ds-001",
+      id: "00000000-0000-0000-0000-0000000000d1",
       status: "ACTIVE",
       lastSyncAt: new Date(),
     });
 
     const res = await app.inject({
       method: "POST",
-      url: "/api/v1/connections/ds-001/sync",
+      url: "/api/v1/connections/00000000-0000-0000-0000-0000000000d1/sync",
     });
 
     expect(res.statusCode).toBe(200);
@@ -1590,7 +1592,7 @@ describe("Connection Routes", () => {
 
     const res = await app.inject({
       method: "POST",
-      url: "/api/v1/connections/nonexistent/sync",
+      url: "/api/v1/connections/00000000-0000-0000-0000-000000000404/sync",
     });
 
     expect(res.statusCode).toBe(404);

@@ -4,8 +4,14 @@
  * with mocked Prisma, suitable for inject()-based testing.
  */
 
+import "zod-openapi/extend";
+
 import Fastify from "fastify";
 import { ZodError } from "zod";
+import {
+  fastifyZodOpenApiPlugin,
+  validatorCompiler,
+} from "fastify-zod-openapi";
 
 // 引入 auth 插件的类型声明
 import "../plugins/auth";
@@ -13,6 +19,12 @@ import "../plugins/auth";
 /** Creates a Fastify app with mocked auth and global error handler (no DB, no plugins) */
 export function buildApp() {
   const app = Fastify({ logger: false });
+
+  // Register zod-openapi plugin and validator compiler
+  app.register(fastifyZodOpenApiPlugin);
+  app.setValidatorCompiler(validatorCompiler);
+  // Permissive serializer — response schemas for OpenAPI docs only, not runtime validation
+  app.setSerializerCompiler(() => (data) => JSON.stringify(data));
 
   // 模拟认证 — 为测试注入默认用户
   app.decorateRequest("userId", "");
@@ -24,6 +36,22 @@ export function buildApp() {
 
   // Mirror the global error handler from src/index.ts
   app.setErrorHandler((error: Error, _request, reply) => {
+    // Fastify validation errors (from validatorCompiler)
+    const errWithValidation = error as Error & {
+      validation?: unknown[];
+      statusCode?: number;
+    };
+    if (errWithValidation.validation) {
+      return reply.status(400).send({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Request validation failed",
+          details: errWithValidation.validation,
+        },
+      });
+    }
+
+    // Zod validation errors (from manual .parse())
     if (error instanceof ZodError) {
       const issues = error.issues.map((i) => ({
         path: i.path.join("."),
@@ -59,7 +87,7 @@ export function buildApp() {
 /** Generates a mock transaction row matching Prisma schema */
 export function mockTransaction(overrides: Record<string, unknown> = {}) {
   return {
-    id: "tx-001",
+    id: "00000000-0000-0000-0000-000000000099",
     userId: "00000000-0000-0000-0000-000000000001",
     type: "BUY",
     timestamp: new Date("2025-03-01T10:00:00Z"),

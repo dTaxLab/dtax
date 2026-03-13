@@ -3,10 +3,16 @@
  * 测试批量分类、全部重分类、统计端点
  */
 
+import "zod-openapi/extend";
+
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import Fastify from "fastify";
 import jwt from "@fastify/jwt";
 import { ZodError } from "zod";
+import {
+  fastifyZodOpenApiPlugin,
+  validatorCompiler,
+} from "fastify-zod-openapi";
 import { aiClassifyRoutes } from "../routes/ai-classify";
 
 // Mock Prisma
@@ -43,6 +49,9 @@ const mutableConfig = config as { anthropicApiKey: string };
 
 function buildApp() {
   const app = Fastify({ logger: false });
+  app.register(fastifyZodOpenApiPlugin);
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(() => (data) => JSON.stringify(data));
   app.register(jwt, { secret: "test-secret", sign: { expiresIn: "7d" } });
   app.decorateRequest("userId", "");
   app.decorateRequest("userRole", "");
@@ -51,6 +60,19 @@ function buildApp() {
     request.userRole = "USER";
   });
   app.setErrorHandler((error: Error, _request, reply) => {
+    const errAny = error as Error & {
+      validation?: unknown[];
+      statusCode?: number;
+    };
+    if (errAny.validation) {
+      return reply.status(400).send({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Validation failed",
+          details: errAny.validation,
+        },
+      });
+    }
     if (error instanceof ZodError) {
       return reply.status(400).send({
         error: { code: "VALIDATION_ERROR", message: "Validation failed" },
