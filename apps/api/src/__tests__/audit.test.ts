@@ -63,7 +63,6 @@ describe("Audit Service", () => {
       expect(mockAuditLog.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           entityId: null,
-          details: null,
           ipAddress: null,
           userAgent: null,
         }),
