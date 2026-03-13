@@ -28,6 +28,11 @@ model User {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
+  // GDPR soft-delete
+  deletedAt          DateTime?  @map("deleted_at")
+  deletionRequestedAt DateTime? @map("deletion_requested_at")
+  deletionReason     String?    @map("deletion_reason")
+
   // Relations
   dataSources    DataSource[]
   transactions   Transaction[]
