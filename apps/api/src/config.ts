@@ -16,4 +16,6 @@ export const config = {
   appUrl: process.env.APP_URL || "http://localhost:3000",
   fromEmail: process.env.FROM_EMAIL || "noreply@dtax.ai",
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || "",
+  etherscanApiKey: process.env.ETHERSCAN_API_KEY || "",
+  solscanApiKey: process.env.SOLSCAN_API_KEY || "",
 } as const;
