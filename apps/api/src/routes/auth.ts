@@ -1,8 +1,9 @@
 /**
  * 认证路由
- * POST /auth/register — 注册账号
- * POST /auth/login    — 登录获取 JWT
- * GET  /auth/me       — 获取当前用户信息
+ * POST /auth/register    — 注册账号
+ * POST /auth/login       — 登录获取 JWT
+ * POST /auth/login/2fa   — 2FA 验证步骤完成登录
+ * GET  /auth/me          — 获取当前用户信息
  */
 
 import crypto from "crypto";
@@ -12,6 +13,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma";
 import { config } from "../config";
 import { sendEmail, verificationEmail, resetPasswordEmail } from "../lib/email";
+import { verifyTotpToken } from "../lib/totp";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -194,6 +196,163 @@ export async function authRoutes(app: FastifyInstance) {
           error: {
             code: "INVALID_CREDENTIALS",
             message: "Invalid email or password",
+          },
+        });
+      }
+
+      // If 2FA is enabled, return a short-lived temp token instead
+      if (user.totpEnabled) {
+        const tempToken = app.jwt.sign(
+          { sub: user.id, purpose: "2fa" } as any,
+          { expiresIn: "5m" },
+        );
+        return { data: { requiresTwoFactor: true, tempToken } };
+      }
+
+      const token = app.jwt.sign({ sub: user.id, role: user.role });
+
+      return {
+        data: {
+          token,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+          },
+        },
+      };
+    },
+  );
+
+  // POST /auth/login/2fa — 2FA 验证完成登录（公共路由，使用 tempToken）
+  app.post(
+    "/auth/login/2fa",
+    {
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
+      schema: {
+        tags: ["auth"],
+        summary: "Complete login with 2FA verification",
+        body: {
+          type: "object" as const,
+          required: ["tempToken"],
+          properties: {
+            tempToken: {
+              type: "string" as const,
+              description: "Short-lived JWT from login",
+            },
+            totpToken: {
+              type: "string" as const,
+              description: "6-digit TOTP token",
+            },
+            recoveryCode: {
+              type: "string" as const,
+              description: "Recovery code",
+            },
+          },
+        },
+        response: {
+          200: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              data: {
+                type: "object" as const,
+                additionalProperties: true,
+                properties: {
+                  token: { type: "string" as const },
+                  user: {
+                    type: "object" as const,
+                    additionalProperties: true,
+                    properties: {
+                      id: { type: "string" as const },
+                      email: { type: "string" as const },
+                      name: { type: "string" as const },
+                      role: { type: "string" as const },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            type: "object" as const,
+            additionalProperties: true,
+            properties: {
+              error: { type: "object" as const, additionalProperties: true },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const body = z
+        .object({
+          tempToken: z.string(),
+          totpToken: z.string().optional(),
+          recoveryCode: z.string().optional(),
+        })
+        .parse(request.body);
+
+      // Verify the temp token
+      let decoded: { sub: string; purpose?: string };
+      try {
+        decoded = app.jwt.verify(body.tempToken) as {
+          sub: string;
+          purpose?: string;
+        };
+      } catch {
+        return reply.status(401).send({
+          error: {
+            code: "INVALID_TOKEN",
+            message: "Temp token expired or invalid",
+          },
+        });
+      }
+
+      if (decoded.purpose !== "2fa") {
+        return reply.status(401).send({
+          error: { code: "INVALID_TOKEN", message: "Invalid token purpose" },
+        });
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.sub },
+      });
+
+      if (!user || !user.totpEnabled || !user.totpSecret) {
+        return reply.status(401).send({
+          error: { code: "UNAUTHORIZED", message: "2FA not configured" },
+        });
+      }
+
+      let verified = false;
+
+      // Verify TOTP token
+      if (body.totpToken) {
+        verified = verifyTotpToken(user.totpSecret, body.totpToken);
+      }
+
+      // Verify recovery code
+      if (!verified && body.recoveryCode) {
+        const idx = user.recoveryCodes.indexOf(body.recoveryCode);
+        if (idx >= 0) {
+          verified = true;
+          // Remove used recovery code (one-time use)
+          const updatedCodes = [...user.recoveryCodes];
+          updatedCodes.splice(idx, 1);
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { recoveryCodes: updatedCodes },
+          });
+        }
+      }
+
+      if (!verified) {
+        return reply.status(401).send({
+          error: {
+            code: "INVALID_2FA",
+            message: "Invalid 2FA token or recovery code",
           },
         });
       }
