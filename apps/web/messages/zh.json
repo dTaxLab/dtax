@@ -16,7 +16,10 @@
     "admin": "管理",
     "aiAssistant": "AI 助手",
     "simulator": "模拟器",
-    "more": "更多"
+    "more": "更多",
+    "switchToLightMode": "切换到浅色模式",
+    "switchToDarkMode": "切换到深色模式",
+    "switchToLocale": "切换到{locale}"
   },
   "auth": {
     "login": "登录",

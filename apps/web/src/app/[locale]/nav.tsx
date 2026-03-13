@@ -196,7 +196,7 @@ export function LocaleNav({ locale }: { locale: string }) {
           onClick={toggleTheme}
           className="nav-link nav-icon-btn"
           aria-label={
-            theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+            theme === "dark" ? t("switchToLightMode") : t("switchToDarkMode")
           }
         >
           {theme === "dark" ? "☀️" : "🌙"}
@@ -205,7 +205,9 @@ export function LocaleNav({ locale }: { locale: string }) {
           href={pathname}
           locale={otherLocale}
           className="nav-link locale-switch"
-          aria-label={`Switch to ${otherLocale === "en" ? "English" : "中文"}`}
+          aria-label={t("switchToLocale", {
+            locale: otherLocale === "en" ? "English" : "中文",
+          })}
         >
           {otherLabel}
         </Link>

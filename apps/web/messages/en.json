@@ -16,7 +16,10 @@
     "admin": "Admin",
     "aiAssistant": "AI Assistant",
     "simulator": "Simulator",
-    "more": "More"
+    "more": "More",
+    "switchToLightMode": "Switch to light mode",
+    "switchToDarkMode": "Switch to dark mode",
+    "switchToLocale": "Switch to {locale}"
   },
   "auth": {
     "login": "Login",
