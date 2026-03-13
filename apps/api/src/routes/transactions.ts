@@ -11,6 +11,7 @@ import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { checkTransactionQuota } from "../plugins/plan-guard";
+import { resolveUserId } from "../plugins/resolve-user.js";
 
 // ─── Validation Schemas ─────────────────────────
 
@@ -350,11 +351,12 @@ export async function transactionRoutes(app: FastifyInstance) {
       },
     },
     async (request) => {
+      const userId = await resolveUserId(request);
       const query = listQuerySchema.parse(request.query);
       const skip = (query.page - 1) * query.limit;
 
       // Build where clause
-      const where: Record<string, unknown> = { userId: request.userId };
+      const where: Record<string, unknown> = { userId };
       const andClauses: Record<string, unknown>[] = [];
       if (query.type) where.type = query.type;
       if (query.asset) {

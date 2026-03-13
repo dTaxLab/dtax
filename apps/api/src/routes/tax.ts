@@ -10,6 +10,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
+import { resolveUserId } from "../plugins/resolve-user.js";
 import {
   fetchTaxData,
   calculateIncome,
@@ -516,6 +517,7 @@ export async function taxRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      const userId = await resolveUserId(request);
       const query = z
         .object({
           year: z.coerce.number().int().min(2009).max(2030),
@@ -528,7 +530,7 @@ export async function taxRoutes(app: FastifyInstance) {
       const report = await prisma.taxReport.findUnique({
         where: {
           userId_taxYear_method: {
-            userId: request.userId,
+            userId,
             taxYear: query.year,
             method: query.method,
           },

@@ -6,6 +6,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
+import { resolveUserId } from "../plugins/resolve-user.js";
 import { analyzeHoldings } from "@dtax/tax-engine";
 import type { TaxLot, PriceMap } from "@dtax/tax-engine";
 
@@ -84,6 +85,7 @@ export async function portfolioRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      const userId = await resolveUserId(request);
       const query = z
         .object({ prices: z.string().optional() })
         .parse(request.query);
@@ -104,7 +106,7 @@ export async function portfolioRoutes(app: FastifyInstance) {
 
       const acquisitions = await prisma.transaction.findMany({
         where: {
-          userId: request.userId,
+          userId,
           type: {
             in: [
               "BUY",
@@ -127,7 +129,7 @@ export async function portfolioRoutes(app: FastifyInstance) {
 
       const dispositions = await prisma.transaction.findMany({
         where: {
-          userId: request.userId,
+          userId,
           type: {
             in: [
               "SELL",
