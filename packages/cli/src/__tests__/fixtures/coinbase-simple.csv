@@ -1,0 +1,4 @@
+Timestamp,Transaction Type,Asset,Quantity Transacted,Spot Price Currency,Spot Price at Transaction,Subtotal,Total (inclusive of fees and/or spread),Fees and/or Spread,Notes
+2024-01-15T10:00:00Z,Buy,BTC,1.0,USD,42000.00,42000.00,42050.00,50.00,
+2024-03-20T14:00:00Z,Buy,BTC,0.5,USD,65000.00,32500.00,32525.00,25.00,
+2024-06-15T09:00:00Z,Sell,BTC,0.8,USD,70000.00,56000.00,55960.00,40.00,
