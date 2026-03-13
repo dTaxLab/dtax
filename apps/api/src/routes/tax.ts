@@ -15,6 +15,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { resolveUserId } from "../plugins/resolve-user.js";
 import { logAudit } from "../lib/audit.js";
+import { createNotification } from "../lib/notification.js";
 import {
   saveReport,
   getReport,
@@ -224,6 +225,14 @@ export async function taxRoutes(app: FastifyInstance) {
         details: { year: body.taxYear, method: body.method },
         ipAddress: request.ip,
         userAgent: request.headers["user-agent"],
+      }).catch(() => {});
+
+      createNotification({
+        userId: request.userId,
+        type: "TAX_CALCULATED",
+        title: "Tax Report Ready",
+        message: `Tax report for ${body.taxYear} (${body.method}) is ready`,
+        data: { year: body.taxYear, method: body.method },
       }).catch(() => {});
 
       return reply.status(200).send({

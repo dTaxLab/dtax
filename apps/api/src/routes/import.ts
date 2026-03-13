@@ -17,6 +17,7 @@ import type { CsvFormat, ParsedTransaction } from "@dtax/tax-engine";
 import { checkTransactionQuota } from "../plugins/plan-guard";
 import { classifyBatch } from "../lib/ai-classifier";
 import { logAudit } from "../lib/audit.js";
+import { createNotification } from "../lib/notification.js";
 
 /** Generate a deterministic fingerprint for a parsed transaction */
 function txFingerprint(tx: ParsedTransaction): string {
@@ -359,6 +360,14 @@ export async function importRoutes(app: FastifyInstance) {
         details: { format: parseResult.summary.format, count: created.count },
         ipAddress: request.ip,
         userAgent: request.headers["user-agent"],
+      }).catch(() => {});
+
+      createNotification({
+        userId: request.userId,
+        type: "IMPORT_COMPLETE",
+        title: "Import Complete",
+        message: `Successfully imported ${created.count} transactions`,
+        data: { transactionCount: created.count },
       }).catch(() => {});
 
       return reply.status(201).send({

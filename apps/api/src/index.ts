@@ -29,6 +29,7 @@ import { accountRoutes } from "./routes/account";
 import { twoFactorRoutes } from "./routes/two-factor";
 import { clientRoutes } from "./routes/clients";
 import { auditRoutes } from "./routes/audit";
+import { notificationRoutes } from "./routes/notifications";
 import authPlugin from "./plugins/auth";
 import { registerSwagger } from "./plugins/swagger";
 import { initSentry, captureException } from "./lib/sentry";
@@ -130,6 +131,7 @@ async function main() {
   await app.register(twoFactorRoutes, { prefix: "/api/v1" });
   await app.register(clientRoutes, { prefix: "/api/v1" });
   await app.register(auditRoutes, { prefix: "/api/v1" });
+  await app.register(notificationRoutes, { prefix: "/api/v1" });
 
   // Graceful shutdown
   const shutdown = async () => {
