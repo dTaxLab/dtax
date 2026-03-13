@@ -1,10 +1,13 @@
 /**
  * Tax calculation routes.
- * POST /tax/calculate   — Run tax calculation for a given year + method
- * GET  /tax/form8949    — Generate Form 8949 report (JSON or CSV)
- * GET  /tax/schedule-d  — Generate Schedule D summary
- * GET  /tax/summary     — Get saved tax summary for a year
- * POST /tax/reconcile   — Reconcile 1099-DA against DTax calculations
+ * POST /tax/calculate            — Run tax calculation for a given year + method
+ * GET  /tax/form8949             — Generate Form 8949 report (JSON, CSV, PDF, TXF)
+ * GET  /tax/schedule-d           — Generate Schedule D summary
+ * GET  /tax/summary              — Get saved tax summary for a year
+ * POST /tax/reconcile            — Reconcile 1099-DA against DTax calculations
+ * GET  /tax/reports              — List report history
+ * GET  /tax/reports/:id/download — Download a report file
+ * DELETE /tax/reports/:id        — Delete a report
  */
 
 import { FastifyInstance } from "fastify";
@@ -12,6 +15,11 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { resolveUserId } from "../plugins/resolve-user.js";
 import { logAudit } from "../lib/audit.js";
+import {
+  saveReport,
+  getReport,
+  deleteReportFile,
+} from "../lib/report-storage.js";
 import {
   fetchTaxData,
   calculateIncome,
@@ -356,6 +364,40 @@ export async function taxRoutes(app: FastifyInstance) {
 
       if (query.format === "csv") {
         const csv = form8949ToCsv(report);
+        const csvBuffer = Buffer.from(csv);
+        const { path: filePath, size: fileSize } = await saveReport(
+          request.userId,
+          `form8949-${query.year}-${query.method}`,
+          csvBuffer,
+          "csv",
+        );
+        await prisma.taxReport.upsert({
+          where: {
+            userId_taxYear_method: {
+              userId: request.userId,
+              taxYear: query.year,
+              method: query.method,
+            },
+          },
+          create: {
+            userId: request.userId,
+            taxYear: query.year,
+            method: query.method,
+            status: "COMPLETE",
+            fileType: "csv",
+            fileName: `Form8949-${query.year}-${query.method}.csv`,
+            fileSize,
+            filePath,
+            generatedAt: new Date(),
+          },
+          update: {
+            fileType: "csv",
+            fileName: `Form8949-${query.year}-${query.method}.csv`,
+            fileSize,
+            filePath,
+            generatedAt: new Date(),
+          },
+        });
         return reply
           .header("Content-Type", "text/csv")
           .header(
@@ -367,6 +409,40 @@ export async function taxRoutes(app: FastifyInstance) {
 
       if (query.format === "txf") {
         const txf = form8949ToTxf(report);
+        const txfBuffer = Buffer.from(txf);
+        const { path: filePath, size: fileSize } = await saveReport(
+          request.userId,
+          `form8949-${query.year}-${query.method}`,
+          txfBuffer,
+          "txf",
+        );
+        await prisma.taxReport.upsert({
+          where: {
+            userId_taxYear_method: {
+              userId: request.userId,
+              taxYear: query.year,
+              method: query.method,
+            },
+          },
+          create: {
+            userId: request.userId,
+            taxYear: query.year,
+            method: query.method,
+            status: "COMPLETE",
+            fileType: "txf",
+            fileName: `Form8949-${query.year}-${query.method}.txf`,
+            fileSize,
+            filePath,
+            generatedAt: new Date(),
+          },
+          update: {
+            fileType: "txf",
+            fileName: `Form8949-${query.year}-${query.method}.txf`,
+            fileSize,
+            filePath,
+            generatedAt: new Date(),
+          },
+        });
         reply.header("Content-Type", "text/plain");
         reply.header(
           "Content-Disposition",
@@ -378,6 +454,39 @@ export async function taxRoutes(app: FastifyInstance) {
       if (query.format === "pdf") {
         const scheduleD = generateScheduleD(report);
         const pdfBuffer = await generateForm8949Pdf(report, { scheduleD });
+        const { path: filePath, size: fileSize } = await saveReport(
+          request.userId,
+          `form8949-${query.year}-${query.method}`,
+          pdfBuffer,
+          "pdf",
+        );
+        await prisma.taxReport.upsert({
+          where: {
+            userId_taxYear_method: {
+              userId: request.userId,
+              taxYear: query.year,
+              method: query.method,
+            },
+          },
+          create: {
+            userId: request.userId,
+            taxYear: query.year,
+            method: query.method,
+            status: "COMPLETE",
+            fileType: "pdf",
+            fileName: `Form8949-${query.year}-${query.method}.pdf`,
+            fileSize,
+            filePath,
+            generatedAt: new Date(),
+          },
+          update: {
+            fileType: "pdf",
+            fileName: `Form8949-${query.year}-${query.method}.pdf`,
+            fileSize,
+            filePath,
+            generatedAt: new Date(),
+          },
+        });
         return reply
           .header("Content-Type", "application/pdf")
           .header(
@@ -1102,6 +1211,158 @@ export async function taxRoutes(app: FastifyInstance) {
       );
 
       return { data: result };
+    },
+  );
+
+  // ─── Report History Endpoints ───────────────────────────
+
+  // GET /tax/reports — List report history
+  app.get(
+    "/tax/reports",
+    {
+      schema: {
+        tags: ["tax"],
+        summary: "List report history",
+        querystring: {
+          type: "object" as const,
+          properties: {
+            limit: { type: "number" as const },
+            offset: { type: "number" as const },
+          },
+        },
+        response: {
+          200: {
+            type: "object" as const,
+            properties: {
+              data: {
+                type: "array" as const,
+                items: {
+                  type: "object" as const,
+                  additionalProperties: true,
+                },
+              },
+              total: { type: "number" as const },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const userId = await resolveUserId(request);
+      const query = request.query as { limit?: string; offset?: string };
+      const limit = parseInt(query.limit || "20");
+      const offset = parseInt(query.offset || "0");
+
+      const [data, total] = await Promise.all([
+        prisma.taxReport.findMany({
+          where: { userId },
+          orderBy: { createdAt: "desc" },
+          take: limit,
+          skip: offset,
+          select: {
+            id: true,
+            taxYear: true,
+            method: true,
+            fileType: true,
+            fileName: true,
+            fileSize: true,
+            generatedAt: true,
+            status: true,
+            shortTermGains: true,
+            shortTermLosses: true,
+            longTermGains: true,
+            longTermLosses: true,
+            createdAt: true,
+          },
+        }),
+        prisma.taxReport.count({ where: { userId } }),
+      ]);
+
+      return reply.send({ data, total });
+    },
+  );
+
+  // GET /tax/reports/:id/download — Download a report file
+  app.get(
+    "/tax/reports/:id/download",
+    {
+      schema: {
+        tags: ["tax"],
+        summary: "Download a report file",
+        params: {
+          type: "object" as const,
+          properties: { id: { type: "string" as const } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const userId = await resolveUserId(request);
+      const { id } = request.params as { id: string };
+
+      const report = await prisma.taxReport.findFirst({
+        where: { id, userId },
+      });
+
+      if (!report || !report.filePath) {
+        return reply.status(404).send({
+          error: {
+            code: "NOT_FOUND",
+            message: "Report file not found",
+          },
+        });
+      }
+
+      const buffer = await getReport(report.filePath);
+      const contentType =
+        report.fileType === "pdf" ? "application/pdf" : "text/csv";
+
+      return reply
+        .header("Content-Type", contentType)
+        .header(
+          "Content-Disposition",
+          `attachment; filename="${report.fileName || "report"}"`,
+        )
+        .send(buffer);
+    },
+  );
+
+  // DELETE /tax/reports/:id — Delete a report
+  app.delete(
+    "/tax/reports/:id",
+    {
+      schema: {
+        tags: ["tax"],
+        summary: "Delete a report",
+        params: {
+          type: "object" as const,
+          properties: { id: { type: "string" as const } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const userId = await resolveUserId(request);
+      const { id } = request.params as { id: string };
+
+      const report = await prisma.taxReport.findFirst({
+        where: { id, userId },
+      });
+
+      if (!report) {
+        return reply.status(404).send({
+          error: {
+            code: "NOT_FOUND",
+            message: "Report not found",
+          },
+        });
+      }
+
+      if (report.filePath) {
+        await deleteReportFile(report.filePath);
+      }
+
+      await prisma.taxReport.delete({ where: { id } });
+
+      return reply.send({ data: { success: true } });
     },
   );
 }
