@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "description": "DTax CLI - Crypto tax calculator command-line tool",
   "license": "AGPL-3.0",
-  "homepage": "https://github.com/dTaxLab/dtax/tree/main/packages/cli",
+  "homepage": "https://getdtax.com",
+  "bugs": "https://github.com/dTaxLab/dtax/issues",
   "repository": {
     "type": "git",
     "url": "https://github.com/dTaxLab/dtax.git",
@@ -15,15 +16,26 @@
     "cli",
     "bitcoin",
     "calculator",
-    "form-8949"
+    "form-8949",
+    "csv",
+    "terminal"
   ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "bin": {
     "dtax": "./dist/index.js"
   },
   "files": [
     "dist",
-    "LICENSE"
+    "LICENSE",
+    "README.md"
   ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format cjs --dts",
     "dev": "tsup src/index.ts --format cjs --watch",
