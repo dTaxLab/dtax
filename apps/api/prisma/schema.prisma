@@ -47,6 +47,8 @@ model User {
   subscription      Subscription?
   passwordResets    PasswordReset[]
   chatConversations ChatConversation[]
+  cpaClients        Client[]           @relation("CpaClients")
+  clientOf          Client?            @relation("ClientUser")
 
   @@map("users")
 }
@@ -60,6 +62,35 @@ enum Plan {
   FREE
   PRO
   CPA
+}
+
+// ─── Client ──────────────────────────────────────
+// CPA multi-client management
+
+model Client {
+  id              String       @id @default(uuid())
+  email           String
+  name            String?
+  cpaUserId       String       @map("cpa_user_id")
+  cpaUser         User         @relation("CpaClients", fields: [cpaUserId], references: [id])
+  userId          String?      @unique @map("user_id")
+  user            User?        @relation("ClientUser", fields: [userId], references: [id])
+  status          ClientStatus @default(PENDING)
+  inviteToken     String?      @unique @map("invite_token")
+  inviteExpiresAt DateTime?    @map("invite_expires_at")
+  notes           String?
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  @@index([cpaUserId])
+  @@index([email])
+  @@map("clients")
+}
+
+enum ClientStatus {
+  PENDING
+  ACTIVE
+  REVOKED
 }
 
 // ─── Data Source ────────────────────────────────
