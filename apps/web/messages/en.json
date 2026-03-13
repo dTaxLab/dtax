@@ -1100,6 +1100,11 @@
     "backToOwn": "Back to my account",
     "transactions": "Transactions",
     "taxSummary": "Tax Summary",
-    "batchReport": "Generate Batch Reports"
+    "batchReport": "Batch Report",
+    "selectAll": "Select All",
+    "shortTermGL": "Short-Term",
+    "longTermGL": "Long-Term",
+    "netGainLoss": "Net G/L",
+    "income": "Income"
   }
 }

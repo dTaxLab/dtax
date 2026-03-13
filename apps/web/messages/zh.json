@@ -1100,6 +1100,11 @@
     "backToOwn": "返回我的账户",
     "transactions": "交易记录",
     "taxSummary": "税务摘要",
-    "batchReport": "生成批量报告"
+    "batchReport": "批量报告",
+    "selectAll": "全选",
+    "shortTermGL": "短期",
+    "longTermGL": "长期",
+    "netGainLoss": "净盈亏",
+    "income": "收入"
   }
 }

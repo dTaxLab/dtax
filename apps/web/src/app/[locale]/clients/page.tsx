@@ -15,7 +15,9 @@ import {
   inviteClient,
   revokeClient,
   updateClientNotes,
+  batchReport,
 } from "@/lib/api";
+import type { BatchReportItem } from "@/lib/api";
 
 interface Client {
   id: string;
@@ -45,6 +47,15 @@ export default function ClientsPage() {
   // Notes editing
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [notesText, setNotesText] = useState("");
+
+  // Batch report state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchYear, setBatchYear] = useState(new Date().getFullYear() - 1);
+  const [batchMethod, setBatchMethod] = useState("FIFO");
+  const [batchLoading, setBatchLoading] = useState(false);
+  const [batchResults, setBatchResults] = useState<BatchReportItem[] | null>(
+    null,
+  );
 
   const fetchClients = useCallback(async () => {
     try {
@@ -112,6 +123,52 @@ export default function ClientsPage() {
       );
     }
   };
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const activeClients = clients.filter(
+    (c) => c.status === "ACTIVE" && c.userId,
+  );
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === activeClients.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(activeClients.map((c) => c.id)));
+    }
+  };
+
+  const handleBatchReport = async () => {
+    if (selectedIds.size === 0) return;
+    setBatchLoading(true);
+    setBatchResults(null);
+    try {
+      const res = await batchReport(
+        Array.from(selectedIds),
+        batchYear,
+        batchMethod,
+      );
+      setBatchResults(res.data);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Batch report failed";
+      setError(message);
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
+  const formatUsd = (v?: number) =>
+    v !== undefined
+      ? `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : "-";
 
   const statusBadge = (status: string) => {
     const colors: Record<string, string> = {
@@ -279,6 +336,206 @@ export default function ClientsPage() {
         </div>
       )}
 
+      {/* Batch Report Controls */}
+      {activeClients.length > 0 && (
+        <div
+          style={{
+            background: "var(--color-card-bg, #f9fafb)",
+            border: "1px solid var(--color-border, #e5e7eb)",
+            borderRadius: 8,
+            padding: 16,
+            marginBottom: 16,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 14,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={
+                  selectedIds.size === activeClients.length &&
+                  activeClients.length > 0
+                }
+                onChange={handleSelectAll}
+              />
+              {t("selectAll") || "Select All"}
+            </label>
+            <select
+              value={batchYear}
+              onChange={(e) => setBatchYear(Number(e.target.value))}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 6,
+                border: "1px solid var(--color-border, #d1d5db)",
+              }}
+            >
+              {Array.from(
+                { length: 5 },
+                (_, i) => new Date().getFullYear() - 1 - i,
+              ).map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+            <select
+              value={batchMethod}
+              onChange={(e) => setBatchMethod(e.target.value)}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 6,
+                border: "1px solid var(--color-border, #d1d5db)",
+              }}
+            >
+              <option value="FIFO">FIFO</option>
+              <option value="LIFO">LIFO</option>
+              <option value="HIFO">HIFO</option>
+            </select>
+            <button
+              onClick={handleBatchReport}
+              disabled={batchLoading || selectedIds.size === 0}
+              style={{
+                background:
+                  selectedIds.size > 0
+                    ? "var(--color-accent, #3b82f6)"
+                    : "#9ca3af",
+                color: "#fff",
+                border: "none",
+                borderRadius: 6,
+                padding: "8px 16px",
+                cursor:
+                  batchLoading || selectedIds.size === 0
+                    ? "not-allowed"
+                    : "pointer",
+                fontWeight: 600,
+                opacity: batchLoading ? 0.7 : 1,
+              }}
+            >
+              {batchLoading
+                ? "..."
+                : `${t("batchReport") || "Batch Report"} (${selectedIds.size})`}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Report Results */}
+      {batchResults && (
+        <div
+          style={{
+            border: "1px solid var(--color-border, #e5e7eb)",
+            borderRadius: 8,
+            marginBottom: 16,
+            overflow: "auto",
+          }}
+        >
+          <table
+            style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}
+          >
+            <thead>
+              <tr style={{ background: "var(--color-card-bg, #f3f4f6)" }}>
+                <th style={{ padding: "8px 12px", textAlign: "left" }}>
+                  {t("name") || "Client"}
+                </th>
+                <th style={{ padding: "8px 12px", textAlign: "right" }}>
+                  {t("transactions") || "Txns"}
+                </th>
+                <th style={{ padding: "8px 12px", textAlign: "right" }}>
+                  {t("shortTermGL") || "Short-Term"}
+                </th>
+                <th style={{ padding: "8px 12px", textAlign: "right" }}>
+                  {t("longTermGL") || "Long-Term"}
+                </th>
+                <th style={{ padding: "8px 12px", textAlign: "right" }}>
+                  {t("netGainLoss") || "Net G/L"}
+                </th>
+                <th style={{ padding: "8px 12px", textAlign: "right" }}>
+                  {t("income") || "Income"}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {batchResults.map((r) => (
+                <tr
+                  key={r.clientId}
+                  style={{
+                    borderTop: "1px solid var(--color-border, #e5e7eb)",
+                  }}
+                >
+                  {r.error ? (
+                    <>
+                      <td style={{ padding: "8px 12px" }}>{r.clientId}</td>
+                      <td
+                        colSpan={5}
+                        style={{ padding: "8px 12px", color: "#ef4444" }}
+                      >
+                        {r.error}
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td style={{ padding: "8px 12px" }}>
+                        {r.clientName || r.clientEmail || r.clientId}
+                      </td>
+                      <td style={{ padding: "8px 12px", textAlign: "right" }}>
+                        {r.transactionCount}
+                      </td>
+                      <td
+                        style={{
+                          padding: "8px 12px",
+                          textAlign: "right",
+                          color:
+                            (r.shortTermGL ?? 0) >= 0 ? "#10b981" : "#ef4444",
+                        }}
+                      >
+                        {formatUsd(r.shortTermGL)}
+                      </td>
+                      <td
+                        style={{
+                          padding: "8px 12px",
+                          textAlign: "right",
+                          color:
+                            (r.longTermGL ?? 0) >= 0 ? "#10b981" : "#ef4444",
+                        }}
+                      >
+                        {formatUsd(r.longTermGL)}
+                      </td>
+                      <td
+                        style={{
+                          padding: "8px 12px",
+                          textAlign: "right",
+                          fontWeight: 600,
+                          color:
+                            (r.netGainLoss ?? 0) >= 0 ? "#10b981" : "#ef4444",
+                        }}
+                      >
+                        {formatUsd(r.netGainLoss)}
+                      </td>
+                      <td style={{ padding: "8px 12px", textAlign: "right" }}>
+                        {formatUsd(r.totalIncome)}
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {/* Client List */}
       {loading ? (
         <p>Loading...</p>
@@ -312,7 +569,15 @@ export default function ClientsPage() {
                   marginBottom: 8,
                 }}
               >
-                <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {client.status === "ACTIVE" && client.userId && (
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(client.id)}
+                      onChange={() => toggleSelection(client.id)}
+                      style={{ width: 16, height: 16, cursor: "pointer" }}
+                    />
+                  )}
                   <strong style={{ fontSize: 16 }}>
                     {client.name || client.email}
                   </strong>

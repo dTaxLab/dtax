@@ -1116,6 +1116,29 @@ export async function acceptClientInvite(inviteToken: string) {
   });
 }
 
+export interface BatchReportItem {
+  clientId: string;
+  clientName?: string | null;
+  clientEmail?: string;
+  netGainLoss?: number;
+  shortTermGL?: number;
+  longTermGL?: number;
+  transactionCount?: number;
+  totalIncome?: number;
+  error?: string;
+}
+
+export async function batchReport(
+  clientIds: string[],
+  taxYear: number,
+  method: string,
+) {
+  return apiFetch<{ data: BatchReportItem[] }>("/clients/batch-report", {
+    method: "POST",
+    body: JSON.stringify({ clientIds, taxYear, method }),
+  });
+}
+
 export async function sendChatMessageStream(
   conversationId: string,
   content: string,

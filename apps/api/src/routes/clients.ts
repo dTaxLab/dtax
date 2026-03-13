@@ -13,6 +13,8 @@ import { FastifyInstance } from "fastify";
 import crypto from "crypto";
 import { prisma } from "../lib/prisma";
 import { checkCpaAccess } from "../plugins/cpa-guard";
+import { fetchTaxData, calculateIncome } from "../lib/tax-data";
+import { CostBasisCalculator } from "@dtax/tax-engine";
 
 /** Reusable error response schema for OpenAPI. */
 const errorResponseSchema = {
@@ -415,6 +417,155 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
       });
 
       return reply.send({ data: updated });
+    },
+  );
+
+  // POST /clients/batch-report — Generate batch tax reports for multiple clients
+  app.post(
+    "/clients/batch-report",
+    {
+      schema: {
+        tags: ["clients"],
+        summary: "Generate batch tax reports for multiple clients (CPA only)",
+        body: {
+          type: "object" as const,
+          required: ["clientIds", "taxYear", "method"],
+          properties: {
+            clientIds: {
+              type: "array" as const,
+              items: { type: "string" as const },
+            },
+            taxYear: { type: "number" as const },
+            method: {
+              type: "string" as const,
+              enum: ["FIFO", "LIFO", "HIFO"],
+            },
+          },
+        },
+        response: {
+          200: {
+            type: "object" as const,
+            properties: {
+              data: {
+                type: "array" as const,
+                items: {
+                  type: "object" as const,
+                  additionalProperties: true,
+                },
+              },
+            },
+          },
+          403: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const access = await checkCpaAccess(request.userId);
+      if (!access.allowed) {
+        return reply.status(403).send({
+          error: {
+            code: "FORBIDDEN",
+            message: access.reason || "CPA plan required",
+          },
+        });
+      }
+
+      const { clientIds, taxYear, method } = request.body as {
+        clientIds: string[];
+        taxYear: number;
+        method: "FIFO" | "LIFO" | "HIFO";
+      };
+
+      const results: Array<{
+        clientId: string;
+        clientName?: string | null;
+        clientEmail?: string;
+        netGainLoss?: number;
+        shortTermGL?: number;
+        longTermGL?: number;
+        transactionCount?: number;
+        totalIncome?: number;
+        error?: string;
+      }> = [];
+
+      for (const clientId of clientIds) {
+        try {
+          const client = await prisma.client.findFirst({
+            where: {
+              id: clientId,
+              cpaUserId: request.userId,
+              status: "ACTIVE",
+            },
+          });
+
+          if (!client || !client.userId) {
+            results.push({ clientId, error: "Client not found or not active" });
+            continue;
+          }
+
+          const { lots, events } = await fetchTaxData({
+            userId: client.userId,
+            taxYear,
+          });
+          const income = await calculateIncome({
+            userId: client.userId,
+            taxYear,
+          });
+
+          if (events.length === 0) {
+            results.push({
+              clientId,
+              clientName: client.name,
+              clientEmail: client.email,
+              netGainLoss: 0,
+              shortTermGL: 0,
+              longTermGL: 0,
+              transactionCount: 0,
+              totalIncome: income.total,
+            });
+            continue;
+          }
+
+          const calculator = new CostBasisCalculator(method);
+          calculator.addLots(lots);
+
+          let shortTermGains = 0;
+          let shortTermLosses = 0;
+          let longTermGains = 0;
+          let longTermLosses = 0;
+
+          for (const event of events) {
+            const result = calculator.calculate(event);
+            if (result.holdingPeriod === "SHORT_TERM") {
+              if (result.gainLoss >= 0) shortTermGains += result.gainLoss;
+              else shortTermLosses += Math.abs(result.gainLoss);
+            } else {
+              if (result.gainLoss >= 0) longTermGains += result.gainLoss;
+              else longTermLosses += Math.abs(result.gainLoss);
+            }
+          }
+
+          results.push({
+            clientId,
+            clientName: client.name,
+            clientEmail: client.email,
+            netGainLoss:
+              shortTermGains -
+              shortTermLosses +
+              (longTermGains - longTermLosses),
+            shortTermGL: shortTermGains - shortTermLosses,
+            longTermGL: longTermGains - longTermLosses,
+            transactionCount: events.length,
+            totalIncome: income.total,
+          });
+        } catch (err: unknown) {
+          const message =
+            err instanceof Error ? err.message : "Calculation failed";
+          results.push({ clientId, error: message });
+        }
+      }
+
+      return reply.send({ data: results });
     },
   );
 }
