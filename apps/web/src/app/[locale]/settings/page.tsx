@@ -22,6 +22,10 @@ import {
   disable2FA,
   get2FAStatus,
   getAuditLogs,
+  connectWallet,
+  listWallets,
+  syncWallet,
+  disconnectWallet,
 } from "@/lib/api";
 import type { DataSource } from "@/lib/api";
 import { getStoredToken } from "@/lib/auth-context";
@@ -52,6 +56,7 @@ export default function SettingsPage() {
   const tAcc = useTranslations("account");
   const t2fa = useTranslations("twoFactor");
   const tAudit = useTranslations("audit");
+  const tW = useTranslations("wallets");
   const { user, token } = useAuth();
   const searchParams = useSearchParams();
 
@@ -110,6 +115,24 @@ export default function SettingsPage() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditOffset, setAuditOffset] = useState(0);
 
+  // Wallet state
+  const [wallets, setWallets] = useState<
+    Array<{
+      id: string;
+      name: string;
+      address: string;
+      chain: string;
+      status: string;
+      lastSyncAt: string | null;
+    }>
+  >([]);
+  const [showWalletForm, setShowWalletForm] = useState(false);
+  const [walletAddress, setWalletAddress] = useState("");
+  const [walletChain, setWalletChain] = useState("ethereum");
+  const [walletLabel, setWalletLabel] = useState("");
+  const [walletError, setWalletError] = useState("");
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+
   const billingSuccess = searchParams.get("billing") === "success";
 
   async function fetchAuditLogs(offset = 0) {
@@ -139,12 +162,57 @@ export default function SettingsPage() {
     loadBillingStatus();
     load2FAStatus();
     fetchAuditLogs();
+    fetchWallets();
   }, []);
 
   async function loadSources() {
     try {
       const res = await getDataSources();
       setSources(res.data);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function fetchWallets() {
+    try {
+      const res = await listWallets();
+      setWallets(Array.isArray(res) ? res : (res as any).data || []);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function handleConnectWallet() {
+    setWalletError("");
+    if (!walletAddress.trim()) return;
+    try {
+      await connectWallet(walletAddress, walletChain, walletLabel || undefined);
+      setShowWalletForm(false);
+      setWalletAddress("");
+      setWalletLabel("");
+      fetchWallets();
+    } catch (err: any) {
+      setWalletError(err?.message || "Failed to connect wallet");
+    }
+  }
+
+  async function handleSyncWallet(id: string) {
+    setSyncingId(id);
+    try {
+      await syncWallet(id);
+      fetchWallets();
+    } catch {
+      /* ignore */
+    }
+    setSyncingId(null);
+  }
+
+  async function handleDisconnectWallet(id: string) {
+    if (!confirm(tW("disconnectConfirm"))) return;
+    try {
+      await disconnectWallet(id);
+      fetchWallets();
     } catch {
       /* ignore */
     }
@@ -1078,6 +1146,179 @@ export default function SettingsPage() {
                         {tDs("delete")}
                       </button>
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Connected Wallets */}
+          <div className="card" style={{ padding: "24px" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "16px",
+              }}
+            >
+              <div>
+                <h2
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: 600,
+                    marginBottom: "4px",
+                  }}
+                >
+                  {tW("title")}
+                </h2>
+                <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>
+                  {tW("subtitle")}
+                </p>
+              </div>
+              <button
+                className="btn btn-primary"
+                onClick={() => setShowWalletForm(!showWalletForm)}
+                style={{ fontSize: "13px", padding: "6px 14px" }}
+              >
+                {tW("connect")}
+              </button>
+            </div>
+
+            {showWalletForm && (
+              <div
+                style={{
+                  padding: "16px",
+                  background: "var(--bg-secondary)",
+                  borderRadius: "var(--radius-sm)",
+                  marginBottom: "16px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                  }}
+                >
+                  <select
+                    value={walletChain}
+                    onChange={(e) => setWalletChain(e.target.value)}
+                    style={{ ...inputStyle, padding: "8px 12px" }}
+                  >
+                    {[
+                      "ethereum",
+                      "solana",
+                      "polygon",
+                      "bsc",
+                      "arbitrum",
+                      "optimism",
+                    ].map((c) => (
+                      <option key={c} value={c}>
+                        {tW(c as any)}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    placeholder={tW("enterAddress")}
+                    value={walletAddress}
+                    onChange={(e) => setWalletAddress(e.target.value)}
+                    style={{ ...inputStyle, padding: "8px 12px" }}
+                  />
+                  <input
+                    placeholder={tW("label")}
+                    value={walletLabel}
+                    onChange={(e) => setWalletLabel(e.target.value)}
+                    style={{ ...inputStyle, padding: "8px 12px" }}
+                  />
+                  {walletError && (
+                    <p
+                      style={{ color: "var(--color-error)", fontSize: "13px" }}
+                    >
+                      {walletError}
+                    </p>
+                  )}
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleConnectWallet}
+                    style={{
+                      alignSelf: "flex-start",
+                      fontSize: "13px",
+                      padding: "6px 14px",
+                    }}
+                  >
+                    {tW("connectWallet")}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {wallets.length === 0 ? (
+              <p style={{ fontSize: "14px", color: "var(--text-muted)" }}>
+                {tW("noWallets")}
+              </p>
+            ) : (
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+              >
+                {wallets.map((w) => (
+                  <div
+                    key={w.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      padding: "12px 16px",
+                      background: "var(--bg-secondary)",
+                      borderRadius: "var(--radius-sm)",
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: "14px", fontWeight: 500 }}>
+                        {w.name}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          color: "var(--text-muted)",
+                          marginTop: "2px",
+                          fontFamily: "monospace",
+                        }}
+                      >
+                        {w.address.substring(0, 8)}...
+                        {w.address.substring(w.address.length - 6)}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "11px",
+                          color: "var(--text-muted)",
+                          marginTop: "2px",
+                        }}
+                      >
+                        {tW(w.chain as any)}{" "}
+                        {w.lastSyncAt
+                          ? `· ${tW("lastSync")}: ${new Date(w.lastSyncAt).toLocaleDateString()}`
+                          : ""}
+                      </div>
+                    </div>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => handleSyncWallet(w.id)}
+                      disabled={syncingId === w.id}
+                      style={{ fontSize: "12px", padding: "4px 10px" }}
+                    >
+                      {syncingId === w.id ? tW("syncing") : tW("sync")}
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => handleDisconnectWallet(w.id)}
+                      style={{
+                        fontSize: "12px",
+                        padding: "4px 10px",
+                        color: "var(--color-error)",
+                      }}
+                    >
+                      {tW("disconnect")}
+                    </button>
                   </div>
                 ))}
               </div>

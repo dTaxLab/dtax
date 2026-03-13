@@ -1249,6 +1249,48 @@ export async function deleteNotificationById(id: string) {
   });
 }
 
+// ── Wallets ──
+
+export async function connectWallet(
+  address: string,
+  chain: string,
+  label?: string,
+) {
+  return apiFetch<{ dataSourceId: string; address: string; chain: string }>(
+    "/api/v1/wallets/connect",
+    {
+      method: "POST",
+      body: JSON.stringify({ address, chain, label }),
+    },
+  );
+}
+
+export async function listWallets() {
+  return apiFetch<
+    Array<{
+      id: string;
+      name: string;
+      address: string;
+      chain: string;
+      status: string;
+      lastSyncAt: string | null;
+      createdAt: string;
+    }>
+  >("/api/v1/wallets");
+}
+
+export async function syncWallet(id: string) {
+  return apiFetch<{ status: string }>(`/api/v1/wallets/${id}/sync`, {
+    method: "POST",
+  });
+}
+
+export async function disconnectWallet(id: string) {
+  return apiFetch<{ deleted: boolean }>(`/api/v1/wallets/${id}`, {
+    method: "DELETE",
+  });
+}
+
 export async function sendChatMessageStream(
   conversationId: string,
   content: string,

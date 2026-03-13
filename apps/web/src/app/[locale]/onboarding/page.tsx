@@ -52,6 +52,8 @@ export default function OnboardingPage() {
       window.location.href = `/${locale}/transactions`;
     } else if (mode === "api") {
       window.location.href = `/${locale}/transactions`;
+    } else if (mode === "wallet") {
+      window.location.href = `/${locale}/settings`;
     } else {
       setStep(4);
     }
@@ -322,6 +324,12 @@ export default function OnboardingPage() {
                   label: "importApi",
                   desc: "importApiDesc",
                   icon: "\u{1F50C}",
+                },
+                {
+                  key: "wallet",
+                  label: "importWallet",
+                  desc: "importWalletDesc",
+                  icon: "\u{1F517}",
                 },
                 {
                   key: "later",
