@@ -9,10 +9,8 @@ import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import Fastify from "fastify";
 import jwt from "@fastify/jwt";
 import { ZodError } from "zod";
-import {
-  fastifyZodOpenApiPlugin,
-  validatorCompiler,
-} from "fastify-zod-openapi";
+import { fastifyZodOpenApiPlugin } from "fastify-zod-openapi";
+import { hybridValidatorCompiler } from "./test-helpers";
 import { aiClassifyRoutes } from "../routes/ai-classify";
 
 // Mock Prisma
@@ -50,7 +48,7 @@ const mutableConfig = config as { anthropicApiKey: string };
 function buildApp() {
   const app = Fastify({ logger: false });
   app.register(fastifyZodOpenApiPlugin);
-  app.setValidatorCompiler(validatorCompiler);
+  app.setValidatorCompiler(hybridValidatorCompiler);
   app.setSerializerCompiler(() => (data) => JSON.stringify(data));
   app.register(jwt, { secret: "test-secret", sign: { expiresIn: "7d" } });
   app.decorateRequest("userId", "");

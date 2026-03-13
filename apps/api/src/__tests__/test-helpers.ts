@@ -7,22 +7,51 @@
 import "zod-openapi/extend";
 
 import Fastify from "fastify";
-import { ZodError } from "zod";
+import { ZodError, ZodType } from "zod";
 import {
   fastifyZodOpenApiPlugin,
-  validatorCompiler,
+  validatorCompiler as zodValidatorCompiler,
 } from "fastify-zod-openapi";
+import Ajv from "ajv";
+import addFormats from "ajv-formats";
 
 // 引入 auth 插件的类型声明
 import "../plugins/auth";
+
+const ajv = new Ajv({ allErrors: true, coerceTypes: true });
+addFormats(ajv);
+
+/**
+ * Hybrid validator compiler: routes with zod schemas use zod-openapi,
+ * routes with traditional JSON schemas use ajv.
+ */
+export const hybridValidatorCompiler: typeof zodValidatorCompiler = (req) => {
+  // ZodType instances have a safeParse method
+  if (req.schema && req.schema instanceof ZodType) {
+    return zodValidatorCompiler(req);
+  }
+  // Traditional JSON schema — compile with ajv
+  const validate = ajv.compile(req.schema as Record<string, unknown>);
+  return (data: unknown) => {
+    const valid = validate(data);
+    if (!valid) {
+      return {
+        error: Object.assign(new Error(ajv.errorsText(validate.errors)), {
+          validation: validate.errors,
+        }),
+      };
+    }
+    return { value: data as unknown };
+  };
+};
 
 /** Creates a Fastify app with mocked auth and global error handler (no DB, no plugins) */
 export function buildApp() {
   const app = Fastify({ logger: false });
 
-  // Register zod-openapi plugin and validator compiler
+  // Register zod-openapi plugin + hybrid validator supporting both zod and JSON schemas
   app.register(fastifyZodOpenApiPlugin);
-  app.setValidatorCompiler(validatorCompiler);
+  app.setValidatorCompiler(hybridValidatorCompiler);
   // Permissive serializer — response schemas for OpenAPI docs only, not runtime validation
   app.setSerializerCompiler(() => (data) => JSON.stringify(data));
 

@@ -9,10 +9,8 @@ import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import Fastify from "fastify";
 import jwt from "@fastify/jwt";
 import { ZodError } from "zod";
-import {
-  fastifyZodOpenApiPlugin,
-  validatorCompiler,
-} from "fastify-zod-openapi";
+import { fastifyZodOpenApiPlugin } from "fastify-zod-openapi";
+import { hybridValidatorCompiler } from "./test-helpers";
 import { authRoutes } from "../routes/auth";
 
 // 模拟 Prisma
@@ -70,7 +68,7 @@ function buildAuthApp() {
   const app = Fastify({ logger: false });
 
   app.register(fastifyZodOpenApiPlugin);
-  app.setValidatorCompiler(validatorCompiler);
+  app.setValidatorCompiler(hybridValidatorCompiler);
   app.setSerializerCompiler(() => (data) => JSON.stringify(data));
 
   // 注册 JWT（auth 路由需要 app.jwt.sign）

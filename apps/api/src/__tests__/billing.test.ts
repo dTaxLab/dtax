@@ -124,7 +124,8 @@ describe("Billing Routes", () => {
     });
 
     it("valid plan returns checkout URL", async () => {
-      // Set the env var so the route doesn't 500 on missing price
+      // Set the env vars so the route doesn't 503 on missing Stripe config
+      process.env.STRIPE_SECRET_KEY = "sk_test_fake";
       process.env.STRIPE_PRO_PRICE_ID = "price_test_pro";
 
       mockPrisma.user.findUnique.mockResolvedValueOnce({
@@ -151,6 +152,7 @@ describe("Billing Routes", () => {
       expect(body.data.url).toBe("https://checkout.stripe.com/session/test");
       expect(mockCheckoutSessionCreate).toHaveBeenCalledOnce();
 
+      delete process.env.STRIPE_SECRET_KEY;
       delete process.env.STRIPE_PRO_PRICE_ID;
     });
   });
