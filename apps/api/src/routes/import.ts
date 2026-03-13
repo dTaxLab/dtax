@@ -16,6 +16,7 @@ import { parseCsv } from "@dtax/tax-engine";
 import type { CsvFormat, ParsedTransaction } from "@dtax/tax-engine";
 import { checkTransactionQuota } from "../plugins/plan-guard";
 import { classifyBatch } from "../lib/ai-classifier";
+import { logAudit } from "../lib/audit.js";
 
 /** Generate a deterministic fingerprint for a parsed transaction */
 function txFingerprint(tx: ParsedTransaction): string {
@@ -349,6 +350,16 @@ export async function importRoutes(app: FastifyInstance) {
       } catch (err) {
         request.log.error(err, "AI classification failed (non-blocking)");
       }
+
+      logAudit({
+        userId: request.userId,
+        action: "IMPORT",
+        entityType: "dataSource",
+        entityId: dataSource.id,
+        details: { format: parseResult.summary.format, count: created.count },
+        ipAddress: request.ip,
+        userAgent: request.headers["user-agent"],
+      }).catch(() => {});
 
       return reply.status(201).send({
         data: {

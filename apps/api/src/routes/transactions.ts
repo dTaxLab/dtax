@@ -12,6 +12,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { checkTransactionQuota } from "../plugins/plan-guard";
 import { resolveUserId } from "../plugins/resolve-user.js";
+import { logAudit } from "../lib/audit.js";
 
 // ─── Validation Schemas ─────────────────────────
 
@@ -264,6 +265,19 @@ export async function transactionRoutes(app: FastifyInstance) {
           sourceId: body.sourceId,
         },
       });
+
+      logAudit({
+        userId: request.userId,
+        action: "CREATE",
+        entityType: "transaction",
+        entityId: transaction.id,
+        details: {
+          type: body.type,
+          asset: body.receivedAsset || body.sentAsset,
+        },
+        ipAddress: request.ip,
+        userAgent: request.headers["user-agent"],
+      }).catch(() => {});
 
       return reply.status(201).send({
         data: transaction,
@@ -735,6 +749,16 @@ export async function transactionRoutes(app: FastifyInstance) {
         },
       });
 
+      logAudit({
+        userId: request.userId,
+        action: "UPDATE",
+        entityType: "transaction",
+        entityId: id,
+        details: { updatedFields: Object.keys(body) },
+        ipAddress: request.ip,
+        userAgent: request.headers["user-agent"],
+      }).catch(() => {});
+
       return { data: updated };
     },
   );
@@ -790,6 +814,15 @@ export async function transactionRoutes(app: FastifyInstance) {
         },
       });
 
+      logAudit({
+        userId: request.userId,
+        action: "BULK_DELETE",
+        entityType: "transaction",
+        details: { count: deleted.count, ids: body.ids },
+        ipAddress: request.ip,
+        userAgent: request.headers["user-agent"],
+      }).catch(() => {});
+
       return { data: { deleted: deleted.count } };
     },
   );
@@ -841,6 +874,15 @@ export async function transactionRoutes(app: FastifyInstance) {
       }
 
       await prisma.transaction.delete({ where: { id } });
+
+      logAudit({
+        userId: request.userId,
+        action: "DELETE",
+        entityType: "transaction",
+        entityId: id,
+        ipAddress: request.ip,
+        userAgent: request.headers["user-agent"],
+      }).catch(() => {});
 
       return reply.status(204).send();
     },

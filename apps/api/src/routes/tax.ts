@@ -11,6 +11,7 @@ import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { resolveUserId } from "../plugins/resolve-user.js";
+import { logAudit } from "../lib/audit.js";
 import {
   fetchTaxData,
   calculateIncome,
@@ -207,6 +208,16 @@ export async function taxRoutes(app: FastifyInstance) {
         },
       });
 
+      logAudit({
+        userId: request.userId,
+        action: "CALCULATE",
+        entityType: "taxReport",
+        entityId: report.id,
+        details: { year: body.taxYear, method: body.method },
+        ipAddress: request.ip,
+        userAgent: request.headers["user-agent"],
+      }).catch(() => {});
+
       return reply.status(200).send({
         data: {
           report: {
@@ -329,6 +340,19 @@ export async function taxRoutes(app: FastifyInstance) {
         reportingBasis: "none",
         washSaleAdjustments,
       });
+
+      logAudit({
+        userId: request.userId,
+        action: "GENERATE_REPORT",
+        entityType: "taxReport",
+        details: {
+          year: query.year,
+          method: query.method,
+          format: query.format,
+        },
+        ipAddress: request.ip,
+        userAgent: request.headers["user-agent"],
+      }).catch(() => {});
 
       if (query.format === "csv") {
         const csv = form8949ToCsv(report);

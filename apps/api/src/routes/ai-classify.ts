@@ -13,6 +13,7 @@ import {
   classifyTransaction,
   type ClassificationInput,
 } from "../lib/ai-classifier";
+import { logAudit } from "../lib/audit.js";
 
 export async function aiClassifyRoutes(app: FastifyInstance) {
   // POST /transactions/ai-classify — classify specific transactions
@@ -107,6 +108,15 @@ export async function aiClassifyRoutes(app: FastifyInstance) {
           classified++;
         }
       }
+
+      logAudit({
+        userId: request.userId,
+        action: "AI_CLASSIFY",
+        entityType: "transaction",
+        details: { processed: transactions.length, classified, ids: body.ids },
+        ipAddress: request.ip,
+        userAgent: request.headers["user-agent"],
+      }).catch(() => {});
 
       return {
         data: {

@@ -14,6 +14,7 @@ import { prisma } from "../lib/prisma";
 import { config } from "../config";
 import { sendEmail, verificationEmail, resetPasswordEmail } from "../lib/email";
 import { verifyTotpToken } from "../lib/totp";
+import { logAudit } from "../lib/audit.js";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -211,6 +212,14 @@ export async function authRoutes(app: FastifyInstance) {
 
       const token = app.jwt.sign({ sub: user.id, role: user.role });
 
+      logAudit({
+        userId: user.id,
+        action: "LOGIN",
+        entityType: "auth",
+        ipAddress: request.ip,
+        userAgent: request.headers["user-agent"],
+      }).catch(() => {});
+
       return {
         data: {
           token,
@@ -358,6 +367,15 @@ export async function authRoutes(app: FastifyInstance) {
       }
 
       const token = app.jwt.sign({ sub: user.id, role: user.role });
+
+      logAudit({
+        userId: user.id,
+        action: "LOGIN",
+        entityType: "auth",
+        details: { method: "2fa" },
+        ipAddress: request.ip,
+        userAgent: request.headers["user-agent"],
+      }).catch(() => {});
 
       return {
         data: {
