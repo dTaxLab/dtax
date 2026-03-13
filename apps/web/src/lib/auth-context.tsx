@@ -29,7 +29,10 @@ interface AuthContextType {
   user: AuthUser | null;
   token: string | null;
   loading: boolean;
+  requiresTwoFactor: boolean;
+  tempToken: string | null;
   login: (email: string, password: string) => Promise<void>;
+  verifyTwoFactor: (totpToken?: string, recoveryCode?: string) => Promise<void>;
   register: (email: string, password: string, name?: string) => Promise<void>;
   logout: () => void;
 }
@@ -51,6 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
+  const [tempToken, setTempToken] = useState<string | null>(null);
 
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -140,9 +145,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const data = await res.json();
+
+    // Check if 2FA is required
+    if (data.data.requiresTwoFactor) {
+      setTempToken(data.data.tempToken);
+      setRequiresTwoFactor(true);
+      return;
+    }
+
     localStorage.setItem(TOKEN_KEY, data.data.token);
     setToken(data.data.token);
     setUser(data.data.user);
+    scheduleRefresh(data.data.token);
+  }
+
+  async function verifyTwoFactor(totpToken?: string, recoveryCode?: string) {
+    if (!tempToken) throw new Error("No pending 2FA session");
+
+    const res = await fetch(`${API_BASE}/api/v1/auth/login/2fa`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tempToken, totpToken, recoveryCode }),
+    });
+
+    if (!res.ok) {
+      const err = await res
+        .json()
+        .catch(() => ({ error: { message: "2FA verification failed" } }));
+      throw new Error(err.error?.message || "2FA verification failed");
+    }
+
+    const data = await res.json();
+    localStorage.setItem(TOKEN_KEY, data.data.token);
+    setToken(data.data.token);
+    setUser(data.data.user);
+    setRequiresTwoFactor(false);
+    setTempToken(null);
     scheduleRefresh(data.data.token);
   }
 
@@ -172,11 +210,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(TOKEN_KEY);
     setToken(null);
     setUser(null);
+    setRequiresTwoFactor(false);
+    setTempToken(null);
   }
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, login, register, logout }}
+      value={{
+        user,
+        token,
+        loading,
+        requiresTwoFactor,
+        tempToken,
+        login,
+        verifyTwoFactor,
+        register,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

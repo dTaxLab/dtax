@@ -995,6 +995,65 @@ export async function cancelAccountDeletion() {
   });
 }
 
+// ── Two-Factor Authentication ──
+
+export async function setup2FA() {
+  return apiFetch<{ qrCodeUrl: string; secret: string }>(
+    "/api/v1/auth/2fa/setup",
+    { method: "POST" },
+  );
+}
+
+export async function verify2FA(token: string) {
+  return apiFetch<{ enabled: boolean; recoveryCodes: string[] }>(
+    "/api/v1/auth/2fa/verify",
+    {
+      method: "POST",
+      body: JSON.stringify({ token }),
+    },
+  );
+}
+
+export async function disable2FA(token: string) {
+  return apiFetch<{ disabled: boolean }>("/api/v1/auth/2fa/disable", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+}
+
+export async function get2FAStatus() {
+  return apiFetch<{ enabled: boolean }>("/api/v1/auth/2fa/status");
+}
+
+export async function loginWith2FA(
+  tempToken: string,
+  totpToken?: string,
+  recoveryCode?: string,
+) {
+  const res = await fetch(`${API_BASE}/api/v1/auth/login/2fa`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tempToken, totpToken, recoveryCode }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new ApiError(
+      (err as Record<string, Record<string, string>>)?.error?.message ||
+        "2FA verification failed",
+      undefined,
+    );
+  }
+  const json = await res.json();
+  return (
+    json as {
+      data: {
+        token: string;
+        user: { id: string; email: string; name: string | null; role: string };
+      };
+    }
+  ).data;
+}
+
 export async function sendChatMessageStream(
   conversationId: string,
   content: string,

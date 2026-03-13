@@ -8,8 +8,9 @@ import { Link } from "@/i18n/navigation";
 
 export default function AuthPage() {
   const t = useTranslations("auth");
+  const t2fa = useTranslations("twoFactor");
   const router = useRouter();
-  const { login, register } = useAuth();
+  const { login, register, requiresTwoFactor, verifyTwoFactor } = useAuth();
 
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -18,6 +19,10 @@ export default function AuthPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // 2FA login state
+  const [twoFACode, setTwoFACode] = useState("");
+  const [useRecovery, setUseRecovery] = useState(false);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
@@ -25,12 +30,42 @@ export default function AuthPage() {
     try {
       if (mode === "login") {
         await login(email, password);
+        // If requiresTwoFactor is set, we stay on this page to show 2FA form
+        // Otherwise login completed, redirect
+        // We check after — the state update triggers re-render
       } else {
         await register(email, password, name || undefined);
       }
-      router.push("/");
+      // Only redirect if not requiring 2FA (register always redirects)
+      if (mode === "register") {
+        router.push("/");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : t("failed"));
+    }
+    setSubmitting(false);
+  }
+
+  // After login completes without 2FA, redirect
+  // This effect handles the case where login succeeded (no 2FA)
+  const { user } = useAuth();
+  if (user && !requiresTwoFactor) {
+    router.push("/");
+  }
+
+  async function handle2FASubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+    try {
+      if (useRecovery) {
+        await verifyTwoFactor(undefined, twoFACode);
+      } else {
+        await verifyTwoFactor(twoFACode, undefined);
+      }
+      router.push("/");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t2fa("invalidCode"));
     }
     setSubmitting(false);
   }
@@ -44,6 +79,120 @@ export default function AuthPage() {
     color: "var(--text-primary)",
     fontSize: "14px",
   };
+
+  if (requiresTwoFactor) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "80vh",
+        }}
+      >
+        <div
+          className="card"
+          style={{ width: "100%", maxWidth: "420px", padding: "32px" }}
+        >
+          <div style={{ textAlign: "center", marginBottom: "24px" }}>
+            <h1 style={{ fontSize: "24px", fontWeight: 700 }}>DTax</h1>
+            <p
+              style={{
+                color: "var(--text-muted)",
+                fontSize: "14px",
+                marginTop: "4px",
+              }}
+            >
+              {t2fa("title")}
+            </p>
+          </div>
+
+          <form
+            onSubmit={handle2FASubmit}
+            style={{ display: "flex", flexDirection: "column", gap: "14px" }}
+          >
+            <p
+              style={{
+                fontSize: "14px",
+                color: "var(--text-muted)",
+                textAlign: "center",
+              }}
+            >
+              {useRecovery ? t2fa("useRecoveryCode") : t2fa("loginPrompt")}
+            </p>
+            <input
+              type="text"
+              inputMode={useRecovery ? "text" : "numeric"}
+              maxLength={useRecovery ? 20 : 6}
+              required
+              placeholder={
+                useRecovery
+                  ? t2fa("recoveryPlaceholder")
+                  : t2fa("codePlaceholder")
+              }
+              value={twoFACode}
+              onChange={(e) =>
+                setTwoFACode(
+                  useRecovery
+                    ? e.target.value
+                    : e.target.value.replace(/\D/g, ""),
+                )
+              }
+              style={{
+                ...inputStyle,
+                fontFamily: "monospace",
+                letterSpacing: useRecovery ? "normal" : "0.3em",
+                textAlign: "center",
+              }}
+              autoFocus
+            />
+
+            {error && (
+              <div
+                style={{
+                  padding: "10px 14px",
+                  background: "var(--red-bg)",
+                  borderRadius: "8px",
+                  color: "var(--red-light)",
+                  fontSize: "13px",
+                }}
+              >
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={submitting || twoFACode.length === 0}
+              style={{ padding: "12px", fontSize: "15px", fontWeight: 600 }}
+            >
+              {submitting ? t("submitting") : t2fa("verifyLogin")}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setUseRecovery(!useRecovery);
+                setTwoFACode("");
+                setError(null);
+              }}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--accent)",
+                fontSize: "13px",
+                cursor: "pointer",
+                textAlign: "center",
+              }}
+            >
+              {useRecovery ? t2fa("useAuthenticator") : t2fa("useRecoveryCode")}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

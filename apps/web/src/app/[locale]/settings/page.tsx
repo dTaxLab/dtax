@@ -17,6 +17,10 @@ import {
   exportAccountData,
   requestAccountDeletion,
   cancelAccountDeletion,
+  setup2FA,
+  verify2FA,
+  disable2FA,
+  get2FAStatus,
 } from "@/lib/api";
 import type { DataSource } from "@/lib/api";
 import { getStoredToken } from "@/lib/auth-context";
@@ -45,6 +49,7 @@ export default function SettingsPage() {
   const tTax = useTranslations("tax");
   const tDs = useTranslations("dataSources");
   const tAcc = useTranslations("account");
+  const t2fa = useTranslations("twoFactor");
   const { user, token } = useAuth();
   const searchParams = useSearchParams();
 
@@ -73,6 +78,20 @@ export default function SettingsPage() {
   const [accountError, setAccountError] = useState<string | null>(null);
   const [cancellingDeletion, setCancellingDeletion] = useState(false);
 
+  // 2FA state
+  const [twoFAEnabled, setTwoFAEnabled] = useState(false);
+  const [twoFALoading, setTwoFALoading] = useState(true);
+  const [twoFASetupData, setTwoFASetupData] = useState<{
+    qrCodeUrl: string;
+    secret: string;
+  } | null>(null);
+  const [twoFACode, setTwoFACode] = useState("");
+  const [twoFARecoveryCodes, setTwoFARecoveryCodes] = useState<string[] | null>(
+    null,
+  );
+  const [twoFAError, setTwoFAError] = useState<string | null>(null);
+  const [twoFASubmitting, setTwoFASubmitting] = useState(false);
+
   const billingSuccess = searchParams.get("billing") === "success";
 
   useEffect(() => {
@@ -82,6 +101,7 @@ export default function SettingsPage() {
     setFiatCurrency(prefs.fiatCurrency || "USD");
     loadSources();
     loadBillingStatus();
+    load2FAStatus();
   }, []);
 
   async function loadSources() {
@@ -90,6 +110,67 @@ export default function SettingsPage() {
       setSources(res.data);
     } catch {
       /* ignore */
+    }
+  }
+
+  async function load2FAStatus() {
+    try {
+      const res = await get2FAStatus();
+      setTwoFAEnabled(res.enabled);
+    } catch {
+      /* ignore */
+    } finally {
+      setTwoFALoading(false);
+    }
+  }
+
+  async function handleSetup2FA() {
+    setTwoFAError(null);
+    setTwoFASubmitting(true);
+    try {
+      const res = await setup2FA();
+      setTwoFASetupData(res);
+    } catch (err) {
+      setTwoFAError(err instanceof Error ? err.message : "Setup failed");
+    } finally {
+      setTwoFASubmitting(false);
+    }
+  }
+
+  async function handleVerify2FA() {
+    if (!twoFACode || twoFACode.length !== 6) return;
+    setTwoFAError(null);
+    setTwoFASubmitting(true);
+    try {
+      const res = await verify2FA(twoFACode);
+      if (res.enabled) {
+        setTwoFAEnabled(true);
+        setTwoFASetupData(null);
+        setTwoFACode("");
+        setTwoFARecoveryCodes(res.recoveryCodes);
+      }
+    } catch (err) {
+      setTwoFAError(err instanceof Error ? err.message : t2fa("invalidCode"));
+    } finally {
+      setTwoFASubmitting(false);
+    }
+  }
+
+  async function handleDisable2FA() {
+    if (!twoFACode || twoFACode.length !== 6) return;
+    setTwoFAError(null);
+    setTwoFASubmitting(true);
+    try {
+      const res = await disable2FA(twoFACode);
+      if (res.disabled) {
+        setTwoFAEnabled(false);
+        setTwoFACode("");
+        setTwoFARecoveryCodes(null);
+      }
+    } catch (err) {
+      setTwoFAError(err instanceof Error ? err.message : t2fa("invalidCode"));
+    } finally {
+      setTwoFASubmitting(false);
     }
   }
 
@@ -382,6 +463,267 @@ export default function SettingsPage() {
                 }}
               >
                 {t("saved")}
+              </div>
+            )}
+          </div>
+
+          {/* Two-Factor Authentication */}
+          <div className="card" style={{ padding: "24px" }}>
+            <h2
+              style={{ fontSize: "18px", fontWeight: 600, marginBottom: "4px" }}
+            >
+              {t2fa("title")}
+            </h2>
+            <p
+              style={{
+                fontSize: "13px",
+                color: "var(--text-muted)",
+                marginBottom: "16px",
+              }}
+            >
+              {t2fa("description")}
+            </p>
+
+            {twoFALoading ? (
+              <p style={{ fontSize: "14px", color: "var(--text-muted)" }}>
+                ...
+              </p>
+            ) : twoFARecoveryCodes ? (
+              /* Recovery codes display after successful enable */
+              <div>
+                <div
+                  style={{
+                    padding: "12px 16px",
+                    background: "rgba(234, 179, 8, 0.1)",
+                    border: "1px solid rgba(234, 179, 8, 0.3)",
+                    borderRadius: "var(--radius-sm)",
+                    marginBottom: "16px",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      color: "#eab308",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    {t2fa("recoveryCodes")}
+                  </div>
+                  <p
+                    style={{
+                      fontSize: "13px",
+                      color: "var(--text-muted)",
+                      marginBottom: "12px",
+                    }}
+                  >
+                    {t2fa("recoveryWarning")}
+                  </p>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: "6px",
+                      fontFamily: "monospace",
+                      fontSize: "13px",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    {twoFARecoveryCodes.map((code) => (
+                      <div
+                        key={code}
+                        style={{
+                          padding: "4px 8px",
+                          background: "var(--bg-secondary)",
+                          borderRadius: "4px",
+                          textAlign: "center",
+                        }}
+                      >
+                        {code}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setTwoFARecoveryCodes(null)}
+                  style={{ width: "100%" }}
+                >
+                  OK
+                </button>
+              </div>
+            ) : twoFAEnabled ? (
+              /* 2FA is enabled — show disable flow */
+              <div>
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    background: "rgba(34, 197, 94, 0.1)",
+                    border: "1px solid rgba(34, 197, 94, 0.3)",
+                    borderRadius: "var(--radius-sm)",
+                    color: "#22c55e",
+                    fontSize: "14px",
+                    marginBottom: "16px",
+                  }}
+                >
+                  {t2fa("enabled")}
+                </div>
+                <p
+                  style={{
+                    fontSize: "13px",
+                    color: "var(--text-muted)",
+                    marginBottom: "12px",
+                  }}
+                >
+                  {t2fa("disableConfirm")}
+                </p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder={t2fa("codePlaceholder")}
+                  value={twoFACode}
+                  onChange={(e) =>
+                    setTwoFACode(e.target.value.replace(/\D/g, ""))
+                  }
+                  style={{
+                    ...inputStyle,
+                    fontFamily: "monospace",
+                    letterSpacing: "0.3em",
+                    textAlign: "center" as const,
+                    marginBottom: "12px",
+                  }}
+                />
+                <button
+                  className="btn"
+                  onClick={handleDisable2FA}
+                  disabled={twoFASubmitting || twoFACode.length !== 6}
+                  style={{
+                    width: "100%",
+                    background: "var(--red)",
+                    color: "#fff",
+                    border: "none",
+                    opacity:
+                      twoFASubmitting || twoFACode.length !== 6 ? 0.5 : 1,
+                  }}
+                >
+                  {twoFASubmitting ? "..." : t2fa("disable")}
+                </button>
+              </div>
+            ) : twoFASetupData ? (
+              /* Setup flow: QR code + verify */
+              <div>
+                <p
+                  style={{
+                    fontSize: "13px",
+                    color: "var(--text-muted)",
+                    marginBottom: "12px",
+                  }}
+                >
+                  {t2fa("scanQR")}
+                </p>
+                <div style={{ textAlign: "center", marginBottom: "16px" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={twoFASetupData.qrCodeUrl}
+                    alt="2FA QR Code"
+                    style={{
+                      width: "200px",
+                      height: "200px",
+                      borderRadius: "var(--radius-sm)",
+                    }}
+                  />
+                </div>
+                <p
+                  style={{
+                    fontSize: "13px",
+                    color: "var(--text-muted)",
+                    marginBottom: "4px",
+                  }}
+                >
+                  {t2fa("manualEntry")}
+                </p>
+                <div
+                  style={{
+                    padding: "8px 12px",
+                    background: "var(--bg-secondary)",
+                    borderRadius: "var(--radius-sm)",
+                    fontFamily: "monospace",
+                    fontSize: "13px",
+                    wordBreak: "break-all",
+                    color: "var(--text-primary)",
+                    marginBottom: "16px",
+                    textAlign: "center",
+                  }}
+                >
+                  {twoFASetupData.secret}
+                </div>
+                <label style={labelStyle}>{t2fa("enterCode")}</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder={t2fa("codePlaceholder")}
+                  value={twoFACode}
+                  onChange={(e) =>
+                    setTwoFACode(e.target.value.replace(/\D/g, ""))
+                  }
+                  style={{
+                    ...inputStyle,
+                    fontFamily: "monospace",
+                    letterSpacing: "0.3em",
+                    textAlign: "center" as const,
+                    marginBottom: "12px",
+                  }}
+                />
+                <button
+                  className="btn btn-primary"
+                  onClick={handleVerify2FA}
+                  disabled={twoFASubmitting || twoFACode.length !== 6}
+                  style={{ width: "100%" }}
+                >
+                  {twoFASubmitting ? "..." : t2fa("verify")}
+                </button>
+              </div>
+            ) : (
+              /* 2FA not enabled — show setup button */
+              <div>
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    background: "var(--bg-secondary)",
+                    borderRadius: "var(--radius-sm)",
+                    color: "var(--text-muted)",
+                    fontSize: "14px",
+                    marginBottom: "16px",
+                  }}
+                >
+                  {t2fa("disabled")}
+                </div>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSetup2FA}
+                  disabled={twoFASubmitting}
+                  style={{ width: "100%" }}
+                >
+                  {twoFASubmitting ? "..." : t2fa("setup")}
+                </button>
+              </div>
+            )}
+
+            {twoFAError && (
+              <div
+                style={{
+                  marginTop: "12px",
+                  padding: "10px 14px",
+                  background: "rgba(239, 68, 68, 0.1)",
+                  border: "1px solid rgba(239, 68, 68, 0.3)",
+                  borderRadius: "var(--radius-sm)",
+                  color: "var(--red)",
+                  fontSize: "13px",
+                }}
+              >
+                {twoFAError}
               </div>
             )}
           </div>
