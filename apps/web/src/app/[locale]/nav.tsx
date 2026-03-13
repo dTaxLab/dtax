@@ -4,7 +4,10 @@ import { useState, useRef, useEffect } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { usePathname, Link } from "@/i18n/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { getStoredToken } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 const PRIMARY_LINKS = [
   { href: "/", key: "dashboard" },
@@ -32,10 +35,27 @@ export function LocaleNav({ locale }: { locale: string }) {
   const { theme, toggle: toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [isCpa, setIsCpa] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
   const isOnboarding = pathname === "/onboarding";
-  const isInMore = MORE_LINKS.some((l) => pathname === l.href);
+  const isInMore =
+    MORE_LINKS.some((l) => pathname === l.href) || pathname === "/clients";
+
+  // Fetch billing status to detect CPA plan
+  useEffect(() => {
+    if (!user) return;
+    const token = getStoredToken();
+    if (!token) return;
+    fetch(`${API_BASE}/api/v1/billing/status`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json?.data?.plan === "CPA") setIsCpa(true);
+      })
+      .catch(() => {});
+  }, [user]);
 
   // Close "More" dropdown on outside click
   useEffect(() => {
@@ -143,6 +163,18 @@ export function LocaleNav({ locale }: { locale: string }) {
                       {t(link.key)}
                     </Link>
                   ))}
+                  {isCpa && (
+                    <Link
+                      href="/clients"
+                      className={`nav-dropdown-item ${pathname === "/clients" ? "active" : ""}`}
+                      onClick={() => {
+                        setMoreOpen(false);
+                        setMenuOpen(false);
+                      }}
+                    >
+                      {t("clients")}
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
