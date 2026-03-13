@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "description": "Shared TypeScript type definitions for DTax",
   "license": "AGPL-3.0",
-  "homepage": "https://github.com/dTaxLab/dtax/tree/main/packages/shared-types",
+  "homepage": "https://getdtax.com",
+  "bugs": "https://github.com/dTaxLab/dtax/issues",
   "repository": {
     "type": "git",
     "url": "https://github.com/dTaxLab/dtax.git",
@@ -13,7 +14,8 @@
     "crypto",
     "tax",
     "typescript",
-    "types"
+    "types",
+    "dtax"
   ],
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -27,8 +29,15 @@
   },
   "files": [
     "dist",
-    "LICENSE"
+    "LICENSE",
+    "README.md"
   ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
