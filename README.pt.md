@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="apps/web/public/logo-512.png" alt="dTax" width="120" height="120">
+  <img src="docs/logo.png" alt="dTax" width="120" height="120">
   <h1 align="center">dTax</h1>
   <p align="center">
     <strong>O único motor completo de impostos sobre criptomoedas em TypeScript no npm</strong>
