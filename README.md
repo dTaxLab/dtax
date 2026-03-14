@@ -1,5 +1,6 @@
 <p align="center">
-  <h1 align="center">DTax</h1>
+  <img src="apps/web/public/logo-512.png" alt="dTax" width="120" height="120">
+  <h1 align="center">dTax</h1>
   <p align="center">
     <strong>The only complete TypeScript crypto tax engine on npm</strong>
   </p>
@@ -8,6 +9,9 @@
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="License"></a>
     <a href="https://www.npmjs.com/package/@dtax/tax-engine"><img src="https://img.shields.io/npm/v/@dtax/tax-engine" alt="npm"></a>
     <a href="https://github.com/dTaxLab/dtax"><img src="https://img.shields.io/github/stars/dTaxLab/dtax?style=social" alt="Stars"></a>
+  </p>
+  <p align="center">
+    <a href="README.md">English</a> · <a href="README.zh.md">简体中文</a> · <a href="README.zh-Hant.md">繁體中文</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.pt.md">Português</a>
   </p>
 </p>
 
@@ -89,7 +93,7 @@ All parsers auto-detect the CSV format. No configuration required.
 
 ## Comparison with Alternatives
 
-| Feature                |    DTax    |  Rotki  |   RP2    |
+| Feature                |    dTax    |  Rotki  |   RP2    |
 | ---------------------- | :--------: | :-----: | :------: |
 | Language               | TypeScript | Python  |  Python  |
 | npm installable        |    Yes     |   No    |    No    |
@@ -156,7 +160,7 @@ pnpm build       # build all packages
 
 All packages in this repository are licensed under [AGPL-3.0](LICENSE).
 
-This means you can use DTax freely in your projects. If you modify the source and distribute it (including as a network service), you must release your modifications under AGPL-3.0.
+This means you can use dTax freely in your projects. If you modify the source and distribute it (including as a network service), you must release your modifications under AGPL-3.0.
 
 For commercial licensing inquiries: [getdtax.com](https://getdtax.com)
 
