@@ -1,5 +1,10 @@
 /**
  * CostBasisCalculator — unified entry point for tax calculations.
+ *
+ * Supports built-in methods (FIFO, LIFO, HIFO, SPECIFIC_ID) and
+ * custom strategies via registerStrategy() for international tax
+ * methods (e.g., weighted average, moving average).
+ *
  * @license AGPL-3.0
  */
 
@@ -12,8 +17,38 @@ import type {
   TaxableEvent,
   CalculationResult,
   CostBasisMethod,
+  CostBasisStrategy,
   LotSelection,
 } from "./types";
+
+/** Global registry of custom strategies */
+const strategyRegistry = new Map<string, CostBasisStrategy>();
+
+/**
+ * Register a custom cost basis calculation strategy.
+ *
+ * @example
+ * ```typescript
+ * registerStrategy({
+ *   name: "WEIGHTED_AVG",
+ *   calculate(lots, event, strictSilo) { ... }
+ * });
+ * const calc = new CostBasisCalculator("WEIGHTED_AVG");
+ * ```
+ */
+export function registerStrategy(strategy: CostBasisStrategy): void {
+  strategyRegistry.set(strategy.name, strategy);
+}
+
+/** Get a registered custom strategy by name */
+export function getStrategy(name: string): CostBasisStrategy | undefined {
+  return strategyRegistry.get(name);
+}
+
+/** List all registered custom strategy names */
+export function getRegisteredStrategies(): string[] {
+  return Array.from(strategyRegistry.keys());
+}
 
 export class CostBasisCalculator {
   private method: CostBasisMethod;
@@ -44,8 +79,14 @@ export class CostBasisCalculator {
         throw new Error(
           "SPECIFIC_ID requires lot selections — use calculateSpecificId()",
         );
-      default:
+      default: {
+        // Check custom strategy registry
+        const strategy = strategyRegistry.get(this.method);
+        if (strategy) {
+          return strategy.calculate(this.lots, event, strictSilo);
+        }
         throw new Error(`Unknown method: ${this.method}`);
+      }
     }
   }
 
