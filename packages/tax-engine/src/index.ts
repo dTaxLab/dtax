@@ -12,12 +12,18 @@ export { calculateFIFO } from "./methods/fifo";
 export { calculateLIFO } from "./methods/lifo";
 export { calculateHIFO } from "./methods/hifo";
 export { calculateSpecificId } from "./methods/specific-id";
-export { CostBasisCalculator } from "./calculator";
+export {
+  CostBasisCalculator,
+  registerStrategy,
+  getStrategy,
+  getRegisteredStrategies,
+} from "./calculator";
 export type {
   TaxLot,
   TaxableEvent,
   CalculationResult,
   CostBasisMethod,
+  CostBasisStrategy,
   LotSelection,
 } from "./types";
 
