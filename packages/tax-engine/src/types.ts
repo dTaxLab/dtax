@@ -4,7 +4,27 @@
  */
 
 /** Supported cost basis calculation methods */
-export type CostBasisMethod = "FIFO" | "LIFO" | "HIFO" | "SPECIFIC_ID";
+export type CostBasisMethod =
+  | "FIFO"
+  | "LIFO"
+  | "HIFO"
+  | "SPECIFIC_ID"
+  | (string & {});
+
+/**
+ * Strategy interface for pluggable cost basis calculation methods.
+ * Implement this to add new methods (e.g., weighted average, moving average).
+ */
+export interface CostBasisStrategy {
+  /** Unique method name */
+  readonly name: string;
+  /** Calculate gains/losses for a taxable event */
+  calculate(
+    lots: TaxLot[],
+    event: TaxableEvent,
+    strictSilo?: boolean,
+  ): CalculationResult;
+}
 
 /** Lot selection for Specific ID method */
 export interface LotSelection {
