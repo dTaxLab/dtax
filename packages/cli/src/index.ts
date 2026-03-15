@@ -55,7 +55,7 @@ function printUsage(): void {
   console.log("");
   console.log("Run 'dtax calculate --help' for calculate-specific options.");
   console.log("");
-  console.log("https://dtax.dev");
+  console.log("https://getdtax.com");
 }
 
 function printCalculateHelp(): void {
