@@ -12,6 +12,9 @@ export { calculateFIFO } from "./methods/fifo";
 export { calculateLIFO } from "./methods/lifo";
 export { calculateHIFO } from "./methods/hifo";
 export { calculateSpecificId } from "./methods/specific-id";
+export { calculateGermanyFIFO } from "./methods/germany-fifo";
+export { calculatePMPA } from "./methods/pmpa";
+export { calculateTotalAverage } from "./methods/total-average";
 export {
   CostBasisCalculator,
   registerStrategy,

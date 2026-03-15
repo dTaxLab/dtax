@@ -12,6 +12,9 @@ import { calculateFIFO } from "./methods/fifo";
 import { calculateLIFO } from "./methods/lifo";
 import { calculateHIFO } from "./methods/hifo";
 import { calculateSpecificId } from "./methods/specific-id";
+import { calculateGermanyFIFO } from "./methods/germany-fifo";
+import { calculatePMPA } from "./methods/pmpa";
+import { calculateTotalAverage } from "./methods/total-average";
 import type {
   TaxLot,
   TaxableEvent,
@@ -75,6 +78,12 @@ export class CostBasisCalculator {
         return calculateLIFO(this.lots, event, strictSilo);
       case "HIFO":
         return calculateHIFO(this.lots, event, strictSilo);
+      case "GERMANY_FIFO":
+        return calculateGermanyFIFO(this.lots, event, strictSilo);
+      case "PMPA":
+        return calculatePMPA(this.lots, event, strictSilo);
+      case "TOTAL_AVERAGE":
+        return calculateTotalAverage(this.lots, event, strictSilo);
       case "SPECIFIC_ID":
         throw new Error(
           "SPECIFIC_ID requires lot selections — use calculateSpecificId()",
