@@ -392,7 +392,55 @@ describe("calculateFIFO", () => {
     expect(result.holdingPeriod).toBe("LONG_TERM");
   });
 
-  // ── Test 12: Empty lots array ────────────────────
+  // ── Test 12: Exactly 1 calendar year = SHORT_TERM ─
+  it("classifies exactly 1 calendar year as SHORT_TERM (IRS: more than 1 year required)", () => {
+    const lots = [
+      createLot({
+        id: "1",
+        asset: "BTC",
+        amount: 1,
+        costBasisUsd: 10000,
+        acquiredAt: new Date("2024-01-15"),
+        sourceId: "s1",
+      }),
+    ];
+    const event = createEvent({
+      id: "s1",
+      asset: "BTC",
+      amount: 1,
+      proceedsUsd: 15000,
+      date: new Date("2025-01-15"),
+      sourceId: "s1",
+    });
+    const result = calculateFIFO(lots, event);
+    expect(result.holdingPeriod).toBe("SHORT_TERM");
+  });
+
+  // ── Test 13: 1 year + 1 day = LONG_TERM ──────────
+  it("classifies 1 year + 1 day as LONG_TERM", () => {
+    const lots = [
+      createLot({
+        id: "1",
+        asset: "BTC",
+        amount: 1,
+        costBasisUsd: 10000,
+        acquiredAt: new Date("2024-01-15"),
+        sourceId: "s1",
+      }),
+    ];
+    const event = createEvent({
+      id: "s1",
+      asset: "BTC",
+      amount: 1,
+      proceedsUsd: 15000,
+      date: new Date("2025-01-16"),
+      sourceId: "s1",
+    });
+    const result = calculateFIFO(lots, event);
+    expect(result.holdingPeriod).toBe("LONG_TERM");
+  });
+
+  // ── Test 14: Empty lots array ────────────────────
   it("should handle empty lots array", () => {
     const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 

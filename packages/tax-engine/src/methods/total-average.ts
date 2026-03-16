@@ -17,14 +17,16 @@ import type {
   HoldingPeriod,
 } from "../types";
 
-const ONE_YEAR_MS = 365.25 * 24 * 60 * 60 * 1000;
-
 /**
  * Determine holding period based on acquisition and sale dates.
  */
 function getHoldingPeriod(acquiredAt: Date, soldAt: Date): HoldingPeriod {
-  const holdingMs = soldAt.getTime() - acquiredAt.getTime();
-  return holdingMs >= ONE_YEAR_MS ? "LONG_TERM" : "SHORT_TERM";
+  // IRS rule: "more than one year" from the day after acquisition
+  const dayAfter = new Date(acquiredAt);
+  dayAfter.setDate(dayAfter.getDate() + 1);
+  const oneYearLater = new Date(dayAfter);
+  oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+  return soldAt >= oneYearLater ? "LONG_TERM" : "SHORT_TERM";
 }
 
 /**
