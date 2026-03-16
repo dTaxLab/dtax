@@ -131,12 +131,13 @@ export function scanRisks(
     const lossTime = loss.timestamp.getTime();
     const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
 
+    // IRS wash sale: 30 days BEFORE or AFTER the loss sale
     const repurchase = yearTxs.find(
       (tx) =>
         tx.id !== loss.id &&
         tx.receivedAsset === lossAsset &&
-        tx.timestamp.getTime() > lossTime &&
-        tx.timestamp.getTime() - lossTime <= thirtyDaysMs,
+        Math.abs(tx.timestamp.getTime() - lossTime) <= thirtyDaysMs &&
+        tx.timestamp.getTime() !== lossTime,
     );
     if (repurchase) {
       washRiskIds.push(loss.id);
