@@ -112,7 +112,15 @@ export interface PortfolioSummary {
 
 export interface TaxSummary {
   year: number;
-  method: "FIFO" | "LIFO" | "HIFO" | "SPECIFIC_ID";
+  method:
+    | "FIFO"
+    | "LIFO"
+    | "HIFO"
+    | "SPECIFIC_ID"
+    | "GERMANY_FIFO"
+    | "PMPA"
+    | "TOTAL_AVERAGE"
+    | (string & {});
   shortTermGains: number;
   shortTermLosses: number;
   longTermGains: number;
