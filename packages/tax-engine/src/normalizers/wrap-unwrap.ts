@@ -100,16 +100,16 @@ export function processWrapUnwrap(
   for (const lot of sourceLots) {
     if (remaining <= 0) break;
 
-    const consumed = Math.min(lot.amount, remaining);
-    const ratio = consumed / lot.amount;
+    const originalAmount = lot.amount;
+    const consumed = Math.min(originalAmount, remaining);
+    const ratio = consumed / originalAmount;
     const basisConsumed = lot.costBasisUsd * ratio;
 
     // Mutate the original lot (same pattern as calculator.ts)
     lot.amount -= consumed;
     lot.costBasisUsd -= basisConsumed;
 
-    if (consumed === lot.amount + consumed) {
-      // Fully consumed (original amount was exactly consumed)
+    if (consumed >= originalAmount - 0.00000001) {
       consumedLotIds.push(lot.id);
     }
 
