@@ -1,7 +1,7 @@
 # DTax 计划实施状态总览
 
 > 最后更新: 2026-03-16
-> 通过 Serena 代码语义分析验证
+> 通过 Serena 代码语义分析 + Claude Code 人工核查验证
 
 ---
 
@@ -15,103 +15,64 @@
 
 ---
 
-## 一、已完成的计划 (13 个)
+## 一、已完成的计划 (22 个)
 
-| #   | 计划文件                          | 内容                         | 验证依据                                                                           |
-| --- | --------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------- |
-| 3   | `03-2fa-totp.md`                  | 两步验证 TOTP                | `routes/two-factor.ts` + `lib/totp.ts` + `otpauth` 库 + 完整单元测试               |
-| 4   | `04-gdpr-data-export-delete.md`   | GDPR 数据导出与账户删除      | `lib/account-deletion.ts` + `lib/data-export.ts` + `routes/account.ts` + 测试      |
-| 5   | `05-e2e-test-expansion.md`        | E2E 测试扩展 (v1)            | 从 3 个 spec 扩展到 19 个，覆盖所有关键页面                                        |
-| 7   | `07-audit-log.md`                 | 审计日志系统                 | `lib/audit.ts` + `routes/audit.ts` + AuditLog Prisma 模型 + 测试                   |
-| 11  | `11-analytics-tracking.md`        | PostHog 分析埋点             | `lib/analytics.ts` 含 posthog init/capture/identify/reset                          |
-| 13  | `13-api-caching.md`               | API 响应缓存                 | `lib/cache.ts` MemoryCache(120s TTL, 5000 max) + 多路由集成 invalidate             |
-| 15  | `15-design-tokens.md`             | Design Tokens + 内联样式消除 | `globals.css` 新增 spacing/typography/component tokens + ~70 utility classes       |
-| 22  | `22-e2e-test-expansion.md`        | E2E 测试扩展 (v2)            | 同 Plan 5 成果，19 specs 完整覆盖                                                  |
-| 23  | `23-inline-styles-cleanup.md`     | 内联样式清理                 | ~634 个内联样式减少至 ~200，静态值全部转为 CSS classes                             |
-| 24  | `24-component-library.md`         | 组件库提取                   | `components/ui/` 下 9 个可复用组件 + Lucide 图标替换                               |
-| 25  | `25-landing-page-glass-aurora.md` | Landing Page Glass Aurora    | aurora CSS 动画 + glass-card 样式 + IntersectionObserver 滚动渐入                  |
-| —   | `plan-tier-enforcement.md`        | PRO/CPA 功能门控             | `checkFeatureAccess()` 在 `plan-guard.ts` + `tax.ts` 7 处调用 + 完整测试           |
-| —   | `seo-geo-content-marketing.md`    | SEO/GEO 内容营销             | `json-ld.tsx` (Organization+BreadcrumbList+FAQ) + MDX 博客 34篇×7语言 + sitemap.ts |
-
----
-
-## 二、部分完成的计划 (1 个)
-
-| #   | 计划文件                 | 内容               | 已完成                                                                                                 | 未完成                                                                                          |
-| --- | ------------------------ | ------------------ | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| 1   | `01-cpa-multi-client.md` | CPA 多客户管理系统 | Client Prisma 模型 + `routes/clients.ts` (CRUD + invite/accept + batch-report) + `cpa-guard.ts` + 测试 | Dashboard 客户切换器 UI、所有路由的 `clientId` query param 代理访问、邀请邮件发送 (Resend 集成) |
-
----
-
-## 三、未实施的计划 (11 个)
-
-### 🔴 安全审计修复 — 最高优先级
-
-| 计划文件                    | 内容     | 任务数 | 说明                                                                           |
-| --------------------------- | -------- | ------ | ------------------------------------------------------------------------------ |
-| `2026-03-16-audit-fixes.md` | 审计修复 | **14** | 含 6 个 Critical 安全问题 + 2 个 Critical 正确性问题 + 6 个 Important 质量问题 |
-
-**Critical 安全问题:**
-
-1. Report storage 路径穿越漏洞
-2. Auth whitelist 缺少 2FA login 路由
-3. JWT/Encryption 生产环境默认值未拦截
-4. Auth token 泄漏在 URL 中 (应改为 fetch+Blob)
-5. AuthGuard 使用 require() 而非 router redirect
-6. Settings 页面静默吞掉所有错误
-
-**Critical 正确性问题:** 7. Holding period 使用毫秒计算而非日历计算 (IRS 规则: 需 "more than 1 year") 8. Wrap-unwrap consumed lot 检查在 mutation 后执行
-
-**Important 质量问题:** 9. Wallet connect 503 UX 体验差 10. DRY: 7 个 method 文件重复 getHoldingPeriod 11. shared-types TxType 未对齐 12. Risk scanner 缺少 backward wash sale 检查 13. Notification polling 未检查页面可见性 14. 残留硬编码 i18n 字符串
+| #   | 计划文件                          | 内容                            | 验证依据                                                                                     |
+| --- | --------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------- |
+| 3   | `03-2fa-totp.md`                  | 两步验证 TOTP                   | `routes/two-factor.ts` + `lib/totp.ts` + `otpauth` 库 + 完整单元测试                         |
+| 4   | `04-gdpr-data-export-delete.md`   | GDPR 数据导出与账户删除         | `lib/account-deletion.ts` + `lib/data-export.ts` + `routes/account.ts` + 测试                |
+| 5   | `05-e2e-test-expansion.md`        | E2E 测试扩展 (v1)               | 从 3 个 spec 扩展到 19 个，覆盖所有关键页面                                                  |
+| 7   | `07-audit-log.md`                 | 审计日志系统                    | `lib/audit.ts` + `routes/audit.ts` + AuditLog Prisma 模型 + 测试                             |
+| 11  | `11-analytics-tracking.md`        | PostHog 分析埋点                | `lib/analytics.ts` 含 posthog init/capture/identify/reset                                    |
+| 13  | `13-api-caching.md`               | API 响应缓存                    | `lib/cache.ts` MemoryCache(120s TTL, 5000 max) + 多路由集成 invalidate                       |
+| 15  | `15-design-tokens.md`             | Design Tokens + 内联样式消除    | `globals.css` 新增 spacing/typography/component tokens + ~70 utility classes                 |
+| 22  | `22-e2e-test-expansion.md`        | E2E 测试扩展 (v2)               | 同 Plan 5 成果，19 specs 完整覆盖                                                            |
+| 23  | `23-inline-styles-cleanup.md`     | 内联样式清理                    | ~634 个内联样式减少至 ~200，静态值全部转为 CSS classes                                       |
+| 24  | `24-component-library.md`         | 组件库提取                      | `components/ui/` 下 9 个可复用组件 + Lucide 图标替换                                         |
+| 25  | `25-landing-page-glass-aurora.md` | Landing Page Glass Aurora       | aurora CSS 动画 + glass-card 样式 + IntersectionObserver 滚动渐入                            |
+| —   | `plan-tier-enforcement.md`        | PRO/CPA 功能门控                | `checkFeatureAccess()` 在 `plan-guard.ts` + `tax.ts` 7 处调用 + 完整测试                     |
+| —   | `seo-geo-content-marketing.md`    | SEO/GEO 内容营销                | `json-ld.tsx` (Organization+BreadcrumbList+FAQ) + MDX 博客 34篇×7语言 + sitemap.ts           |
+| —   | `2026-03-16-audit-fixes.md`       | 安全审计修复 (14 tasks)         | 路径穿越 + JWT 守卫 + token 泄露 + 持有期修复 + DRY + wash sale + 全部已实施                 |
+| —   | `2026-03-16-auth-dashboard.md`    | Auth & Dashboard 优化 (8 tasks) | labels/a11y + 密码强度 + 内联验证 + CSS 迁移 + 拖放上传 + 暗色对比度 + Modal + Get Started   |
+| —   | `06-notification-system.md`       | 应用内通知系统                  | Notification Prisma 模型 + `routes/notifications.ts` + bell UI + 30s 轮询 + 可见性检查       |
+| —   | `09-report-history.md`            | 报告历史与下载管理              | TaxReport 模型 + `report-storage.ts` + download API (fetch+Blob) + 路径遍历保护              |
+| —   | `17-production-deploy.md`         | 生产部署基础设施                | Dockerfile (api+web) + nginx.conf + docker-compose + GHCR CI/CD + env 验证                   |
+| —   | `16-npm-publish.md`               | npm 发布配置                    | exports 字段修复 + changeset + publish.yml（待配置 NPM_TOKEN secret）                        |
+| —   | `08-defi-wallet-connect.md`       | DeFi 钱包连接                   | `routes/wallets.ts` + etherscan-indexer + solscan-indexer + 地址验证（⚠️ sync 未调用索引器） |
+| —   | `12-i18n-hardcode-fix.md`         | i18n 硬编码修复                 | nav.tsx 3 处 aria-label 已国际化 (2026-03-16 修复)                                           |
+| —   | `14-cli-test-expansion.md`        | CLI 测试覆盖扩展                | 54 个 CLI 测试 (lib.test.ts + cli-integration.test.ts)                                       |
 
 ---
 
-### P0 — 核心商业价值 & 上线必需
+## 二、部分完成的计划 (2 个)
 
-| 计划文件                             | 内容            | 任务数 | 说明                                                    |
-| ------------------------------------ | --------------- | ------ | ------------------------------------------------------- |
-| `2026-03-13-17-production-deploy.md` | 生产部署        | ~8     | 环境变量验证 + nginx TLS + Docker CI/CD + 自托管指南    |
-| `2026-03-13-16-npm-publish.md`       | npm 首次发布    | ~6     | 修复 exports 字段 + changeset + dry-run + 发布 @dtax/\* |
-| `2026-03-12-02-npm-publish.md`       | npm 发布 (旧版) | 6      | 被 Plan 16 替代，仅作参考                               |
-
----
-
-### P2 — 功能增强 & 竞争力
-
-| 计划文件                               | 内容               | 任务数 | 说明                                                     |
-| -------------------------------------- | ------------------ | ------ | -------------------------------------------------------- |
-| `2026-03-12-06-notification-system.md` | 应用内通知系统     | 9      | Notification Prisma 模型 + API CRUD + 铃铛 UI + 轮询 30s |
-| `2026-03-12-09-report-history.md`      | 报告历史与下载管理 | 6      | 扩展 TaxReport + 文件存储 + 下载 API + UI                |
-| `2026-03-12-10-large-file-refactor.md` | 大文件拆分重构     | 8      | form8949-pdf.ts (11701行→4文件) 等超 350 行文件拆分      |
-| `2026-03-12-08-defi-wallet-connect.md` | DeFi 钱包直连      | 11     | Etherscan/Solscan API 按地址拉取链上交易 + 定时同步      |
+| #   | 计划文件                    | 内容               | 已完成                                                                                                 | 未完成                                                                                          |
+| --- | --------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| 1   | `01-cpa-multi-client.md`    | CPA 多客户管理系统 | Client Prisma 模型 + `routes/clients.ts` (CRUD + invite/accept + batch-report) + `cpa-guard.ts` + 测试 | Dashboard 客户切换器 UI、所有路由的 `clientId` query param 代理访问、邀请邮件发送 (Resend 集成) |
+| —   | `08-defi-wallet-connect.md` | DeFi 钱包同步      | 钱包连接 + 索引器代码 + 地址验证 + UI                                                                  | **`/wallets/:id/sync` 未调用索引器**，仅更新时间戳，交易不会写入数据库                          |
 
 ---
 
-### P3 — 增长 & 优化
+## 三、未实施的计划 (2 个)
 
-| 计划文件                                 | 内容             | 任务数 | 说明                                                                                  |
-| ---------------------------------------- | ---------------- | ------ | ------------------------------------------------------------------------------------- |
-| `2026-03-12-12-i18n-hardcode-fix.md`     | i18n 硬编码修复  | 3      | nav.tsx 2 处 aria-label 硬编码英文                                                    |
-| `2026-03-12-14-cli-test-expansion.md`    | CLI 测试覆盖扩展 | 4      | calculate/compare/wash-sale/schedule-d/output/json/currency                           |
-| `2026-03-15-ai-operations-automation.md` | AI 自动化运营    | ~12    | n8n 自建 + X/Twitter 自动发帖 + 博客自动生成 + YouTube Shorts + Google Ads (~$401/月) |
+| 计划文件                                 | 内容           | 任务数 | 说明                                                                                  |
+| ---------------------------------------- | -------------- | ------ | ------------------------------------------------------------------------------------- |
+| `2026-03-12-10-large-file-refactor.md`   | 大文件拆分重构 | 8      | form8949-pdf.ts (451行) 等超 350 行文件拆分                                           |
+| `2026-03-15-ai-operations-automation.md` | AI 自动化运营  | ~12    | n8n 自建 + X/Twitter 自动发帖 + 博客自动生成 + YouTube Shorts + Google Ads (~$401/月) |
 
 ---
 
 ## 四、建议执行顺序
 
 ```
-Phase 1 (安全): audit-fixes.md
-  ├─ Task 1-6: Critical 安全修复
-  ├─ Task 7-9: Critical 正确性 + Bug 修复
-  └─ Task 10-14: Important 质量改进
+Phase 1 (紧急): 钱包同步功能实现
+  └─ /wallets/:id/sync 调用 etherscan/solscan 索引器，交易写入数据库
 
-Phase 2 (上线): production-deploy → npm-publish (Plan 16)
+Phase 2 (上线): npm 实际发布 (配置 NPM_TOKEN) → 生产环境部署 (域名+TLS)
 
-Phase 3 (功能): notification-system → report-history → large-file-refactor
+Phase 3 (质量): large-file-refactor (form8949-pdf.ts 拆分)
 
-Phase 4 (优化): i18n-fix → cli-tests → defi-wallet-connect
-
-Phase 5 (运营): ai-operations-automation (非代码, n8n 基础设施)
+Phase 4 (运营): ai-operations-automation (n8n 基础设施, 非代码)
 ```
 
 ---
@@ -125,6 +86,11 @@ Phase 5 (运营): ai-operations-automation (非代码, n8n 基础设施)
 - AI 交易分类 (`lib/ai-classify.ts`)
 - Chat SSE 流式响应 (`routes/chat.ts`)
 - Portfolio 持仓分析 + TLH 机会识别 (`routes/portfolio.ts`)
+- Auth form UX 优化 (labels + 密码强度 + 内联验证 + loading spinner)
+- Dashboard 空状态 Get Started 卡片美化
+- 暗色模式 WCAG AA 对比度修复
+- Settings 页面 confirm() → Modal 组件
+- CSV Import 拖放上传区
 
 ---
 
@@ -139,7 +105,8 @@ Phase 5 (运营): ai-operations-automation (非代码, n8n 基础设施)
 
 ### CI/CD Workflow
 
-| 文件                            | 状态                                           |
-| ------------------------------- | ---------------------------------------------- |
-| `.github/workflows/ci.yml`      | ✅ 运行中 (Node 20+22 矩阵)                    |
-| `.github/workflows/publish.yml` | ✅ 存在 (changesets/action) 但未触发过正式发布 |
+| 文件                            | 状态                                                        |
+| ------------------------------- | ----------------------------------------------------------- |
+| `.github/workflows/ci.yml`      | ✅ 运行中 (Node 20+22 矩阵, 已修复 shared-types build 顺序) |
+| `.github/workflows/publish.yml` | ✅ 存在 (changesets/action) 但未触发过正式发布              |
+| `.github/workflows/docker.yml`  | ✅ GHCR 镜像构建 (已修复 tsconfig.base.json 缺失)           |
