@@ -3,6 +3,8 @@
  * @license AGPL-3.0
  */
 
+import type { TxType } from "@dtax/shared-types";
+
 /** Supported exchange CSV formats */
 export type CsvFormat =
   | "generic"
@@ -32,31 +34,7 @@ export type CsvFormat =
 /** A parsed transaction row from CSV */
 export interface ParsedTransaction {
   /** Transaction type */
-  type:
-    | "BUY"
-    | "SELL"
-    | "TRADE"
-    | "TRANSFER_IN"
-    | "TRANSFER_OUT"
-    | "AIRDROP"
-    | "STAKING_REWARD"
-    | "MINING_REWARD"
-    | "INTEREST"
-    | "GIFT_RECEIVED"
-    | "GIFT_SENT"
-    | "DEX_SWAP"
-    | "LP_DEPOSIT"
-    | "LP_WITHDRAWAL"
-    | "LP_REWARD"
-    | "WRAP"
-    | "UNWRAP"
-    | "BRIDGE_OUT"
-    | "BRIDGE_IN"
-    | "CONTRACT_APPROVAL"
-    | "NFT_MINT"
-    | "NFT_PURCHASE"
-    | "NFT_SALE"
-    | "UNKNOWN";
+  type: TxType;
   /** ISO timestamp */
   timestamp: string;
   /** Received asset symbol */
