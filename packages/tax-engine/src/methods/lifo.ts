@@ -13,17 +13,8 @@ import type {
   TaxableEvent,
   CalculationResult,
   MatchedLot,
-  HoldingPeriod,
 } from "../types";
-
-function getHoldingPeriod(acquiredAt: Date, soldAt: Date): HoldingPeriod {
-  // IRS rule: "more than one year" from the day after acquisition
-  const dayAfter = new Date(acquiredAt);
-  dayAfter.setDate(dayAfter.getDate() + 1);
-  const oneYearLater = new Date(dayAfter);
-  oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
-  return soldAt >= oneYearLater ? "LONG_TERM" : "SHORT_TERM";
-}
+import { getHoldingPeriod } from "./shared";
 
 /**
  * Calculate capital gains/losses using the LIFO method.
