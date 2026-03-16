@@ -73,7 +73,7 @@
   },
   "dependencies": {
     "@dtax/shared-types": "workspace:*",
-    "pdfkit": "^0.17.2"
+    "pdfkit": "^0.18.0"
   },
   "devDependencies": {
     "@types/pdfkit": "^0.17.5",
