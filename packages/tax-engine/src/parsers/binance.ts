@@ -26,6 +26,7 @@ import {
   safeParseNumber,
   safeParseDateToIso,
 } from "./csv-core";
+import { normalizeKey, resolveCol } from "./col-resolver";
 import type { ParsedTransaction, CsvParseResult, CsvParseError } from "./types";
 
 // ─── Multi-language column name mappings ────────────
@@ -252,35 +253,6 @@ const COL_QUOTE_ASSET = [
   "котируемый актив",
   "котируемая валюта", // RU
 ];
-
-/**
- * Normalize a string for comparison: NFC normalize + strip combining marks.
- * This handles Turkish İ→i̇ (i + combining dot) and similar issues.
- */
-function normalizeKey(s: string): string {
-  return s.normalize("NFC").replace(/\u0307/g, "");
-}
-
-/**
- * Find the first matching column value from a row given a list of candidate names.
- * Headers are already lowercased + trimmed by csv-core.
- * Uses Unicode normalization to handle Turkish İ and similar cases.
- */
-function resolveCol(row: Record<string, string>, candidates: string[]): string {
-  // Fast path: direct key lookup
-  for (const key of candidates) {
-    const val = row[key];
-    if (val !== undefined && val !== "") return val;
-  }
-  // Slow path: normalized comparison (handles Turkish İ → i̇ etc.)
-  const normalizedCandidates = candidates.map(normalizeKey);
-  for (const [rowKey, rowVal] of Object.entries(row)) {
-    if (!rowVal) continue;
-    const nk = normalizeKey(rowKey);
-    if (normalizedCandidates.includes(nk)) return rowVal;
-  }
-  return "";
-}
 
 // ─── Binance International ──────────────────────────
 
