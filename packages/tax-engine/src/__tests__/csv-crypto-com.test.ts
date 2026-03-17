@@ -211,6 +211,82 @@ describe("parseCryptoComCsv — app format", () => {
   });
 });
 
+// ─── Multi-language Crypto.com detection tests ──────
+
+describe("isCryptoComCsv — multi-language detection", () => {
+  it("should detect Chinese (Simplified) app format headers", () => {
+    const csv =
+      "时间戳 (UTC),交易描述,币种,金额,目标币种,目标金额,本地货币,本地金额,本地金额 (USD),交易类型\n";
+    expect(isCryptoComCsv(csv)).toBe(true);
+  });
+
+  it("should detect Chinese (Traditional) app format headers", () => {
+    const csv =
+      "時間戳 (UTC),交易描述,幣種,金額,目標幣種,目標金額,本地貨幣,本地金額,本地金額 (USD),交易類型\n";
+    expect(isCryptoComCsv(csv)).toBe(true);
+  });
+
+  it("should detect Japanese app format headers", () => {
+    const csv =
+      "タイムスタンプ (UTC),取引説明,通貨,金額,変換先通貨,変換先金額,ネイティブ通貨,ネイティブ金額,ネイティブ金額 (USD),取引種類\n";
+    expect(isCryptoComCsv(csv)).toBe(true);
+  });
+
+  it("should not false-positive on Binance Chinese", () => {
+    const csv =
+      "时间,交易对,基准货币,计价货币,类型,价格,数量,成交额,手续费,手续费结算币种\n";
+    expect(isCryptoComCsv(csv)).toBe(false);
+  });
+});
+
+describe("parseCryptoComCsv — Chinese (Simplified) app format", () => {
+  const csv = `时间戳 (UTC),交易描述,币种,金额,目标币种,目标金额,本地货币,本地金额,本地金额 (USD),交易类型
+2025-01-15 10:30:00,购买 BTC,BTC,0.5,,,USD,25000,25000,crypto_purchase
+2025-02-01 12:00:00,提币 BTC,BTC,-0.3,,,USD,15000,15000,crypto_withdrawal`;
+
+  it("should parse Chinese headers correctly", () => {
+    const result = parseCryptoComCsv(csv);
+    expect(result.summary.parsed).toBe(2);
+    expect(result.summary.failed).toBe(0);
+  });
+
+  it("should map BUY from Chinese format", () => {
+    const result = parseCryptoComCsv(csv);
+    expect(result.transactions[0].type).toBe("BUY");
+    expect(result.transactions[0].receivedAsset).toBe("BTC");
+    expect(result.transactions[0].receivedAmount).toBe(0.5);
+    expect(result.transactions[0].receivedValueUsd).toBe(25000);
+  });
+
+  it("should map WITHDRAWAL from Chinese format", () => {
+    const result = parseCryptoComCsv(csv);
+    expect(result.transactions[1].type).toBe("TRANSFER_OUT");
+    expect(result.transactions[1].sentAsset).toBe("BTC");
+    expect(result.transactions[1].sentAmount).toBe(0.3);
+  });
+});
+
+describe("parseCryptoComCsv — Japanese app format", () => {
+  const csv = `タイムスタンプ (UTC),取引説明,通貨,金額,変換先通貨,変換先金額,ネイティブ通貨,ネイティブ金額,ネイティブ金額 (USD),取引種類
+2025-03-15 09:00:00,BTC to ETH 交換,BTC,-0.1,ETH,1.5,USD,5000,5000,crypto_exchange`;
+
+  it("should parse Japanese headers correctly", () => {
+    const result = parseCryptoComCsv(csv);
+    expect(result.summary.parsed).toBe(1);
+    expect(result.summary.failed).toBe(0);
+  });
+
+  it("should map exchange trade from Japanese format", () => {
+    const result = parseCryptoComCsv(csv);
+    const tx = result.transactions[0];
+    expect(tx.type).toBe("TRADE");
+    expect(tx.sentAsset).toBe("BTC");
+    expect(tx.sentAmount).toBe(0.1);
+    expect(tx.receivedAsset).toBe("ETH");
+    expect(tx.receivedAmount).toBe(1.5);
+  });
+});
+
 describe("parseCsv integration", () => {
   it("works via unified parseCsv with explicit format for newer format", () => {
     const csv = `Date,Sent Amount,Sent Currency,Received Amount,Received Currency,Fee Amount,Fee Currency,Net Worth Amount,Net Worth Currency,Label,Description,TxHash
