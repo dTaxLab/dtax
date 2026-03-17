@@ -17,6 +17,7 @@ import {
   safeParseNumber,
   safeParseDateToIso,
 } from "./csv-core";
+import { resolveCol } from "./col-resolver";
 import type { ParsedTransaction, CsvParseResult, CsvParseError } from "./types";
 
 const FIAT_CURRENCIES = new Set([
@@ -45,11 +46,78 @@ const KNOWN_QUOTES = [
   "ETH",
 ];
 
+/* ── Column name candidates (EN + JA + ZH) ── */
+const COL_TIME = [
+  "time",
+  "created-at",
+  "created_at",
+  "createdat",
+  "timestamp",
+  "date",
+  "時間",
+  "时间",
+];
+const COL_PAIR = [
+  "pair",
+  "symbol",
+  "trading pair",
+  "通貨ペア",
+  "ペア",
+  "交易对",
+];
+const COL_SIDE = [
+  "side",
+  "direction",
+  "type",
+  "売／買",
+  "売買",
+  "タイプ",
+  "方向",
+  "类型",
+];
+const COL_PRICE = ["price", "avg price", "average price", "価格", "价格"];
+const COL_AMOUNT = [
+  "amount",
+  "filled-amount",
+  "filled amount",
+  "filledamount",
+  "quantity",
+  "qty",
+  "数量",
+];
+const COL_TOTAL = [
+  "total",
+  "turnover",
+  "filled-cash-amount",
+  "filledcashamount",
+  "約定額",
+  "合計",
+  "成交额",
+];
+const COL_FEE = [
+  "fee",
+  "filled-fees",
+  "filledfees",
+  "filled fees",
+  "trading fee",
+  "手数料",
+  "手续费",
+];
+const COL_FEE_CURRENCY = [
+  "fee currency",
+  "fee-deduct-currency",
+  "feedeductcurrency",
+  "fee ccy",
+  "手数料通貨",
+  "手续费币种",
+];
+
 /**
  * Detect if a CSV is in HTX/Huobi trade history format.
  */
 export function isHtxCsv(csv: string): boolean {
-  const firstLine = csv.split("\n")[0]?.toLowerCase() || "";
+  const rawFirstLine = csv.split("\n")[0] || "";
+  const firstLine = rawFirstLine.toLowerCase();
   // HTX standard: "pair" + "side" + "fee currency" + exclude other exchanges
   // Exclude: "currency pair" (Gate.io), "pairs" (MEXC), "trading pair" (Bitget),
   //          "trade id"/"order id" (OKX), "filled price" (Gate.io/Bybit)
@@ -78,6 +146,19 @@ export function isHtxCsv(csv: string): boolean {
   if (firstLine.includes("fee-deduct-currency")) {
     return true;
   }
+  // JA: HTX Japan (BitTrade) — 時間 + 通貨ペア
+  if (rawFirstLine.includes("時間") && rawFirstLine.includes("通貨ペア"))
+    return true;
+  // JA: 時間 + 売／買 (alternate)
+  if (rawFirstLine.includes("時間") && rawFirstLine.includes("売／買"))
+    return true;
+  // ZH: 时间 + 交易对 + 方向
+  if (
+    rawFirstLine.includes("时间") &&
+    rawFirstLine.includes("交易对") &&
+    rawFirstLine.includes("方向")
+  )
+    return true;
   return false;
 }
 
@@ -102,15 +183,24 @@ function splitSymbol(symbol: string): [string, string] | null {
 
 /**
  * Parse HTX's type field (e.g., "buy-limit", "sell-market") into side.
+ * Also handles Japanese 買/売 and Chinese 买入/卖出.
  */
 function parseSide(row: Record<string, string>): "buy" | "sell" | null {
-  const side = (row["side"] || row["direction"] || "").toLowerCase().trim();
-  if (side === "buy" || side === "sell") return side;
+  const raw = resolveCol(row, COL_SIDE).trim();
+  const lower = raw.toLowerCase();
+  if (lower === "buy" || lower === "sell") return lower;
 
   // API format: type field like "buy-limit", "sell-market", "buy-market", "sell-limit"
-  const typeField = (row["type"] || "").toLowerCase().trim();
-  if (typeField.startsWith("buy")) return "buy";
-  if (typeField.startsWith("sell")) return "sell";
+  if (lower.startsWith("buy")) return "buy";
+  if (lower.startsWith("sell")) return "sell";
+
+  // JA: 買 = buy, 売 = sell
+  if (raw.includes("買")) return "buy";
+  if (raw.includes("売")) return "sell";
+
+  // ZH: 买 = buy, 卖 = sell
+  if (raw.includes("买")) return "buy";
+  if (raw.includes("卖")) return "sell";
 
   return null;
 }
@@ -159,14 +249,7 @@ function parseTradeRow(
   errors: CsvParseError[],
 ): ParsedTransaction | null {
   // Parse timestamp
-  const tsRaw =
-    row["time"] ||
-    row["created-at"] ||
-    row["created_at"] ||
-    row["createdat"] ||
-    row["timestamp"] ||
-    row["date"] ||
-    "";
+  const tsRaw = resolveCol(row, COL_TIME);
   let timestamp: string | null = null;
 
   const tsNum = Number(tsRaw);
@@ -182,12 +265,7 @@ function parseTradeRow(
   }
 
   // Parse symbol/pair
-  const symbolRaw = (
-    row["pair"] ||
-    row["symbol"] ||
-    row["trading pair"] ||
-    ""
-  ).trim();
+  const symbolRaw = resolveCol(row, COL_PAIR).trim();
   const parsed = splitSymbol(symbolRaw);
   if (!parsed) {
     errors.push({ row: rowNum, message: `Invalid symbol: "${symbolRaw}"` });
@@ -203,39 +281,11 @@ function parseTradeRow(
   }
   const isBuy = side === "buy";
 
-  const price = safeParseNumber(
-    row["price"] || row["avg price"] || row["average price"],
-  );
-  const qty = safeParseNumber(
-    row["amount"] ||
-      row["filled-amount"] ||
-      row["filled amount"] ||
-      row["filledamount"] ||
-      row["quantity"] ||
-      row["qty"],
-  );
-  const total = safeParseNumber(
-    row["total"] ||
-      row["turnover"] ||
-      row["filled-cash-amount"] ||
-      row["filledcashamount"],
-  );
-  const fee = safeParseNumber(
-    row["fee"] ||
-      row["filled-fees"] ||
-      row["filledfees"] ||
-      row["filled fees"] ||
-      row["trading fee"],
-  );
-  const feeCurrency = (
-    row["fee currency"] ||
-    row["fee-deduct-currency"] ||
-    row["feedeductcurrency"] ||
-    row["fee ccy"] ||
-    ""
-  )
-    .toUpperCase()
-    .trim();
+  const price = safeParseNumber(resolveCol(row, COL_PRICE));
+  const qty = safeParseNumber(resolveCol(row, COL_AMOUNT));
+  const total = safeParseNumber(resolveCol(row, COL_TOTAL));
+  const fee = safeParseNumber(resolveCol(row, COL_FEE));
+  const feeCurrency = resolveCol(row, COL_FEE_CURRENCY).toUpperCase().trim();
 
   if (!qty || qty <= 0) {
     errors.push({ row: rowNum, message: "Invalid quantity" });
