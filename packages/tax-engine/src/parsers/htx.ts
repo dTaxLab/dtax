@@ -152,11 +152,13 @@ export function isHtxCsv(csv: string): boolean {
   // JA: 時間 + 売／買 (alternate)
   if (rawFirstLine.includes("時間") && rawFirstLine.includes("売／買"))
     return true;
-  // ZH: 时间 + 交易对 + 方向
+  // ZH: 时间 + 交易对 + 方向 (exclude OKX which has 订单ID/交易ID)
   if (
     rawFirstLine.includes("时间") &&
     rawFirstLine.includes("交易对") &&
-    rawFirstLine.includes("方向")
+    rawFirstLine.includes("方向") &&
+    !rawFirstLine.includes("订单") &&
+    !rawFirstLine.includes("交易ID")
   )
     return true;
   return false;
