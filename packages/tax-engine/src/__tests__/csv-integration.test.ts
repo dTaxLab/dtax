@@ -178,6 +178,66 @@ describe("detectCsvFormat — Koinly/CoinTracker non-cross-detection", () => {
   });
 });
 
+describe("detectCsvFormat — multi-language headers (i18n)", () => {
+  it("detects Binance Chinese (Simplified)", () => {
+    expect(
+      detectCsvFormat(
+        "时间,交易对,基准货币,计价货币,类型,价格,数量,成交额,手续费,手续费结算币种\n",
+      ),
+    ).toBe("binance");
+  });
+
+  it("detects Binance Japanese", () => {
+    expect(detectCsvFormat("日時,ペア,売買,価格,数量,合計,手数料\n")).toBe(
+      "binance",
+    );
+  });
+
+  it("detects HTX Japanese (BitTrade)", () => {
+    expect(
+      detectCsvFormat("時間,通貨ペア,売／買,価格,数量,約定額,手数料\n"),
+    ).toBe("htx");
+  });
+
+  it("detects Crypto.com Chinese (Simplified)", () => {
+    expect(
+      detectCsvFormat(
+        "时间戳 (UTC),交易描述,币种,金额,目标币种,目标金额,本地货币,本地金额,本地金额 (USD),交易类型\n",
+      ),
+    ).toBe("crypto_com");
+  });
+
+  it("detects OKX Chinese", () => {
+    expect(
+      detectCsvFormat(
+        "订单ID,交易ID,交易时间,交易对,方向,价格,数量,总额,手续费,手续费币种\n",
+      ),
+    ).toBe("okx");
+  });
+
+  it("no cross-detection: Binance Chinese is not detected as OKX", () => {
+    expect(
+      detectCsvFormat(
+        "时间,交易对,基准货币,计价货币,类型,价格,数量,成交额,手续费,手续费结算币种\n",
+      ),
+    ).not.toBe("okx");
+  });
+
+  it("no cross-detection: HTX Japanese is not detected as Binance", () => {
+    expect(
+      detectCsvFormat("時間,通貨ペア,売／買,価格,数量,約定額,手数料\n"),
+    ).not.toBe("binance");
+  });
+
+  it("no cross-detection: OKX Chinese is not detected as HTX", () => {
+    expect(
+      detectCsvFormat(
+        "订单ID,交易ID,交易时间,交易对,方向,价格,数量,总额,手续费,手续费币种\n",
+      ),
+    ).not.toBe("htx");
+  });
+});
+
 describe("parseCsv (auto-detect)", () => {
   it("auto-detects and parses Coinbase CSV", () => {
     const csv = `"Timestamp","Transaction Type","Asset","Quantity Transacted","Spot Price Currency","Spot Price at Transaction","Subtotal","Total (inclusive of fees and/or spread)","Fees and/or Spread","Notes"
