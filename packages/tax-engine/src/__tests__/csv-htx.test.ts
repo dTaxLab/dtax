@@ -247,3 +247,62 @@ describe("parseHtxCsv", () => {
     expect(result.transactions).toHaveLength(1);
   });
 });
+
+describe("isHtxCsv — multi-language detection", () => {
+  it("should detect Japanese BitTrade headers", () => {
+    const csv = "時間,通貨ペア,売／買,価格,数量,約定額,手数料\n";
+    expect(isHtxCsv(csv)).toBe(true);
+  });
+
+  it("should detect Chinese headers", () => {
+    const csv = "时间,交易对,方向,价格,数量,成交额,手续费,手续费币种\n";
+    expect(isHtxCsv(csv)).toBe(true);
+  });
+
+  it("should not false-positive on Binance Chinese headers", () => {
+    // Binance uses 类型 (type), not 方向 (direction)
+    const csv = "时间,交易对,类型,价格,数量,成交额,手续费\n";
+    expect(isHtxCsv(csv)).toBe(false);
+  });
+});
+
+describe("parseHtxCsv — Japanese (BitTrade)", () => {
+  const csv = `時間,通貨ペア,売／買,価格,数量,約定額,手数料
+2024-06-15 10:30:00,BTC/JPY,買,10500000,0.01,105000,52.5
+2024-06-16 14:00:00,ETH/JPY,売,550000,1,550000,275
+`;
+
+  it("should parse Japanese BitTrade CSV", () => {
+    const result = parseHtxCsv(csv);
+    expect(result.summary.parsed).toBe(2);
+    expect(result.summary.failed).toBe(0);
+    expect(result.summary.format).toBe("htx");
+  });
+
+  it("should map Japanese 買/売 to buy/sell", () => {
+    const result = parseHtxCsv(csv);
+    expect(result.transactions[0].receivedAsset).toBe("BTC");
+    expect(result.transactions[0].sentAsset).toBe("JPY");
+    expect(result.transactions[1].sentAsset).toBe("ETH");
+    expect(result.transactions[1].receivedAsset).toBe("JPY");
+  });
+});
+
+describe("parseHtxCsv — Chinese", () => {
+  const csv = `时间,交易对,方向,价格,数量,成交额,手续费,手续费币种
+2024-07-01 09:00:00,BTC/USDT,买入,65000,0.1,6500,0.0001,BTC
+2024-07-02 15:00:00,ETH/USDT,卖出,3500,2,7000,0.002,ETH
+`;
+
+  it("should parse Chinese HTX CSV", () => {
+    const result = parseHtxCsv(csv);
+    expect(result.summary.parsed).toBe(2);
+    expect(result.summary.failed).toBe(0);
+  });
+
+  it("should map Chinese 买入/卖出", () => {
+    const result = parseHtxCsv(csv);
+    expect(result.transactions[0].receivedAsset).toBe("BTC");
+    expect(result.transactions[1].sentAsset).toBe("ETH");
+  });
+});
