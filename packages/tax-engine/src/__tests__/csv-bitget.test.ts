@@ -197,3 +197,44 @@ describe("parseBitgetCsv", () => {
     expect(result.transactions).toHaveLength(1);
   });
 });
+
+// ─── Multi-language Bitget detection tests ──────
+
+describe("isBitgetCsv — multi-language detection", () => {
+  it("should detect Chinese headers", () => {
+    const csv =
+      "订单ID,交易对,方向,成交价,成交量,总额,手续费,手续费币种,下单时间\n";
+    expect(isBitgetCsv(csv)).toBe(true);
+  });
+
+  it("should not false-positive on Binance Chinese", () => {
+    const csv =
+      "时间,交易对,基准货币,计价货币,类型,价格,数量,成交额,手续费,手续费结算币种\n";
+    expect(isBitgetCsv(csv)).toBe(false);
+  });
+});
+
+describe("parseBitgetCsv — Chinese", () => {
+  const csv = `订单ID,交易对,方向,成交价,成交量,总额,手续费,手续费币种,下单时间
+1001,BTCUSDT,买入,50000,1.0,50000,50,USDT,2025-01-15 10:30:00
+1002,ETHUSDT,卖出,3000,2.0,6000,6,USDT,2025-02-20 14:00:00`;
+
+  it("should parse Chinese headers correctly", () => {
+    const result = parseBitgetCsv(csv);
+    expect(result.summary.parsed).toBe(2);
+    expect(result.summary.failed).toBe(0);
+  });
+
+  it("should map Chinese 买入 to BUY", () => {
+    const result = parseBitgetCsv(csv);
+    expect(result.transactions[0].type).toBe("BUY");
+    expect(result.transactions[0].receivedAsset).toBe("BTC");
+    expect(result.transactions[0].receivedAmount).toBe(1);
+  });
+
+  it("should map Chinese 卖出 to SELL", () => {
+    const result = parseBitgetCsv(csv);
+    expect(result.transactions[1].type).toBe("SELL");
+    expect(result.transactions[1].sentAsset).toBe("ETH");
+  });
+});
