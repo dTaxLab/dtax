@@ -345,11 +345,15 @@ export function isBinanceCsv(csv: string): boolean {
 
   // 2) Non-English: check for language-specific header combinations.
   //    Each combo uses at least 2 distinctive non-English column names.
-  const LANG_COMBOS: [string, string][] = [
-    // ZH-Simplified: 时间 + 交易对
-    ["时间", "交易对"],
-    // ZH-Traditional: 時間 + 交易對
-    ["時間", "交易對"],
+  const LANG_COMBOS: string[][] = [
+    // ZH-Simplified: 时间 + 交易对 + 类型 (not 方向, which is OKX)
+    ["时间", "交易对", "类型"],
+    // ZH-Simplified (alt): 时间 + 交易对 + 基准货币 (10-col format)
+    ["时间", "交易对", "基准货币"],
+    // ZH-Traditional: 時間 + 交易對 + 類型
+    ["時間", "交易對", "類型"],
+    // ZH-Traditional (alt): 時間 + 交易對 + 基準貨幣
+    ["時間", "交易對", "基準貨幣"],
     // JA: 日時 + ペア or 売買
     ["日時", "ペア"],
     ["日時", "売買"],
