@@ -192,3 +192,73 @@ describe("parseOkxCsv", () => {
     expect(result.transactions).toHaveLength(1);
   });
 });
+
+// ─── Multi-language OKX detection tests ──────
+
+describe("isOkxCsv — multi-language detection", () => {
+  it("should detect Chinese headers", () => {
+    const csv =
+      "订单ID,交易ID,交易时间,交易对,方向,价格,数量,总额,手续费,手续费币种\n";
+    expect(isOkxCsv(csv)).toBe(true);
+  });
+
+  it("should detect Traditional Chinese headers", () => {
+    const csv =
+      "訂單ID,交易ID,交易時間,交易對,方向,價格,數量,總額,手續費,手續費幣種\n";
+    expect(isOkxCsv(csv)).toBe(true);
+  });
+
+  it("should detect Japanese headers", () => {
+    const csv =
+      "注文ID,取引ID,取引時間,通貨ペア,売買,価格,数量,合計,手数料,手数料通貨\n";
+    expect(isOkxCsv(csv)).toBe(true);
+  });
+
+  it("should not false-positive on Binance Chinese", () => {
+    const csv =
+      "时间,交易对,基准货币,计价货币,类型,价格,数量,成交额,手续费,手续费结算币种\n";
+    expect(isOkxCsv(csv)).toBe(false);
+  });
+});
+
+describe("parseOkxCsv — Chinese", () => {
+  const csv = `订单ID,交易ID,交易时间,交易对,方向,价格,数量,总额,手续费,手续费币种
+1001,2001,2025-01-15 10:30:00,BTC-USDT,买入,50000,1.0,50000,-50,USDT
+1002,2002,2025-02-20 14:00:00,ETH-USDT,卖出,3000,2.0,6000,-6,USDT`;
+
+  it("should parse Chinese headers correctly", () => {
+    const result = parseOkxCsv(csv);
+    expect(result.summary.parsed).toBe(2);
+    expect(result.summary.failed).toBe(0);
+  });
+
+  it("should map Chinese 买入 to BUY", () => {
+    const result = parseOkxCsv(csv);
+    expect(result.transactions[0].type).toBe("BUY");
+    expect(result.transactions[0].receivedAsset).toBe("BTC");
+    expect(result.transactions[0].receivedAmount).toBe(1);
+  });
+
+  it("should map Chinese 卖出 to SELL", () => {
+    const result = parseOkxCsv(csv);
+    expect(result.transactions[1].type).toBe("SELL");
+    expect(result.transactions[1].sentAsset).toBe("ETH");
+  });
+});
+
+describe("parseOkxCsv — Japanese", () => {
+  const csv = `注文ID,取引ID,取引時間,通貨ペア,売買,価格,数量,合計,手数料,手数料通貨
+1001,2001,2025-03-15 08:00:00,BTC-USDT,購入,65000,0.01,650,-0.00001,BTC`;
+
+  it("should parse Japanese headers correctly", () => {
+    const result = parseOkxCsv(csv);
+    expect(result.summary.parsed).toBe(1);
+    expect(result.summary.failed).toBe(0);
+  });
+
+  it("should map Japanese 購入 to BUY", () => {
+    const result = parseOkxCsv(csv);
+    expect(result.transactions[0].type).toBe("BUY");
+    expect(result.transactions[0].receivedAsset).toBe("BTC");
+  });
+});
