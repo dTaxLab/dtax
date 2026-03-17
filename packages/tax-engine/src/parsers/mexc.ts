@@ -18,7 +18,91 @@ import {
   safeParseNumber,
   safeParseDateToIso,
 } from "./csv-core";
+import { normalizeKey, resolveCol } from "./col-resolver";
 import type { ParsedTransaction, CsvParseResult, CsvParseError } from "./types";
+
+/* ── Column name candidates (lowercase — csv-core lowercases headers) ── */
+
+const COL_TIME = [
+  "time",
+  "timestamp",
+  "trade time",
+  "ctime",
+  "时间", // ZH Simplified
+  "時間", // ZH Traditional / JA
+  "거래 시간", // KO
+];
+
+const COL_SYMBOL = [
+  "pairs",
+  "symbol",
+  "pair",
+  "交易对", // ZH Simplified
+  "交易對", // ZH Traditional
+  "銘柄", // JA
+  "거래쌍", // KO
+];
+
+const COL_SIDE = [
+  "side",
+  "direction",
+  "type",
+  "方向", // ZH
+  "売買", // JA
+  "유형", // KO
+];
+
+const COL_PRICE = [
+  "filled price",
+  "price",
+  "average filled price",
+  "成交价", // ZH Simplified
+  "成交價", // ZH Traditional
+  "約定価格", // JA
+  "체결 가격", // KO
+];
+
+const COL_QTY = [
+  "executed amount",
+  "filled quantity",
+  "qty",
+  "amount",
+  "成交量", // ZH Simplified
+  "成交量", // ZH Traditional (same)
+  "約定数量", // JA
+  "체결 수량", // KO
+];
+
+const COL_TOTAL = [
+  "total",
+  "quoteqty",
+  "order amount",
+  "总额", // ZH Simplified
+  "總額", // ZH Traditional
+  "合計", // JA
+  "총액", // KO
+];
+
+const COL_FEE = [
+  "fee",
+  "trading fee",
+  "手续费", // ZH Simplified
+  "手續費", // ZH Traditional
+  "手数料", // JA
+  "수수료", // KO
+];
+
+const COL_COMMISSION = [
+  "commission",
+  "佣金", // ZH
+  "コミッション", // JA
+];
+
+const COL_COMMISSION_ASSET = [
+  "commissionasset",
+  "佣金币种", // ZH
+  "コミッション通貨", // JA
+];
 
 const FIAT_CURRENCIES = new Set([
   "USD",
@@ -51,21 +135,29 @@ const KNOWN_QUOTES = [
  */
 export function isMexcCsv(csv: string): boolean {
   const firstLine = csv.split("\n")[0]?.toLowerCase() || "";
+  const norm = normalizeKey(firstLine);
   // MEXC standard: "pairs" + "side" + ("filled price" or "executed amount")
   if (
-    firstLine.includes("pairs") &&
-    firstLine.includes("side") &&
-    (firstLine.includes("filled price") ||
-      firstLine.includes("executed amount"))
+    norm.includes("pairs") &&
+    norm.includes("side") &&
+    (norm.includes("filled price") || norm.includes("executed amount"))
   ) {
     return true;
   }
   // MEXC API-style: "symbol" + "commissionasset" (unique to MEXC API)
-  if (firstLine.includes("symbol") && firstLine.includes("commissionasset")) {
+  if (norm.includes("symbol") && norm.includes("commissionasset")) {
     return true;
   }
   // MEXC API alt: "symbol" + "isbuyermaker"
-  if (firstLine.includes("symbol") && firstLine.includes("isbuyermaker")) {
+  if (norm.includes("symbol") && norm.includes("isbuyermaker")) {
+    return true;
+  }
+  // Chinese: "交易对" + "成交价" + "成交量"
+  if (
+    (norm.includes("交易对") || norm.includes("交易對")) &&
+    (norm.includes("成交价") || norm.includes("成交價")) &&
+    norm.includes("成交量")
+  ) {
     return true;
   }
   return false;
@@ -151,17 +243,21 @@ export function parseMexcCsv(csv: string): CsvParseResult {
   };
 }
 
-/** Find a column value, checking for timezone-suffixed variants like "time(utc+08:00)" */
+/**
+ * Find a column value, checking for timezone-suffixed variants like "time(utc+08:00)".
+ * Also checks Chinese/Japanese time column names via resolveCol.
+ */
 function findTimeColumn(row: Record<string, string>): string {
-  // Direct match
-  if (row["time"]) return row["time"];
+  // First try resolveCol for standard + i18n names
+  const resolved = resolveCol(row, COL_TIME);
+  if (resolved) return resolved;
   // Look for time(...) pattern in keys
   for (const key of Object.keys(row)) {
-    if (key.startsWith("time(") || key === "time") {
+    if (key.startsWith("time(")) {
       return row[key];
     }
   }
-  return row["timestamp"] || row["trade time"] || "";
+  return "";
 }
 
 /** Parse a single MEXC trade row */
@@ -171,7 +267,7 @@ function parseTradeRow(
   errors: CsvParseError[],
 ): ParsedTransaction | null {
   // Parse timestamp
-  const tsRaw = findTimeColumn(row) || row["ctime"] || "";
+  const tsRaw = findTimeColumn(row);
   let timestamp: string | null = null;
 
   // Handle Unix ms timestamp
@@ -188,7 +284,7 @@ function parseTradeRow(
   }
 
   // Parse symbol/pair
-  const symbolRaw = (row["pairs"] || row["symbol"] || row["pair"] || "").trim();
+  const symbolRaw = resolveCol(row, COL_SYMBOL).trim();
   const parsed = splitSymbol(symbolRaw);
   if (!parsed) {
     errors.push({ row: rowNum, message: `Invalid symbol: "${symbolRaw}"` });
@@ -198,11 +294,15 @@ function parseTradeRow(
 
   // Determine side — standard "side" or API "isbuyermaker"
   let isBuy: boolean;
-  const sideRaw = (row["side"] || row["direction"] || row["type"] || "")
-    .toLowerCase()
-    .trim();
+  const sideRaw = resolveCol(row, COL_SIDE).toLowerCase().trim();
   if (sideRaw) {
-    isBuy = sideRaw === "buy";
+    // Multi-language buy/sell mapping
+    isBuy =
+      sideRaw === "buy" ||
+      sideRaw === "买入" ||
+      sideRaw === "買入" ||
+      sideRaw === "買い" ||
+      sideRaw === "매수";
   } else if (row["isbuyermaker"] !== undefined) {
     // API format: isBuyerMaker=true means buyer was maker, the taker sold
     // But from the user's perspective exporting their own trades, this indicates their side
@@ -213,18 +313,9 @@ function parseTradeRow(
     return null;
   }
 
-  const price = safeParseNumber(
-    row["filled price"] || row["price"] || row["average filled price"],
-  );
-  const qty = safeParseNumber(
-    row["executed amount"] ||
-      row["filled quantity"] ||
-      row["qty"] ||
-      row["amount"],
-  );
-  const total = safeParseNumber(
-    row["total"] || row["quoteqty"] || row["order amount"],
-  );
+  const price = safeParseNumber(resolveCol(row, COL_PRICE));
+  const qty = safeParseNumber(resolveCol(row, COL_QTY));
+  const total = safeParseNumber(resolveCol(row, COL_TOTAL));
 
   if (!qty || qty <= 0) {
     errors.push({ row: rowNum, message: "Invalid quantity" });
@@ -238,8 +329,8 @@ function parseTradeRow(
   let feeAmount: number | undefined;
   let feeAsset: string | undefined;
 
-  const commissionRaw = row["commission"];
-  const commissionAssetRaw = row["commissionasset"];
+  const commissionRaw = resolveCol(row, COL_COMMISSION);
+  const commissionAssetRaw = resolveCol(row, COL_COMMISSION_ASSET);
   if (commissionRaw && commissionAssetRaw) {
     // API-style: separate fields
     const feeVal = safeParseNumber(commissionRaw);
@@ -249,7 +340,7 @@ function parseTradeRow(
     }
   } else {
     // Standard: concatenated "0.5USDT"
-    const feeRaw = row["fee"] || row["trading fee"] || "";
+    const feeRaw = resolveCol(row, COL_FEE);
     const parsedFee = parseConcatenatedFee(feeRaw);
     if (parsedFee && Math.abs(parsedFee[0]) > 0) {
       feeAmount = Math.abs(parsedFee[0]);

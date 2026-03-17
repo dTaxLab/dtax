@@ -230,3 +230,43 @@ ETH_USDT,2025-01-15 10:35:00,SELL,3000,2.0,6000,6USDT,Maker`;
     expect(result.transactions).toHaveLength(1);
   });
 });
+
+// ─── Multi-language MEXC detection tests ──────
+
+describe("isMexcCsv — multi-language detection", () => {
+  it("should detect Chinese headers", () => {
+    const csv = "交易对,时间,方向,成交价,成交量,总额,手续费\n";
+    expect(isMexcCsv(csv)).toBe(true);
+  });
+
+  it("should not false-positive on Binance Chinese", () => {
+    const csv =
+      "时间,交易对,基准货币,计价货币,类型,价格,数量,成交额,手续费,手续费结算币种\n";
+    expect(isMexcCsv(csv)).toBe(false);
+  });
+});
+
+describe("parseMexcCsv — Chinese", () => {
+  const csv = `交易对,时间,方向,成交价,成交量,总额,手续费
+BTC_USDT,2025-01-15 10:30:00,买入,50000,1.0,50000,50USDT
+ETH_USDT,2025-02-20 14:00:00,卖出,3000,2.0,6000,6USDT`;
+
+  it("should parse Chinese headers correctly", () => {
+    const result = parseMexcCsv(csv);
+    expect(result.summary.parsed).toBe(2);
+    expect(result.summary.failed).toBe(0);
+  });
+
+  it("should map Chinese 买入 to BUY", () => {
+    const result = parseMexcCsv(csv);
+    expect(result.transactions[0].type).toBe("BUY");
+    expect(result.transactions[0].receivedAsset).toBe("BTC");
+    expect(result.transactions[0].receivedAmount).toBe(1);
+  });
+
+  it("should map Chinese 卖出 to SELL", () => {
+    const result = parseMexcCsv(csv);
+    expect(result.transactions[1].type).toBe("SELL");
+    expect(result.transactions[1].sentAsset).toBe("ETH");
+  });
+});
