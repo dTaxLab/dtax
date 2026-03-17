@@ -16,7 +16,88 @@ import {
   safeParseNumber,
   safeParseDateToIso,
 } from "./csv-core";
+import { normalizeKey, resolveCol } from "./col-resolver";
 import type { ParsedTransaction, CsvParseResult, CsvParseError } from "./types";
+
+/* ── Column name candidates (lowercase — csv-core lowercases headers) ── */
+
+const COL_TIME = [
+  "date",
+  "create_time",
+  "time",
+  "timestamp",
+  "日期", // ZH Simplified
+  "日期", // ZH Traditional (same)
+  "日時", // JA
+  "날짜", // KO
+];
+
+const COL_PAIR = [
+  "pair",
+  "currency_pair",
+  "symbol",
+  "交易对", // ZH Simplified
+  "交易對", // ZH Traditional
+  "銘柄", // JA
+  "거래쌍", // KO
+];
+
+const COL_SIDE = [
+  "side",
+  "direction",
+  "方向", // ZH
+  "売買", // JA
+  "유형", // KO
+];
+
+const COL_AMOUNT = [
+  "filled amount",
+  "amount",
+  "qty",
+  "quantity",
+  "成交量", // ZH Simplified
+  "成交數量", // ZH Traditional
+  "約定数量", // JA
+  "체결 수량", // KO
+];
+
+const COL_PRICE = [
+  "filled price",
+  "price",
+  "avg. filled price",
+  "成交价", // ZH Simplified
+  "成交價", // ZH Traditional
+  "約定価格", // JA
+  "체결 가격", // KO
+];
+
+const COL_TOTAL = [
+  "total",
+  "funds",
+  "value",
+  "总额", // ZH Simplified
+  "總額", // ZH Traditional
+  "合計", // JA
+  "총액", // KO
+];
+
+const COL_FEE = [
+  "fee",
+  "手续费", // ZH Simplified
+  "手續費", // ZH Traditional
+  "手数料", // JA
+  "수수료", // KO
+];
+
+const COL_FEE_CURRENCY = [
+  "fee currency",
+  "fee_currency",
+  "feecurrency",
+  "手续费币种", // ZH Simplified
+  "手續費幣種", // ZH Traditional
+  "手数料通貨", // JA
+  "수수료 통화", // KO
+];
 
 const FIAT_CURRENCIES = new Set([
   "USD",
@@ -36,13 +117,20 @@ const FIAT_CURRENCIES = new Set([
  */
 export function isGateCsv(csv: string): boolean {
   const firstLine = csv.split("\n")[0]?.toLowerCase() || "";
+  const norm = normalizeKey(firstLine);
   // Gate.io: has "currency_pair" or ("pair" + "role"), plus "side" or "fee"
-  if (firstLine.includes("currency_pair") && firstLine.includes("side"))
-    return true;
+  if (norm.includes("currency_pair") && norm.includes("side")) return true;
   if (
-    firstLine.includes("pair") &&
-    firstLine.includes("role") &&
-    (firstLine.includes("filled price") || firstLine.includes("filled amount"))
+    norm.includes("pair") &&
+    norm.includes("role") &&
+    (norm.includes("filled price") || norm.includes("filled amount"))
+  )
+    return true;
+  // Chinese: "交易对"/"交易對" + "角色" + "成交价"/"成交價"
+  if (
+    (norm.includes("交易对") || norm.includes("交易對")) &&
+    norm.includes("角色") &&
+    (norm.includes("成交价") || norm.includes("成交價"))
   )
     return true;
   return false;
@@ -92,8 +180,7 @@ function parseTradeRow(
   errors: CsvParseError[],
 ): ParsedTransaction | null {
   // Parse timestamp
-  const tsRaw =
-    row["date"] || row["create_time"] || row["time"] || row["timestamp"] || "";
+  const tsRaw = resolveCol(row, COL_TIME);
   const timestamp = safeParseDateToIso(tsRaw);
   if (!timestamp) {
     errors.push({ row: rowNum, message: `Invalid date: "${tsRaw}"` });
@@ -101,9 +188,7 @@ function parseTradeRow(
   }
 
   // Parse pair: "BTC_USDT" or "BTC/USDT" or "BTC-USDT"
-  const pairRaw = (row["pair"] || row["currency_pair"] || row["symbol"] || "")
-    .toUpperCase()
-    .trim();
+  const pairRaw = resolveCol(row, COL_PAIR).toUpperCase().trim();
   const parts = pairRaw.split(/[_\-\/]/);
   if (parts.length !== 2 || !parts[0] || !parts[1]) {
     errors.push({ row: rowNum, message: `Invalid pair: "${pairRaw}"` });
@@ -111,30 +196,26 @@ function parseTradeRow(
   }
   const [base, quote] = parts;
 
-  const side = (row["side"] || row["direction"] || "").toLowerCase().trim();
-  const amount = safeParseNumber(
-    row["filled amount"] || row["amount"] || row["qty"] || row["quantity"],
-  );
-  const price = safeParseNumber(
-    row["filled price"] || row["price"] || row["avg. filled price"],
-  );
-  const total = safeParseNumber(row["total"] || row["funds"] || row["value"]);
-  const fee = safeParseNumber(row["fee"]);
-  const feeCurrency = (
-    row["fee currency"] ||
-    row["fee_currency"] ||
-    row["feecurrency"] ||
-    ""
-  )
-    .toUpperCase()
-    .trim();
+  const side = resolveCol(row, COL_SIDE).toLowerCase().trim();
+  const amount = safeParseNumber(resolveCol(row, COL_AMOUNT));
+  const price = safeParseNumber(resolveCol(row, COL_PRICE));
+  const total = safeParseNumber(resolveCol(row, COL_TOTAL));
+  const fee = safeParseNumber(resolveCol(row, COL_FEE));
+  const feeCurrency = resolveCol(row, COL_FEE_CURRENCY).toUpperCase().trim();
 
   if (!amount || amount <= 0) {
     errors.push({ row: rowNum, message: "Invalid amount" });
     return null;
   }
 
-  const isBuy = side === "buy";
+  // Multi-language buy/sell mapping
+  const isBuy =
+    side === "buy" ||
+    side === "买入" ||
+    side === "買入" ||
+    side === "買い" ||
+    side === "매수";
+
   const isFiatQuote = FIAT_CURRENCIES.has(quote);
   const computedTotal = total || (price ? price * amount : 0);
 
