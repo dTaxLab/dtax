@@ -15,6 +15,7 @@ import { calculateSpecificId } from "./methods/specific-id";
 import { calculateGermanyFIFO } from "./methods/germany-fifo";
 import { calculatePMPA } from "./methods/pmpa";
 import { calculateTotalAverage } from "./methods/total-average";
+import { calculateUKSharePooling } from "./methods/uk-share-pooling";
 import type {
   TaxLot,
   TaxableEvent,
@@ -84,6 +85,8 @@ export class CostBasisCalculator {
         return calculatePMPA(this.lots, event, strictSilo);
       case "TOTAL_AVERAGE":
         return calculateTotalAverage(this.lots, event, strictSilo);
+      case "UK_SHARE_POOLING":
+        return calculateUKSharePooling(this.lots, event, strictSilo);
       case "SPECIFIC_ID":
         throw new Error(
           "SPECIFIC_ID requires lot selections — use calculateSpecificId()",

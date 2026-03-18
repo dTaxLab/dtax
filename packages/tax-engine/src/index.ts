@@ -15,6 +15,7 @@ export { calculateSpecificId } from "./methods/specific-id";
 export { calculateGermanyFIFO } from "./methods/germany-fifo";
 export { calculatePMPA } from "./methods/pmpa";
 export { calculateTotalAverage } from "./methods/total-average";
+export { calculateUKSharePooling } from "./methods/uk-share-pooling";
 export {
   CostBasisCalculator,
   registerStrategy,
