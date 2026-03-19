@@ -18,6 +18,7 @@ import type {
   MatchedLot,
 } from "../types";
 import { getHoldingPeriod } from "./shared";
+import { dadd, dsub, dmul, ddiv, isEffectivelyZero } from "../math";
 
 /**
  * Calculate capital gains/losses using the HIFO method.
@@ -35,14 +36,13 @@ export function calculateHIFO(
     ? lots.filter((l) => l.sourceId === event.sourceId)
     : lots;
 
-  // Sort lots by cost per unit DESCENDING (highest cost first)
+  // Sort by cost-per-unit DESCENDING. Native division is sufficient for ordering;
+  // exact Decimal arithmetic is reserved for the financial mutations below.
   const sortedLots = [...applicableLots]
-    .filter((lot) => lot.asset === event.asset && lot.amount > 0.00000001)
-    .sort((a, b) => {
-      const costPerUnitA = a.costBasisUsd / a.amount;
-      const costPerUnitB = b.costBasisUsd / b.amount;
-      return costPerUnitB - costPerUnitA;
-    });
+    .filter(
+      (lot) => lot.asset === event.asset && !isEffectivelyZero(lot.amount),
+    )
+    .sort((a, b) => b.costBasisUsd / b.amount - a.costBasisUsd / a.amount);
 
   let remainingAmount = event.amount;
   let totalCostBasis = 0;
@@ -50,13 +50,14 @@ export function calculateHIFO(
   let earliestMatchedDate: Date | null = null;
 
   for (const lot of sortedLots) {
-    if (remainingAmount <= 0) break;
+    if (isEffectivelyZero(remainingAmount) || remainingAmount < 0) break;
 
     const consumeAmount = Math.min(lot.amount, remainingAmount);
-    const costPerUnit =
-      lot.amount > 0.00000001 ? lot.costBasisUsd / lot.amount : 0;
-    const consumedCostBasis = costPerUnit * consumeAmount;
-    const fullyConsumed = consumeAmount >= lot.amount - 0.00000001;
+    const costPerUnit = !isEffectivelyZero(lot.amount)
+      ? ddiv(lot.costBasisUsd, lot.amount)
+      : 0;
+    const consumedCostBasis = dmul(costPerUnit, consumeAmount);
+    const fullyConsumed = isEffectivelyZero(dsub(lot.amount, consumeAmount));
 
     matchedLots.push({
       lotId: lot.id,
@@ -66,10 +67,10 @@ export function calculateHIFO(
     });
 
     // Mutate lot to track remaining balance across multiple calculations
-    lot.amount -= consumeAmount;
-    lot.costBasisUsd -= consumedCostBasis;
-    totalCostBasis += consumedCostBasis;
-    remainingAmount -= consumeAmount;
+    lot.amount = dsub(lot.amount, consumeAmount);
+    lot.costBasisUsd = dsub(lot.costBasisUsd, consumedCostBasis);
+    totalCostBasis = dadd(totalCostBasis, consumedCostBasis);
+    remainingAmount = dsub(remainingAmount, consumeAmount);
 
     // Track the earliest matched lot for holding period
     if (!earliestMatchedDate || lot.acquiredAt < earliestMatchedDate) {
@@ -77,15 +78,15 @@ export function calculateHIFO(
     }
   }
 
-  if (remainingAmount > 0.00000001) {
+  if (!isEffectivelyZero(remainingAmount) && remainingAmount > 0) {
     console.warn(
       `[DTax HIFO] Insufficient lots for ${event.asset}: ` +
-        `needed ${event.amount}, matched ${event.amount - remainingAmount}`,
+        `needed ${event.amount}, matched ${dsub(event.amount, remainingAmount)}`,
     );
   }
 
   const feeUsd = event.feeUsd ?? 0;
-  const gainLoss = event.proceedsUsd - totalCostBasis - feeUsd;
+  const gainLoss = dsub(dsub(event.proceedsUsd, totalCostBasis), feeUsd);
   const holdingPeriod = earliestMatchedDate
     ? getHoldingPeriod(earliestMatchedDate, event.date)
     : "SHORT_TERM";
