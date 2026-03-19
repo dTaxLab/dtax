@@ -17,7 +17,7 @@
 
 ---
 
-**23 parsers de exchanges** | **FIFO / LIFO / HIFO / Specific ID** | **Form 8949 + Schedule D** | **Detección de wash sales** | **Simulador de escenarios**
+**23 parsers de exchanges** | **8 métodos de base de coste** — FIFO / LIFO / HIFO / UK Share Pooling / +4 más | **Form 8949 + Schedule D** | **Detección de wash sales** | **Simulador de escenarios**
 
 ## Instalación
 
@@ -79,7 +79,7 @@ Todos los parsers detectan automáticamente el formato CSV. No requiere configur
 
 ## Características
 
-- **4 métodos de base de costo** -- FIFO, LIFO, HIFO, Specific ID (conforme al IRS)
+- **8 métodos de base de coste** -- FIFO, LIFO, HIFO, Specific ID, UK Share Pooling, Germany FIFO, PMPA, Total Average (EE.UU. + internacional)
 - **Form 8949** -- Exportación en CSV, PDF y TXF (TurboTax) con clasificación Box A-F
 - **Schedule D** -- Agregación Part I/II, límite de pérdidas de $3,000, cálculo de arrastre
 - **Detección de wash sales** -- Ventana de 30 días, rechazo parcial, código W en Form 8949
@@ -98,7 +98,7 @@ Todos los parsers detectan automáticamente el formato CSV. No requiere configur
 | Lenguaje                        | TypeScript | Python  |  Python  |
 | Instalable vía npm              |    Yes     |   No    |    No    |
 | Parsers de exchanges            |     23     |   15    |    8     |
-| Métodos de base de costo        |     4      |    3    |    3     |
+| Métodos de base de costo        |     8      |    3    |    3     |
 | Form 8949 PDF                   |    Yes     |   No    |    No    |
 | Exportación TXF TurboTax        |    Yes     |   No    |    No    |
 | Generación de Schedule D        |    Yes     |   No    |    No    |
@@ -152,7 +152,7 @@ Las contribuciones son bienvenidas. Consulta [CONTRIBUTING.md](CONTRIBUTING.md) 
 # Prerequisites: Node.js >= 20, pnpm >= 9
 git clone https://github.com/dTaxLab/dtax.git && cd dtax
 pnpm install
-pnpm test        # 800+ tests across all packages
+pnpm test        # 980+ tests across all packages
 pnpm build       # build all packages
 ```
 

@@ -17,7 +17,7 @@
 
 ---
 
-**23 parsers de exchanges** | **FIFO / LIFO / HIFO / Specific ID** | **Form 8949 + Schedule D** | **Detecção de wash sale** | **Simulador what-if**
+**23 parsers de exchanges** | **8 métodos de base de custo — FIFO / LIFO / HIFO / UK Share Pooling / +4 mais** | **Form 8949 + Schedule D** | **Detecção de wash sale** | **Simulador what-if**
 
 ## Instalação
 
@@ -79,7 +79,7 @@ Todos os parsers detectam automaticamente o formato do CSV. Nenhuma configuraç�
 
 ## Funcionalidades
 
-- **4 métodos de custo base** -- FIFO, LIFO, HIFO, Specific ID (em conformidade com o IRS)
+- **8 métodos de base de custo** -- FIFO, LIFO, HIFO, Specific ID, UK Share Pooling, Germany FIFO, PMPA, Total Average (EUA + internacional)
 - **Form 8949** -- Exportação em CSV, PDF e TXF (TurboTax) com classificação Box A-F
 - **Schedule D** -- Agregação Parte I/II, limite de perda de $3.000, cálculo de compensação
 - **Detecção de wash sale** -- Janela de 30 dias, desqualificação parcial, código W no Form 8949
@@ -98,7 +98,7 @@ Todos os parsers detectam automaticamente o formato do CSV. Nenhuma configuraç�
 | Linguagem                   | TypeScript | Python  |   Python   |
 | Instalável via npm          |    Sim     |   Não   |    Não     |
 | Parsers de exchanges        |     23     |   15    |     8      |
-| Métodos de custo base       |     4      |    3    |     3      |
+| Métodos de custo base       |     8      |    3    |     3      |
 | Form 8949 PDF               |    Sim     |   Não   |    Não     |
 | Exportação TXF TurboTax     |    Sim     |   Não   |    Não     |
 | Geração de Schedule D       |    Sim     |   Não   |    Não     |
@@ -152,7 +152,7 @@ Contribuições são bem-vindas. Consulte [CONTRIBUTING.md](CONTRIBUTING.md) par
 # Prerequisites: Node.js >= 20, pnpm >= 9
 git clone https://github.com/dTaxLab/dtax.git && cd dtax
 pnpm install
-pnpm test        # 800+ tests across all packages
+pnpm test        # 980+ tests across all packages
 pnpm build       # build all packages
 ```
 
