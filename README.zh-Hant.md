@@ -17,7 +17,7 @@
 
 ---
 
-**23 個交易所解析器** | **FIFO / LIFO / HIFO / Specific ID** | **Form 8949 + Schedule D** | **洗售偵測** | **模擬試算**
+**23 個交易所解析器** | **8 種成本基礎方法** — FIFO / LIFO / HIFO / UK Share Pooling / 等 4 種 | **Form 8949 + Schedule D** | **洗售偵測** | **模擬試算**
 
 ## 安裝
 
@@ -79,7 +79,7 @@ dtax calculate trades.csv --schedule-d --include-wash-sales
 
 ## 功能特色
 
-- **4 種成本基礎方法** -- FIFO、LIFO、HIFO、Specific ID（符合 IRS 規範）
+- **8 種成本基礎方法** -- FIFO、LIFO、HIFO、Specific ID、UK Share Pooling、Germany FIFO、PMPA、Total Average（美國 + 國際）
 - **Form 8949** -- CSV、PDF 及 TXF（TurboTax）匯出，支援 Box A-F 分類
 - **Schedule D** -- Part I/II 彙總、$3,000 虧損上限、結轉計算
 - **洗售偵測** -- 30 天窗口期、部分不允許扣除、Form 8949 code W
@@ -98,7 +98,7 @@ dtax calculate trades.csv --schedule-d --include-wash-sales
 | 語言              | TypeScript |  Python  | Python |
 | 可透過 npm 安裝   |     是     |    否    |   否   |
 | 交易所解析器      |     23     |    15    |   8    |
-| 成本基礎方法      |     4      |    3     |   3    |
+| 成本基礎方法      |     8      |    3     |   3    |
 | Form 8949 PDF     |     是     |    否    |   否   |
 | TurboTax TXF 匯出 |     是     |    否    |   否   |
 | Schedule D 產生   |     是     |    否    |   否   |
@@ -152,7 +152,7 @@ import { parseCsv, detectCsvFormat } from "@dtax/tax-engine";
 # 前置需求：Node.js >= 20, pnpm >= 9
 git clone https://github.com/dTaxLab/dtax.git && cd dtax
 pnpm install
-pnpm test        # 所有套件共 800+ 項測試
+pnpm test        # 所有套件共 980+ 項測試
 pnpm build       # 建置所有套件
 ```
 
