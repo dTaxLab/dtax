@@ -1,7 +1,7 @@
 /**
  * Method Comparison Engine
  *
- * Compares FIFO, LIFO, and HIFO cost basis methods for a hypothetical sale,
+ * Compares all applicable cost basis methods for a hypothetical sale,
  * recommending the optimal method based on tax impact, wash sale risk, and
  * potential savings.
  *
@@ -13,42 +13,49 @@ import type { SimulationInput, SimulationResult } from "./simulator";
 import { simulateSale } from "./simulator";
 import type { AcquisitionRecord } from "./wash-sale";
 
-/** Result of comparing all three cost basis methods. */
+/** Reason codes for the recommended method (for i18n on the frontend). */
+export type RecommendedReasonCode =
+  | "identical"
+  | "lowest_gain"
+  | "largest_loss_clean"
+  | "largest_loss";
+
+/** All non-SPECIFIC_ID methods supported by the simulator. */
+const COMPARABLE_METHODS = [
+  "FIFO",
+  "LIFO",
+  "HIFO",
+  "GERMANY_FIFO",
+  "PMPA",
+  "TOTAL_AVERAGE",
+  "UK_SHARE_POOLING",
+] as const;
+
+type ComparableMethod = (typeof COMPARABLE_METHODS)[number];
+
+/** Result of comparing all cost basis methods. */
 export interface ComparisonResult {
-  /** FIFO simulation result */
-  fifo: SimulationResult;
-  /** LIFO simulation result */
-  lifo: SimulationResult;
-  /** HIFO simulation result */
-  hifo: SimulationResult;
-  /** Recommended method */
-  recommended: "FIFO" | "LIFO" | "HIFO";
-  /** Human-readable reason for the recommendation */
-  recommendedReason: string;
+  /** Simulation results keyed by method name */
+  methods: Record<ComparableMethod, SimulationResult>;
+  /** Recommended method name */
+  recommended: ComparableMethod;
+  /** i18n reason code — translate on the frontend */
+  recommendedReasonCode: RecommendedReasonCode;
   /** Absolute difference between best and worst projected gain/loss */
   savings: number;
 }
 
-type MethodName = "FIFO" | "LIFO" | "HIFO";
-
 interface MethodEntry {
-  name: MethodName;
+  name: ComparableMethod;
   result: SimulationResult;
 }
 
 /**
- * Compare all three cost basis methods (FIFO, LIFO, HIFO) for a hypothetical
- * sale and recommend the optimal method.
+ * Compare all applicable cost basis methods for a hypothetical sale and
+ * recommend the optimal method.
  *
  * Deep-clones lots for each simulation so the caller's data is never mutated.
- * Each method is simulated independently via `simulateSale`.
- *
- * Recommendation logic:
- * - If all results are gains: recommend the method with the smallest gain (lowest tax).
- * - If there are losses: recommend the method with the largest loss (most deduction),
- *   but downgrade methods that trigger wash sales when others do not.
- * - If all three methods produce identical results: recommend FIFO as the default.
- * - savings = Math.abs(worst.projectedGainLoss - best.projectedGainLoss)
+ * SPECIFIC_ID is excluded because it requires explicit lot selection.
  *
  * @param lots - Current tax lots (will NOT be mutated)
  * @param input - Simulation parameters (without method)
@@ -60,51 +67,38 @@ export function compareAllMethods(
   input: Omit<SimulationInput, "method">,
   acquisitions?: AcquisitionRecord[],
 ): ComparisonResult {
-  const fifo = simulateSale(lots, { ...input, method: "FIFO" }, acquisitions);
-  const lifo = simulateSale(lots, { ...input, method: "LIFO" }, acquisitions);
-  const hifo = simulateSale(lots, { ...input, method: "HIFO" }, acquisitions);
+  const entries: MethodEntry[] = COMPARABLE_METHODS.map((m) => ({
+    name: m,
+    result: simulateSale(lots, { ...input, method: m }, acquisitions),
+  }));
 
-  const entries: MethodEntry[] = [
-    { name: "FIFO", result: fifo },
-    { name: "LIFO", result: lifo },
-    { name: "HIFO", result: hifo },
-  ];
-
-  const { recommended, recommendedReason } = pickRecommendation(entries);
+  const { recommended, recommendedReasonCode } = pickRecommendation(entries);
 
   const allGainLoss = entries.map((e) => e.result.projectedGainLoss);
   const worst = Math.max(...allGainLoss);
   const best = Math.min(...allGainLoss);
   const savings = Math.abs(worst - best);
 
+  const methods = Object.fromEntries(
+    entries.map((e) => [e.name, e.result]),
+  ) as Record<ComparableMethod, SimulationResult>;
+
   return {
-    fifo,
-    lifo,
-    hifo,
+    methods,
     recommended,
-    recommendedReason,
+    recommendedReasonCode,
     savings,
   };
 }
 
-/**
- * Pick the recommended method from the three simulation results.
- *
- * @param entries - The three method entries to compare
- * @returns The recommended method name and reason
- */
 function pickRecommendation(entries: MethodEntry[]): {
-  recommended: MethodName;
-  recommendedReason: string;
+  recommended: ComparableMethod;
+  recommendedReasonCode: RecommendedReasonCode;
 } {
-  // Check if all three produce identical gain/loss
   const gains = entries.map((e) => e.result.projectedGainLoss);
-  if (gains[0] === gains[1] && gains[1] === gains[2]) {
-    return {
-      recommended: "FIFO",
-      recommendedReason:
-        "All methods produce identical results; FIFO recommended as the standard default.",
-    };
+  const allIdentical = gains.every((g) => g === gains[0]);
+  if (allIdentical) {
+    return { recommended: "FIFO", recommendedReasonCode: "identical" };
   }
 
   const allGains = entries.every((e) => e.result.projectedGainLoss >= 0);
@@ -116,61 +110,43 @@ function pickRecommendation(entries: MethodEntry[]): {
   return pickLargestLoss(entries);
 }
 
-/**
- * When all methods produce gains, recommend the one with the smallest gain
- * (i.e., lowest tax liability).
- */
 function pickLowestGain(entries: MethodEntry[]): {
-  recommended: MethodName;
-  recommendedReason: string;
+  recommended: ComparableMethod;
+  recommendedReasonCode: RecommendedReasonCode;
 } {
-  // Sort ascending by projectedGainLoss — smallest first
   const sorted = [...entries].sort(
+    (a, b) => a.result.projectedGainLoss - b.result.projectedGainLoss,
+  );
+  return {
+    recommended: sorted[0].name,
+    recommendedReasonCode: "lowest_gain",
+  };
+}
+
+function pickLargestLoss(entries: MethodEntry[]): {
+  recommended: ComparableMethod;
+  recommendedReasonCode: RecommendedReasonCode;
+} {
+  const someHaveWash = entries.some((e) => e.result.washSaleRisk);
+  const someClean = entries.some((e) => !e.result.washSaleRisk);
+  const shouldDowngradeWash = someHaveWash && someClean;
+
+  let candidates = shouldDowngradeWash
+    ? entries.filter((e) => !e.result.washSaleRisk)
+    : entries;
+
+  if (candidates.length === 0) {
+    candidates = entries;
+  }
+
+  const sorted = [...candidates].sort(
     (a, b) => a.result.projectedGainLoss - b.result.projectedGainLoss,
   );
 
   return {
     recommended: sorted[0].name,
-    recommendedReason: `${sorted[0].name} produces the smallest taxable gain, minimizing tax liability.`,
-  };
-}
-
-/**
- * When at least one method produces a loss, recommend the one with the
- * largest loss (most deduction). Methods that trigger wash sales while
- * others do not are downgraded.
- */
-function pickLargestLoss(entries: MethodEntry[]): {
-  recommended: MethodName;
-  recommendedReason: string;
-} {
-  // Check wash sale status across methods
-  const someHaveWash = entries.some((e) => e.result.washSaleRisk);
-  const someClean = entries.some((e) => !e.result.washSaleRisk);
-  const shouldDowngradeWash = someHaveWash && someClean;
-
-  // Filter candidates: exclude wash-sale methods if others are clean
-  let candidates = shouldDowngradeWash
-    ? entries.filter((e) => !e.result.washSaleRisk)
-    : entries;
-
-  // If all were filtered out (shouldn't happen), fall back to all entries
-  if (candidates.length === 0) {
-    candidates = entries;
-  }
-
-  // Sort ascending by projectedGainLoss — most negative (largest loss) first
-  const sorted = [...candidates].sort(
-    (a, b) => a.result.projectedGainLoss - b.result.projectedGainLoss,
-  );
-
-  const best = sorted[0];
-  const reason = shouldDowngradeWash
-    ? `${best.name} provides the largest deductible loss without triggering a wash sale.`
-    : `${best.name} provides the largest deductible loss, maximizing tax deductions.`;
-
-  return {
-    recommended: best.name,
-    recommendedReason: reason,
+    recommendedReasonCode: shouldDowngradeWash
+      ? "largest_loss_clean"
+      : "largest_loss",
   };
 }
