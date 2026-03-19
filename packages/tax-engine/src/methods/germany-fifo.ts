@@ -15,6 +15,7 @@ import type {
   MatchedLot,
 } from "../types";
 import { getHoldingPeriod } from "./shared";
+import { dadd, dsub, dmul, ddiv, isEffectivelyZero } from "../math";
 
 /**
  * Check if a lot qualifies for Germany's 12-month tax exemption.
@@ -50,7 +51,9 @@ export function calculateGermanyFIFO(
 
   // Sort lots by acquisition date (ascending) for FIFO
   const sortedLots = [...applicableLots]
-    .filter((lot) => lot.asset === event.asset && lot.amount > 0.00000001)
+    .filter(
+      (lot) => lot.asset === event.asset && !isEffectivelyZero(lot.amount),
+    )
     .sort((a, b) => a.acquiredAt.getTime() - b.acquiredAt.getTime());
 
   let remainingAmount = event.amount;
@@ -60,13 +63,14 @@ export function calculateGermanyFIFO(
   let earliestLotDate: Date | null = null;
 
   for (const lot of sortedLots) {
-    if (remainingAmount <= 0) break;
+    if (isEffectivelyZero(remainingAmount) || remainingAmount < 0) break;
 
     const consumeAmount = Math.min(lot.amount, remainingAmount);
-    const costPerUnit =
-      lot.amount > 0.00000001 ? lot.costBasisUsd / lot.amount : 0;
-    const consumedCostBasis = costPerUnit * consumeAmount;
-    const fullyConsumed = consumeAmount >= lot.amount - 0.00000001;
+    const costPerUnit = !isEffectivelyZero(lot.amount)
+      ? ddiv(lot.costBasisUsd, lot.amount)
+      : 0;
+    const consumedCostBasis = dmul(costPerUnit, consumeAmount);
+    const fullyConsumed = isEffectivelyZero(dsub(lot.amount, consumeAmount));
 
     matchedLots.push({
       lotId: lot.id,
@@ -76,17 +80,19 @@ export function calculateGermanyFIFO(
     });
 
     // Mutate lot to track remaining balance
-    lot.amount -= consumeAmount;
-    lot.costBasisUsd -= consumedCostBasis;
-    remainingAmount -= consumeAmount;
+    lot.amount = dsub(lot.amount, consumeAmount);
+    lot.costBasisUsd = dsub(lot.costBasisUsd, consumedCostBasis);
+    remainingAmount = dsub(remainingAmount, consumeAmount);
 
     // Only count toward taxable gain if held <= 12 months
     if (!isExempt(lot.acquiredAt, event.date)) {
-      taxableCostBasis += consumedCostBasis;
+      taxableCostBasis = dadd(taxableCostBasis, consumedCostBasis);
       // Proportional proceeds for this lot portion
-      const portionProceeds =
-        (consumeAmount / event.amount) * event.proceedsUsd;
-      taxableProceeds += portionProceeds;
+      const portionProceeds = dmul(
+        ddiv(consumeAmount, event.amount),
+        event.proceedsUsd,
+      );
+      taxableProceeds = dadd(taxableProceeds, portionProceeds);
     }
 
     if (!earliestLotDate) {
@@ -94,15 +100,15 @@ export function calculateGermanyFIFO(
     }
   }
 
-  if (remainingAmount > 0.00000001) {
+  if (!isEffectivelyZero(remainingAmount) && remainingAmount > 0) {
     console.warn(
       `[DTax GERMANY_FIFO] Insufficient lots for ${event.asset}: ` +
-        `needed ${event.amount}, matched ${event.amount - remainingAmount}`,
+        `needed ${event.amount}, matched ${dsub(event.amount, remainingAmount)}`,
     );
   }
 
   const feeUsd = event.feeUsd ?? 0;
-  const gainLoss = taxableProceeds - taxableCostBasis - feeUsd;
+  const gainLoss = dsub(dsub(taxableProceeds, taxableCostBasis), feeUsd);
   const holdingPeriod = earliestLotDate
     ? getHoldingPeriod(earliestLotDate, event.date)
     : "SHORT_TERM";
