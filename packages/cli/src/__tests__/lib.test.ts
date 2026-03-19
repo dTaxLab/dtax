@@ -354,12 +354,17 @@ const mockSimResult = {
 };
 
 const mockComparison: ComparisonResult = {
-  fifo: { ...mockSimResult, projectedGainLoss: 500 },
-  lifo: { ...mockSimResult, projectedGainLoss: 200 },
-  hifo: { ...mockSimResult, projectedGainLoss: -100 },
+  methods: {
+    FIFO: { ...mockSimResult, projectedGainLoss: 500 },
+    LIFO: { ...mockSimResult, projectedGainLoss: 200 },
+    HIFO: { ...mockSimResult, projectedGainLoss: -100 },
+    GERMANY_FIFO: { ...mockSimResult, projectedGainLoss: 200 },
+    PMPA: { ...mockSimResult, projectedGainLoss: 200 },
+    TOTAL_AVERAGE: { ...mockSimResult, projectedGainLoss: 200 },
+    UK_SHARE_POOLING: { ...mockSimResult, projectedGainLoss: 200 },
+  },
   recommended: "HIFO",
-  recommendedReason:
-    "HIFO provides the largest deductible loss, maximizing tax deductions.",
+  recommendedReasonCode: "largest_loss",
   savings: 600,
 };
 
@@ -387,7 +392,7 @@ describe("formatComparisonJson", () => {
   it("returns object with all methods and recommendation", () => {
     const json = formatComparisonJson(mockComparison);
     expect(json.recommended).toBe("HIFO");
-    expect(json.recommendedReason).toContain("HIFO");
+    expect(json.recommendedReasonCode).toBe("largest_loss");
     expect(json.savings).toBe(600);
     expect((json.fifo as Record<string, unknown>).projectedGainLoss).toBe(500);
     expect((json.lifo as Record<string, unknown>).projectedGainLoss).toBe(200);
