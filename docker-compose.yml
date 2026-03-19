@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: dtax
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dtax_secure_password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
       POSTGRES_DB: dtax
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -40,11 +40,11 @@ services:
       redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: "postgresql://dtax:${POSTGRES_PASSWORD:-dtax_secure_password}@postgres:5432/dtax?schema=public"
+      DATABASE_URL: "postgresql://dtax:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/dtax?schema=public"
       HOST: "0.0.0.0"
       PORT: "3001"
       NODE_ENV: "production"
-      CORS_ORIGIN: "http://localhost:3000"
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://getdtax.com}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
     expose:
@@ -95,7 +95,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: "postgresql://dtax:${POSTGRES_PASSWORD:-dtax_secure_password}@postgres:5432/dtax?schema=public"
+      DATABASE_URL: "postgresql://dtax:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/dtax?schema=public"
     command: ["npx", "prisma", "migrate", "deploy", "--schema", "apps/api/prisma/schema.prisma"]
     restart: "no"
 
