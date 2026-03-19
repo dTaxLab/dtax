@@ -17,7 +17,7 @@
 
 ---
 
-**23개 거래소 파서** | **FIFO / LIFO / HIFO / Specific ID** | **Form 8949 + Schedule D** | **워시세일 감지** | **가상 매도 시뮬레이터**
+**23개 거래소 파서** | **8가지 원가 기준 방법 — FIFO / LIFO / HIFO / UK Share Pooling / +4가지** | **Form 8949 + Schedule D** | **워시세일 감지** | **가상 매도 시뮬레이터**
 
 ## 설치
 
@@ -79,7 +79,7 @@ dtax calculate trades.csv --schedule-d --include-wash-sales
 
 ## 주요 기능
 
-- **4가지 원가 기준 방식** -- FIFO, LIFO, HIFO, Specific ID (IRS 규정 준수)
+- **8가지 원가 기준 방법** -- FIFO, LIFO, HIFO, Specific ID, UK Share Pooling, Germany FIFO, PMPA, Total Average (미국 + 국제)
 - **Form 8949** -- CSV, PDF, TXF (TurboTax) 내보내기 및 Box A-F 분류
 - **Schedule D** -- Part I/II 합산, $3,000 손실 한도, 이월 계산
 - **워시세일 감지** -- 30일 기간, 부분 비허용, Form 8949 코드 W
@@ -98,7 +98,7 @@ dtax calculate trades.csv --schedule-d --include-wash-sales
 | 언어                  | TypeScript | Python  |  Python  |
 | npm 설치 가능         |    Yes     |   No    |    No    |
 | 거래소 파서           |     23     |   15    |    8     |
-| 원가 기준 방식        |     4      |    3    |    3     |
+| 원가 기준 방식        |     8      |    3    |    3     |
 | Form 8949 PDF         |    Yes     |   No    |    No    |
 | TurboTax TXF 내보내기 |    Yes     |   No    |    No    |
 | Schedule D 생성       |    Yes     |   No    |    No    |
@@ -152,7 +152,7 @@ import { parseCsv, detectCsvFormat } from "@dtax/tax-engine";
 # 필수 조건: Node.js >= 20, pnpm >= 9
 git clone https://github.com/dTaxLab/dtax.git && cd dtax
 pnpm install
-pnpm test        # 모든 패키지에 걸쳐 800개 이상의 테스트
+pnpm test        # 모든 패키지에 걸쳐 980개 이상의 테스트
 pnpm build       # 모든 패키지 빌드
 ```
 
