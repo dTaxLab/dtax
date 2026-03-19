@@ -16,6 +16,7 @@ import type {
   LotSelection,
 } from "../types";
 import { getHoldingPeriod } from "./shared";
+import { dadd, dsub, dmul, ddiv, isEffectivelyZero } from "../math";
 
 /**
  * Calculate capital gains/losses using the Specific ID method.
@@ -46,17 +47,21 @@ export function calculateSpecificId(
         `Lot ${sel.lotId} asset ${lot.asset} does not match event asset ${event.asset}`,
       );
     }
-    if (sel.amount > lot.amount + 0.00000001) {
+    if (
+      sel.amount > lot.amount &&
+      !isEffectivelyZero(dsub(sel.amount, lot.amount))
+    ) {
       throw new Error(
         `Lot ${sel.lotId} has ${lot.amount} available, requested ${sel.amount}`,
       );
     }
 
     const consumeAmount = Math.min(sel.amount, lot.amount);
-    const costPerUnit =
-      lot.amount > 0.00000001 ? lot.costBasisUsd / lot.amount : 0;
-    const consumedCostBasis = costPerUnit * consumeAmount;
-    const fullyConsumed = consumeAmount >= lot.amount - 0.00000001;
+    const costPerUnit = !isEffectivelyZero(lot.amount)
+      ? ddiv(lot.costBasisUsd, lot.amount)
+      : 0;
+    const consumedCostBasis = dmul(costPerUnit, consumeAmount);
+    const fullyConsumed = isEffectivelyZero(dsub(lot.amount, consumeAmount));
 
     matchedLots.push({
       lotId: lot.id,
@@ -65,24 +70,24 @@ export function calculateSpecificId(
       fullyConsumed,
     });
 
-    lot.amount -= consumeAmount;
-    lot.costBasisUsd -= consumedCostBasis;
-    totalCostBasis += consumedCostBasis;
-    totalSelected += consumeAmount;
+    lot.amount = dsub(lot.amount, consumeAmount);
+    lot.costBasisUsd = dsub(lot.costBasisUsd, consumedCostBasis);
+    totalCostBasis = dadd(totalCostBasis, consumedCostBasis);
+    totalSelected = dadd(totalSelected, consumeAmount);
 
     if (!earliestLotDate || lot.acquiredAt < earliestLotDate) {
       earliestLotDate = lot.acquiredAt;
     }
   }
 
-  if (Math.abs(totalSelected - event.amount) > 0.00000001) {
+  if (!isEffectivelyZero(dsub(totalSelected, event.amount))) {
     throw new Error(
       `Selected amount ${totalSelected} does not match event amount ${event.amount}`,
     );
   }
 
   const feeUsd = event.feeUsd ?? 0;
-  const gainLoss = event.proceedsUsd - totalCostBasis - feeUsd;
+  const gainLoss = dsub(dsub(event.proceedsUsd, totalCostBasis), feeUsd);
   const holdingPeriod = earliestLotDate
     ? getHoldingPeriod(earliestLotDate, event.date)
     : "SHORT_TERM";

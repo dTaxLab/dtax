@@ -19,6 +19,7 @@ import type {
   MatchedLot,
 } from "../types";
 import { getHoldingPeriod } from "./shared";
+import { dadd, dsub, dmul, ddiv, isEffectivelyZero } from "../math";
 
 /**
  * Calculate capital gains/losses using UK Share Pooling (Section 104).
@@ -42,19 +43,20 @@ export function calculateUKSharePooling(
 
   // Filter to matching asset with remaining balance
   const assetLots = applicableLots.filter(
-    (lot) => lot.asset === event.asset && lot.amount > 0.00000001,
+    (lot) => lot.asset === event.asset && !isEffectivelyZero(lot.amount),
   );
 
   // Calculate Section 104 pool: weighted average cost per unit across ALL lots
   let totalAmount = 0;
   let totalCostBasis = 0;
   for (const lot of assetLots) {
-    totalAmount += lot.amount;
-    totalCostBasis += lot.costBasisUsd;
+    totalAmount = dadd(totalAmount, lot.amount);
+    totalCostBasis = dadd(totalCostBasis, lot.costBasisUsd);
   }
 
-  const avgCostPerUnit =
-    totalAmount > 0.00000001 ? totalCostBasis / totalAmount : 0;
+  const avgCostPerUnit = !isEffectivelyZero(totalAmount)
+    ? ddiv(totalCostBasis, totalAmount)
+    : 0;
 
   // Sort lots by acquisition date (ascending) for FIFO consumption
   const sortedLots = [...assetLots].sort(
@@ -66,12 +68,12 @@ export function calculateUKSharePooling(
   let earliestLotDate: Date | null = null;
 
   for (const lot of sortedLots) {
-    if (remainingAmount <= 0) break;
+    if (isEffectivelyZero(remainingAmount) || remainingAmount < 0) break;
 
     const consumeAmount = Math.min(lot.amount, remainingAmount);
     // Use pooled average cost, not individual lot cost
-    const consumedCostBasis = avgCostPerUnit * consumeAmount;
-    const fullyConsumed = consumeAmount >= lot.amount - 0.00000001;
+    const consumedCostBasis = dmul(avgCostPerUnit, consumeAmount);
+    const fullyConsumed = isEffectivelyZero(dsub(lot.amount, consumeAmount));
 
     matchedLots.push({
       lotId: lot.id,
@@ -81,28 +83,37 @@ export function calculateUKSharePooling(
     });
 
     // Mutate lot to track remaining balance
-    const actualCostPerUnit =
-      lot.amount > 0.00000001 ? lot.costBasisUsd / lot.amount : 0;
-    lot.amount -= consumeAmount;
-    lot.costBasisUsd -= actualCostPerUnit * consumeAmount;
-    remainingAmount -= consumeAmount;
+    const actualCostPerUnit = !isEffectivelyZero(lot.amount)
+      ? ddiv(lot.costBasisUsd, lot.amount)
+      : 0;
+    lot.amount = dsub(lot.amount, consumeAmount);
+    lot.costBasisUsd = dsub(
+      lot.costBasisUsd,
+      dmul(actualCostPerUnit, consumeAmount),
+    );
+    remainingAmount = dsub(remainingAmount, consumeAmount);
 
     if (!earliestLotDate) {
       earliestLotDate = lot.acquiredAt;
     }
   }
 
-  if (remainingAmount > 0.00000001) {
+  if (!isEffectivelyZero(remainingAmount) && remainingAmount > 0) {
     console.warn(
       `[DTax UK Share Pooling] Insufficient lots for ${event.asset}: ` +
-        `needed ${event.amount}, matched ${event.amount - remainingAmount}`,
+        `needed ${event.amount}, matched ${dsub(event.amount, remainingAmount)}`,
     );
   }
 
-  const totalConsumedCostBasis =
-    avgCostPerUnit * (event.amount - remainingAmount);
+  const totalConsumedCostBasis = dmul(
+    avgCostPerUnit,
+    dsub(event.amount, remainingAmount),
+  );
   const feeUsd = event.feeUsd ?? 0;
-  const gainLoss = event.proceedsUsd - totalConsumedCostBasis - feeUsd;
+  const gainLoss = dsub(
+    dsub(event.proceedsUsd, totalConsumedCostBasis),
+    feeUsd,
+  );
   const holdingPeriod = earliestLotDate
     ? getHoldingPeriod(earliestLotDate, event.date)
     : "SHORT_TERM";

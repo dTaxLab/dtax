@@ -73,6 +73,7 @@
   },
   "dependencies": {
     "@dtax/shared-types": "workspace:*",
+    "decimal.js": "^10.6.0",
     "pdfkit": "^0.17.2"
   },
   "devDependencies": {
