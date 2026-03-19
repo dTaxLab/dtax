@@ -9,7 +9,12 @@
  */
 
 import { CostBasisCalculator } from "./calculator";
-import type { TaxLot, TaxableEvent, CalculationResult } from "./types";
+import type {
+  CostBasisMethod,
+  TaxLot,
+  TaxableEvent,
+  CalculationResult,
+} from "./types";
 import { detectWashSales } from "./wash-sale";
 import type { AcquisitionRecord } from "./wash-sale";
 
@@ -27,7 +32,7 @@ export interface SimulationInput {
   /** Simulation date (default: now) */
   date?: Date;
   /** Cost basis method (default: FIFO) */
-  method?: "FIFO" | "LIFO" | "HIFO";
+  method?: CostBasisMethod;
   /** Wallet-silo mode */
   strictSilo?: boolean;
   /** Source wallet/exchange ID for strictSilo */
