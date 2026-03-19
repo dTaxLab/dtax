@@ -137,11 +137,18 @@ export function formatComparisonTable(
     }
   };
 
-  const methods = [
-    { name: "FIFO", r: comparison.fifo },
-    { name: "LIFO", r: comparison.lifo },
-    { name: "HIFO", r: comparison.hifo },
-  ] as const;
+  const DISPLAY_METHODS = ["FIFO", "LIFO", "HIFO"] as const;
+  const methodRows = DISPLAY_METHODS.map((name) => ({
+    name,
+    r: comparison.methods[name],
+  }));
+
+  const reasonLabels: Record<string, string> = {
+    identical: "All methods produce identical results",
+    lowest_gain: "Lowest taxable gain",
+    largest_loss_clean: "Largest loss, no wash sale risk",
+    largest_loss: "Largest deductible loss",
+  };
 
   const lines: string[] = [];
   lines.push("");
@@ -156,7 +163,7 @@ export function formatComparisonTable(
   );
   lines.push("  " + "-".repeat(54));
 
-  for (const m of methods) {
+  for (const m of methodRows) {
     const rec = m.name === comparison.recommended ? " *" : "";
     const gl = fmt(m.r.projectedGainLoss);
     const period = m.r.holdingPeriod.replace("_", " ");
@@ -169,7 +176,9 @@ export function formatComparisonTable(
   lines.push("");
   lines.push("-".repeat(60));
   lines.push(`  Recommended:  ${comparison.recommended}`);
-  lines.push(`  Reason:       ${comparison.recommendedReason}`);
+  lines.push(
+    `  Reason:       ${reasonLabels[comparison.recommendedReasonCode] ?? comparison.recommendedReasonCode}`,
+  );
   lines.push(`  Savings:      ${fmt(comparison.savings)}`);
   lines.push("=".repeat(60));
 
@@ -187,7 +196,9 @@ export function formatComparisonJson(
   comparison: ComparisonResult,
   rate: number = 1,
 ): Record<string, unknown> {
-  const convert = (r: ComparisonResult["fifo"]) => ({
+  const convert = (
+    r: (typeof comparison.methods)[keyof typeof comparison.methods],
+  ) => ({
     projectedGainLoss: r.projectedGainLoss * rate,
     holdingPeriod: r.holdingPeriod,
     shortTermGainLoss: r.shortTermGainLoss * rate,
@@ -197,11 +208,11 @@ export function formatComparisonJson(
   });
 
   return {
-    fifo: convert(comparison.fifo),
-    lifo: convert(comparison.lifo),
-    hifo: convert(comparison.hifo),
+    fifo: convert(comparison.methods["FIFO"]),
+    lifo: convert(comparison.methods["LIFO"]),
+    hifo: convert(comparison.methods["HIFO"]),
     recommended: comparison.recommended,
-    recommendedReason: comparison.recommendedReason,
+    recommendedReasonCode: comparison.recommendedReasonCode,
     savings: comparison.savings * rate,
   };
 }
