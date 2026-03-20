@@ -1,0 +1,44 @@
+---
+title: Authentification
+description: Comment s'authentifier auprès de l'API REST dTax
+draft: false
+---
+
+L'API dTax utilise des **cookies de session HttpOnly** pour l'authentification. Cela prévient le vol de jetons par XSS.
+
+## Inscription / Connexion
+
+```bash
+# Create account
+curl -X POST https://getdtax.com/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com","password":"yourpassword"}' \
+  -c cookies.txt
+
+# Login
+curl -X POST https://getdtax.com/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com","password":"yourpassword"}' \
+  -c cookies.txt
+```
+
+La réponse définit un cookie HttpOnly `session` valable 7 jours.
+
+## Utilisation du cookie
+
+```bash
+# All subsequent requests use -b cookies.txt
+curl https://getdtax.com/api/v1/transactions \
+  -b cookies.txt
+```
+
+## OAuth
+
+Google et GitHub OAuth sont également pris en charge :
+
+```
+GET https://getdtax.com/auth/google
+GET https://getdtax.com/auth/github
+```
+
+Les deux redirigent vers `getdtax.com/auth/callback` en cas de succès.

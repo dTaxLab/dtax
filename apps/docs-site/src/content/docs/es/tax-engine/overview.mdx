@@ -1,0 +1,53 @@
+---
+title: Descripción General del Motor de Impuestos
+description: '@dtax/tax-engine — el motor de cálculo principal'
+draft: false
+---
+
+`@dtax/tax-engine` es una librería TypeScript-first sin dependencias para el cálculo de impuestos cripto.
+
+## Características
+
+- **23 parsers de exchanges** — detección automática o especificación manual del formato
+- **8 métodos de base de costo** — FIFO, LIFO, HIFO, Specific ID y más
+- **Tipos de transacción** — Compra, Venta, Intercambio, Staking, Minería, Airdrop, NFT, DeFi, Comisiones
+- **Generación de reportes** — Form 8949 (CSV/PDF/TXF), resumen Schedule D
+- **Detección de wash sale** — identifica violaciones de la regla de recompra de 30 días
+- **Deduplicación** — detección de duplicados basada en huella de contenido
+
+## Funciones principales
+
+| Función | Descripción |
+|---------|-------------|
+| `parseCsv(csv, options?)` | Parsea un CSV de exchange en transacciones normalizadas |
+| `computeGains(txs, options)` | Calcula ganancias de capital para un año fiscal |
+| `compareAllMethods(txs, year)` | Compara ganancias entre los 7 métodos comparables |
+| `generateForm8949Csv(disposals, options)` | Exporta Form 8949 como CSV |
+| `generateTxfFile(disposals, options)` | Exporta archivo TXF para software fiscal |
+
+## Tipos TypeScript
+
+```typescript
+type CsvFormat =
+  | 'coinbase' | 'binance' | 'binance_us' | 'kraken' | 'gemini'
+  | 'crypto_com' | 'kucoin' | 'okx' | 'bybit' | 'gate' | 'bitget'
+  | 'mexc' | 'htx' | 'etherscan' | 'etherscan_erc20'
+  | 'solscan' | 'solscan_defi' | 'bitfinex' | 'poloniex'
+  | 'koinly' | 'cointracker' | 'cryptact' | 'generic';
+
+type CostBasisMethod =
+  | 'FIFO' | 'LIFO' | 'HIFO' | 'SPECIFIC_ID'
+  | 'GERMANY_FIFO' | 'PMPA' | 'TOTAL_AVERAGE' | 'UK_SHARE_POOLING';
+
+interface ParsedTransaction {
+  type: TransactionType;
+  timestamp: string;        // ISO 8601
+  sentAsset?: string;
+  sentAmount?: number;
+  receivedAsset?: string;
+  receivedAmount?: number;
+  feeAsset?: string;
+  feeAmount?: number;
+  notes?: string;
+}
+```

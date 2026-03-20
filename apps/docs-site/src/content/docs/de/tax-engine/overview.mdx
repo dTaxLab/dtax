@@ -1,0 +1,53 @@
+---
+title: Tax Engine Übersicht
+description: '@dtax/tax-engine — die Kernberechnungs-Engine'
+draft: false
+---
+
+`@dtax/tax-engine` ist eine TypeScript-first-Bibliothek ohne Abhängigkeiten für die Krypto-Steuerberechnung.
+
+## Funktionen
+
+- **23 Börsen-Parser** — Format automatisch erkennen oder manuell angeben
+- **8 Kostenbasis-Methoden** — FIFO, LIFO, HIFO, Specific ID und mehr
+- **Transaktionstypen** — Kauf, Verkauf, Handel, Staking, Mining, Airdrop, NFT, DeFi, Gebühren
+- **Berichtserstellung** — Formular 8949 (CSV/PDF/TXF), Schedule D Zusammenfassung
+- **Wash-Sale-Erkennung** — kennzeichnet Verstöße gegen die 30-Tage-Wiederkaufregel
+- **Deduplizierung** — inhaltsbasierte Fingerabdruck-Duplikaterkennung
+
+## Kernfunktionen
+
+| Funktion | Beschreibung |
+|----------|--------------|
+| `parseCsv(csv, options?)` | Eine Börsen-CSV in normalisierte Transaktionen parsen |
+| `computeGains(txs, options)` | Kursgewinne für ein Steuerjahr berechnen |
+| `compareAllMethods(txs, year)` | Gewinne über alle 7 vergleichbaren Methoden vergleichen |
+| `generateForm8949Csv(disposals, options)` | Formular 8949 als CSV exportieren |
+| `generateTxfFile(disposals, options)` | TXF-Datei für Steuersoftware exportieren |
+
+## TypeScript-Typen
+
+```typescript
+type CsvFormat =
+  | 'coinbase' | 'binance' | 'binance_us' | 'kraken' | 'gemini'
+  | 'crypto_com' | 'kucoin' | 'okx' | 'bybit' | 'gate' | 'bitget'
+  | 'mexc' | 'htx' | 'etherscan' | 'etherscan_erc20'
+  | 'solscan' | 'solscan_defi' | 'bitfinex' | 'poloniex'
+  | 'koinly' | 'cointracker' | 'cryptact' | 'generic';
+
+type CostBasisMethod =
+  | 'FIFO' | 'LIFO' | 'HIFO' | 'SPECIFIC_ID'
+  | 'GERMANY_FIFO' | 'PMPA' | 'TOTAL_AVERAGE' | 'UK_SHARE_POOLING';
+
+interface ParsedTransaction {
+  type: TransactionType;
+  timestamp: string;        // ISO 8601
+  sentAsset?: string;
+  sentAmount?: number;
+  receivedAsset?: string;
+  receivedAmount?: number;
+  feeAsset?: string;
+  feeAmount?: number;
+  notes?: string;
+}
+```

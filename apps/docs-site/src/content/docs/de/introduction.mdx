@@ -1,0 +1,38 @@
+---
+title: Einführung
+description: Was ist dTax und der dtax.dev Developer Hub
+draft: false
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# dTax Developer Hub
+
+**dTax** ist eine Open-Core-Krypto-Steuerplattform. Die Kernberechnungs-Engine ist unter AGPL-3.0 lizenziert und als npm-Paket verfügbar — so können Sie professionelle Krypto-Steuerberechnungen in Ihre eigenen Anwendungen integrieren.
+
+## Was Sie hier finden
+
+<CardGrid>
+  <Card title="@dtax/tax-engine" icon="seti:npm">
+    Eine TypeScript-Bibliothek ohne Abhängigkeiten zum Parsen von Börsen-CSVs und zur Berechnung von Kursgewinnen mit jeder Kostenbasis-Methode.
+  </Card>
+  <Card title="REST API" icon="random">
+    Eine verwaltete API zum Importieren von Transaktionen, Durchführen von Steuerberechnungen und Generieren von Formular 8949 / TXF-Berichten — keine Infrastruktur erforderlich.
+  </Card>
+  <Card title="23 Börsen-Parser" icon="document">
+    Integrierte Parser für Coinbase, Binance, Kraken, Gemini, Etherscan, Solscan, OKX, Bybit und 15 weitere.
+  </Card>
+  <Card title="8 Kostenbasis-Methoden" icon="puzzle">
+    FIFO, LIFO, HIFO, Specific ID, Germany FIFO, PMPA, Total Average, UK Share Pooling.
+  </Card>
+</CardGrid>
+
+## Open-Core-Modell
+
+| Schicht | Lizenz | Zugang |
+|---------|--------|--------|
+| `@dtax/tax-engine` | AGPL-3.0 | Öffentlich auf GitHub + npm |
+| REST API | Kommerziell | getdtax.com |
+| Web App | Kommerziell | getdtax.com |
+
+Wenn Sie die Steuer-Engine in einem kommerziellen Produkt verwenden, müssen Sie Ihre Änderungen open-sourcen (AGPL-3.0) **oder** uns für eine kommerzielle Lizenz kontaktieren.

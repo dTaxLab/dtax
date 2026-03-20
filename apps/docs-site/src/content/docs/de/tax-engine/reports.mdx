@@ -1,0 +1,34 @@
+---
+title: Berichtserstellung
+description: Formular 8949, Schedule D, TXF und PDF-Berichtserstellung
+draft: false
+---
+
+## Formular 8949 (CSV)
+
+```typescript
+import { computeGains, generateForm8949Csv } from '@dtax/tax-engine';
+
+const result = computeGains(transactions, { method: 'FIFO', taxYear: 2024 });
+const csv = generateForm8949Csv(result.disposals, { taxYear: 2024 });
+// Returns RFC 4180 CSV string ready to import into tax software
+```
+
+## TXF-Export
+
+TXF (Tax Exchange Format) wird von TurboTax, H&R Block und TaxAct unterstützt:
+
+```typescript
+import { generateTxfFile } from '@dtax/tax-engine';
+
+const txf = generateTxfFile(result.disposals, { taxYear: 2024 });
+// Returns TXF string — save as .txf and import into your tax software
+```
+
+## Schedule D Zusammenfassung
+
+```typescript
+const { scheduleD } = result;
+console.log(`Short-term net: $${scheduleD.shortTermNet}`);
+console.log(`Long-term net:  $${scheduleD.longTermNet}`);
+```

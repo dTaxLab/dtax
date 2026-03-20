@@ -1,0 +1,35 @@
+---
+title: dTax デベロッパーハブ
+description: オープンソースの仮想通貨税計算エンジン — 23取引所パーサー、8つのコスト基準計算方法、Form 8949 / TXF エクスポート対応。
+template: splash
+hero:
+  tagline: npm パッケージとして利用できる、プロフェッショナルグレードの仮想通貨税計算。
+  image:
+    file: ../../../assets/logo-light.svg
+  actions:
+    - text: はじめる
+      link: /introduction/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/dTaxLab/dtax
+      icon: external
+      variant: minimal
+---
+
+import { CardGrid, Card } from '@astrojs/starlight/components';
+
+<CardGrid stagger>
+  <Card title="@dtax/tax-engine" icon="seti:npm">
+    依存関係ゼロの TypeScript ライブラリ。CSV の解析、キャピタルゲインの計算、Form 8949 / TXF のエクスポートに対応。
+  </Card>
+  <Card title="23 取引所パーサー" icon="document">
+    Coinbase、Binance、Kraken、Gemini、Etherscan、Solscan、OKX、Bybit、その他 15 取引所に対応。
+  </Card>
+  <Card title="8 つのコスト基準計算方法" icon="puzzle">
+    FIFO、LIFO、HIFO、Specific ID、Germany FIFO、PMPA、Total Average、UK Share Pooling。
+  </Card>
+  <Card title="AGPL-3.0 オープンコア" icon="open-book">
+    オープンソースプロジェクトは無料で利用可能。SaaS 製品向けの商用ライセンスもあります。
+  </Card>
+</CardGrid>

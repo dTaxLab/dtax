@@ -1,0 +1,43 @@
+---
+title: 세금 엔진 개요
+description: '@dtax/tax-engine — 핵심 계산 엔진'
+draft: false
+---
+
+`@dtax/tax-engine`은 암호화폐 세금 계산을 위한 TypeScript 우선, 의존성 없는 라이브러리입니다.
+
+## 기능
+
+- **23개 거래소 파서** — 형식 자동 감지 또는 수동 지정
+- **8가지 원가 계산 방법** — FIFO, LIFO, HIFO, Specific ID 등
+- **거래 유형** — 매수, 매도, 교환, 스테이킹, 채굴, 에어드랍, NFT, DeFi, 수수료
+- **보고서 생성** — Form 8949 (CSV/PDF/TXF), Schedule D 요약
+- **Wash sale 감지** — 30일 재매수 규칙 위반 플래그
+- **중복 제거** — 콘텐츠 지문 기반 중복 감지
+
+## 핵심 함수
+
+| 함수 | 설명 |
+|----------|-------------|
+| `parseCsv(csv, options?)` | 거래소 CSV를 정규화된 거래 내역으로 파싱 |
+| `computeGains(txs, options)` | 과세 연도의 자본 이득 계산 |
+| `compareAllMethods(txs, year)` | 비교 가능한 7가지 방법 간 이득 비교 |
+| `generateForm8949Csv(disposals, options)` | Form 8949를 CSV로 내보내기 |
+| `generateTxfFile(disposals, options)` | 세금 소프트웨어용 TXF 파일 내보내기 |
+
+## TypeScript 타입
+
+```typescript
+type CostBasisMethod = 'FIFO' | 'LIFO' | 'HIFO' | 'SPECIFIC_ID' | 'GERMANY_FIFO' | 'PMPA' | 'TOTAL_AVERAGE' | 'UK_SHARE_POOLING';
+interface ParsedTransaction {
+  type: TransactionType;
+  timestamp: string;
+  sentAsset?: string;
+  sentAmount?: number;
+  receivedAsset?: string;
+  receivedAmount?: number;
+  feeAsset?: string;
+  feeAmount?: number;
+  notes?: string;
+}
+```

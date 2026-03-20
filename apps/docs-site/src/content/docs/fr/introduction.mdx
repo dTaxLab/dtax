@@ -1,0 +1,38 @@
+---
+title: Introduction
+description: Qu'est-ce que dTax et le centre développeur dtax.dev
+draft: false
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# Centre Développeur dTax
+
+**dTax** est une plateforme fiscale crypto open-core. Le moteur de calcul central est sous licence AGPL-3.0 et disponible en tant que package npm — vous pouvez ainsi intégrer des calculs fiscaux crypto de niveau professionnel dans vos propres applications.
+
+## Ce que vous trouverez ici
+
+<CardGrid>
+  <Card title="@dtax/tax-engine" icon="seti:npm">
+    Une bibliothèque TypeScript sans dépendances pour parser des CSV d'exchanges et calculer les plus-values en utilisant n'importe quelle méthode de coût de base.
+  </Card>
+  <Card title="REST API" icon="random">
+    Une API gérée pour importer des transactions, exécuter des calculs fiscaux et générer des rapports Form 8949 / TXF — sans infrastructure à gérer.
+  </Card>
+  <Card title="23 Parseurs d'Exchange" icon="document">
+    Parseurs intégrés pour Coinbase, Binance, Kraken, Gemini, Etherscan, Solscan, OKX, Bybit, et 15 autres.
+  </Card>
+  <Card title="8 Méthodes de Coût de Base" icon="puzzle">
+    FIFO, LIFO, HIFO, Specific ID, Germany FIFO, PMPA, Total Average, UK Share Pooling.
+  </Card>
+</CardGrid>
+
+## Modèle Open Core
+
+| Couche | Licence | Accès |
+|--------|---------|-------|
+| `@dtax/tax-engine` | AGPL-3.0 | Public sur GitHub + npm |
+| REST API | Commercial | getdtax.com |
+| Application Web | Commercial | getdtax.com |
+
+Si vous utilisez le moteur fiscal dans un produit commercial, vous devez publier vos modifications en open-source (AGPL-3.0) **ou** nous contacter pour obtenir une licence commerciale.

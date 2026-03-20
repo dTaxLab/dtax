@@ -1,0 +1,46 @@
+---
+title: Generisches CSV-Format
+description: So formatieren Sie eine CSV für den Import, wenn Ihre Börse nicht unterstützt wird
+draft: false
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Wenn Ihre Börse nicht in der [Parser-Liste](/de/tax-engine/parsers) enthalten ist, können Sie unser generisches CSV-Format verwenden.
+
+## Vorlage herunterladen
+
+[CSV-Vorlage herunterladen](https://getdtax.com/csv-template.csv)
+
+## Spaltenreferenz
+
+| Spalte | Pflichtfeld | Typ | Beispiel |
+|--------|-------------|-----|---------|
+| `Date` | ✅ | ISO 8601 / MM-DD-YYYY | `2024-03-15T14:30:00Z` |
+| `Type` | ✅ | Enum (siehe unten) | `BUY` |
+| `Sent Amount` | — | Dezimalzahl | `0.5` |
+| `Sent Currency` | — | Ticker | `BTC` |
+| `Sent Value USD` | — | Dezimalzahl | `25000.00` |
+| `Received Amount` | — | Dezimalzahl | `10000` |
+| `Received Currency` | — | Ticker | `USDC` |
+| `Received Value USD` | — | Dezimalzahl | `10000.00` |
+| `Fee Amount` | — | Dezimalzahl | `0.001` |
+| `Fee Currency` | — | Ticker | `ETH` |
+| `Fee Value USD` | — | Dezimalzahl | `2.50` |
+| `Notes` | — | Zeichenkette | `Sold on Uniswap` |
+
+## Transaktionstypen
+
+| Typ | Beschreibung |
+|-----|--------------|
+| `BUY` | Krypto mit Fiat kaufen |
+| `SELL` | Krypto gegen Fiat verkaufen |
+| `TRADE` | Krypto-zu-Krypto-Tausch |
+| `TRANSFER_IN` | Empfang von einer anderen Wallet (nicht steuerpflichtig) |
+| `TRANSFER_OUT` | Senden an eine andere Wallet (nicht steuerpflichtig) |
+| `STAKING` | Erhaltene Staking-Belohnungen |
+| `MINING` | Mining-Belohnungen |
+| `AIRDROP` | Erhaltener Airdrop |
+| `INCOME` | Sonstiges Krypto-Einkommen |
+| `FEE` | Eigenständige Gebühr |
+| `UNKNOWN` | Wird automatisch von KI klassifiziert |

@@ -1,0 +1,48 @@
+---
+title: REST API 概览
+description: dTax 托管 REST API — 导入交易记录、计算收益、下载报告
+draft: false
+---
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+dTax REST API 是托管在 **`https://getdtax.com/api/v1`** 的托管服务，负责存储、计算和报告生成，无需自行管理状态。
+
+## 基础 URL
+
+```
+https://getdtax.com/api/v1
+```
+
+## 身份认证
+
+所有接口均需要通过 `/auth/login` 获取的会话 Cookie。详见[身份认证](/api/authentication)。
+
+## 核心接口
+
+| 接口 | 描述 |
+|----------|-------------|
+| `POST /transactions/import` | 上传 CSV，自动解析、去重并存储 |
+| `GET /transactions` | 按条件筛选列出用户交易记录 |
+| `GET /tax/summary` | 指定税务年度的资本利得汇总 |
+| `POST /tax/calculate` | 执行完整的收益计算 |
+| `GET /tax/reports/:id/download` | 下载 Form 8949 / TXF / PDF |
+| `GET /notifications` | 用户通知列表 |
+
+## OpenAPI 规范
+
+完整的 OpenAPI 3.1 规范可在此获取：
+
+<LinkCard
+  title="OpenAPI JSON"
+  description="所有接口的机器可读规范"
+  href="https://getdtax.com/api/v1/docs/openapi.json"
+/>
+
+## 频率限制
+
+| 套餐 | 限制 |
+|------|-------|
+| FREE | 50 笔交易，每日 5 条 AI 消息 |
+| PRO（$49/月） | 无限制 |
+| CPA（$499/年） | 无限制 + 10 个客户账号 |

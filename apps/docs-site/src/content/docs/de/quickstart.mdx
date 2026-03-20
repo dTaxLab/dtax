@@ -1,0 +1,64 @@
+---
+title: Schnellstart
+description: Installieren Sie @dtax/tax-engine und berechnen Sie in 5 Minuten Ihren ersten Kursgewinn
+draft: false
+---
+
+import { Steps, Code, Tabs, TabItem } from '@astrojs/starlight/components';
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm">
+    ```bash
+    npm install @dtax/tax-engine
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```bash
+    pnpm add @dtax/tax-engine
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```bash
+    yarn add @dtax/tax-engine
+    ```
+  </TabItem>
+</Tabs>
+
+## CSV parsen und Gewinne berechnen
+
+```typescript
+import { parseCsv, computeGains } from '@dtax/tax-engine';
+import { readFileSync } from 'fs';
+
+// 1. Parse a Coinbase CSV export
+const csv = readFileSync('coinbase-export.csv', 'utf-8');
+const { transactions } = parseCsv(csv, { format: 'coinbase' });
+
+// 2. Compute capital gains using FIFO
+const result = computeGains(transactions, { method: 'FIFO', taxYear: 2024 });
+
+console.log(`Short-term gains: $${result.shortTermGain}`);
+console.log(`Long-term gains:  $${result.longTermGain}`);
+console.log(`Total gain/loss:  $${result.totalGain}`);
+```
+
+## Format automatisch erkennen
+
+Wenn Sie nicht wissen, von welcher Börse die CSV stammt, lassen Sie die Option `format` weg:
+
+```typescript
+const { transactions, summary } = parseCsv(csv);
+console.log(`Detected format: ${summary.format}`); // e.g. "coinbase"
+console.log(`Parsed ${summary.parsed} transactions`);
+```
+
+## Formular 8949 generieren
+
+```typescript
+import { generateForm8949Csv } from '@dtax/tax-engine';
+
+const form8949 = generateForm8949Csv(result.disposals, { taxYear: 2024 });
+writeFileSync('form8949.csv', form8949);
+```

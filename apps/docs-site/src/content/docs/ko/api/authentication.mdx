@@ -1,0 +1,33 @@
+---
+title: 인증
+description: dTax REST API 인증 방법
+draft: false
+---
+
+dTax API는 인증에 **HttpOnly 세션 쿠키**를 사용합니다. 이를 통해 XSS 토큰 탈취를 방지합니다.
+
+## 회원가입 / 로그인
+
+```bash
+curl -X POST https://getdtax.com/api/v1/auth/register -H "Content-Type: application/json" -d '{"email":"you@example.com","password":"yourpassword"}' -c cookies.txt
+curl -X POST https://getdtax.com/api/v1/auth/login -H "Content-Type: application/json" -d '{"email":"you@example.com","password":"yourpassword"}' -c cookies.txt
+```
+
+응답으로 7일간 유효한 `session` HttpOnly 쿠키가 설정됩니다.
+
+## 쿠키 사용
+
+```bash
+curl https://getdtax.com/api/v1/transactions -b cookies.txt
+```
+
+## OAuth
+
+Google 및 GitHub OAuth도 지원됩니다:
+
+```
+GET https://getdtax.com/auth/google
+GET https://getdtax.com/auth/github
+```
+
+성공 시 `getdtax.com/auth/callback`으로 리다이렉트됩니다.

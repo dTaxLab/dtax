@@ -1,0 +1,142 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer class="dtax-footer">
+  <div class="dtax-footer__inner">
+    <div class="dtax-footer__brand">
+      <span class="dtax-footer__logo">dTax</span>
+      <span class="dtax-footer__tagline">Open-core crypto tax engine</span>
+    </div>
+
+    <nav class="dtax-footer__links" aria-label="Footer navigation">
+      <div class="dtax-footer__group">
+        <span class="dtax-footer__group-label">Product</span>
+        <a href="https://getdtax.com">Web App</a>
+        <a href="https://getdtax.com/pricing">Pricing</a>
+        <a href="https://getdtax.com/changelog">Changelog</a>
+      </div>
+      <div class="dtax-footer__group">
+        <span class="dtax-footer__group-label">Developers</span>
+        <a href="/introduction/">Introduction</a>
+        <a href="/quickstart/">Quick Start</a>
+        <a href="/api/overview/">REST API</a>
+        <a href="https://github.com/dTaxLab/dtax">GitHub</a>
+      </div>
+      <div class="dtax-footer__group">
+        <span class="dtax-footer__group-label">Legal</span>
+        <a href="/resources/license/">License</a>
+        <a href="https://getdtax.com/legal/privacy">Privacy Policy</a>
+        <a href="https://getdtax.com/legal/terms">Terms of Service</a>
+      </div>
+    </nav>
+  </div>
+
+  <div class="dtax-footer__bottom">
+    <span>© {year} dTax. All rights reserved.</span>
+    <span class="dtax-footer__divider">·</span>
+    <span>
+      <a href="https://github.com/dTaxLab/dtax">@dtax/tax-engine</a> is
+      <a href="https://github.com/dTaxLab/dtax/blob/main/LICENSE">AGPL-3.0</a>
+    </span>
+  </div>
+</footer>
+
+<style>
+  .dtax-footer {
+    border-top: 1px solid var(--sl-color-hairline);
+    padding: 3rem 1.5rem 2rem;
+    margin-top: 4rem;
+    font-size: 0.875rem;
+  }
+
+  .dtax-footer__inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3rem;
+    justify-content: space-between;
+    margin-bottom: 2.5rem;
+  }
+
+  .dtax-footer__brand {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .dtax-footer__logo {
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--sl-color-accent) 0%, var(--sl-color-accent-high) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .dtax-footer__tagline {
+    color: var(--sl-color-gray-2);
+    font-size: 0.8rem;
+  }
+
+  .dtax-footer__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2.5rem;
+  }
+
+  .dtax-footer__group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    min-width: 120px;
+  }
+
+  .dtax-footer__group-label {
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--sl-color-gray-2);
+    margin-bottom: 0.2rem;
+  }
+
+  .dtax-footer__group a {
+    color: var(--sl-color-gray-2);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .dtax-footer__group a:hover {
+    color: var(--sl-color-accent);
+    text-decoration: none;
+  }
+
+  .dtax-footer__bottom {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    color: var(--sl-color-gray-3);
+    font-size: 0.8rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--sl-color-hairline);
+  }
+
+  .dtax-footer__bottom a {
+    color: var(--sl-color-gray-2);
+    text-decoration: none;
+  }
+
+  .dtax-footer__bottom a:hover {
+    color: var(--sl-color-accent);
+  }
+
+  .dtax-footer__divider {
+    opacity: 0.4;
+  }
+</style>

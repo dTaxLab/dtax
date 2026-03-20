@@ -1,0 +1,53 @@
+---
+title: 税务引擎概览
+description: '@dtax/tax-engine — 核心计算引擎'
+draft: false
+---
+
+`@dtax/tax-engine` 是一个以 TypeScript 为核心、零依赖的加密货币税务计算库。
+
+## 功能特性
+
+- **23 个交易所解析器** — 自动检测或手动指定格式
+- **8 种计税方法** — FIFO、LIFO、HIFO、Specific ID 等
+- **交易类型** — 买入、卖出、兑换、质押、挖矿、空投、NFT、DeFi、手续费
+- **报告生成** — Form 8949（CSV/PDF/TXF）、Schedule D 汇总
+- **洗售检测** — 标记违反 30 天回购规则的情况
+- **去重处理** — 基于内容指纹的重复交易检测
+
+## 核心函数
+
+| 函数 | 描述 |
+|----------|-------------|
+| `parseCsv(csv, options?)` | 将交易所 CSV 解析为标准化交易记录 |
+| `computeGains(txs, options)` | 计算指定税务年度的资本利得 |
+| `compareAllMethods(txs, year)` | 对比全部 7 种可比方法的收益差异 |
+| `generateForm8949Csv(disposals, options)` | 将 Form 8949 导出为 CSV |
+| `generateTxfFile(disposals, options)` | 导出 TXF 文件供税务软件使用 |
+
+## TypeScript 类型
+
+```typescript
+type CsvFormat =
+  | 'coinbase' | 'binance' | 'binance_us' | 'kraken' | 'gemini'
+  | 'crypto_com' | 'kucoin' | 'okx' | 'bybit' | 'gate' | 'bitget'
+  | 'mexc' | 'htx' | 'etherscan' | 'etherscan_erc20'
+  | 'solscan' | 'solscan_defi' | 'bitfinex' | 'poloniex'
+  | 'koinly' | 'cointracker' | 'cryptact' | 'generic';
+
+type CostBasisMethod =
+  | 'FIFO' | 'LIFO' | 'HIFO' | 'SPECIFIC_ID'
+  | 'GERMANY_FIFO' | 'PMPA' | 'TOTAL_AVERAGE' | 'UK_SHARE_POOLING';
+
+interface ParsedTransaction {
+  type: TransactionType;
+  timestamp: string;        // ISO 8601
+  sentAsset?: string;
+  sentAmount?: number;
+  receivedAsset?: string;
+  receivedAmount?: number;
+  feeAsset?: string;
+  feeAmount?: number;
+  notes?: string;
+}
+```

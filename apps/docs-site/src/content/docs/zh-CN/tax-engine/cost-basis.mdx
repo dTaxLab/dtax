@@ -1,0 +1,52 @@
+---
+title: 计税方法
+description: FIFO、LIFO、HIFO、Specific ID、Germany FIFO、PMPA、Total Average、UK Share Pooling
+draft: false
+---
+
+## 支持的方法
+
+| 方法 | ID | IRS 合规 | 说明 |
+|--------|----|---------------|-------|
+| 先进先出 | `FIFO` | ✅ 默认 | 最早购入的份额优先出售 |
+| 后进先出 | `LIFO` | ⚠️ Specific ID | 必须选择 Specific ID |
+| 最高价先出 | `HIFO` | ⚠️ Specific ID | 必须选择 Specific ID |
+| 指定批次 | `SPECIFIC_ID` | ✅ | 手动选择批次 |
+| 德国 FIFO | `GERMANY_FIFO` | 🇩🇪 | §23 EStG，1 年持有期 |
+| PMPA | `PMPA` | 🇨🇦 🇦🇺 | 调整后成本基础 |
+| 总平均成本 | `TOTAL_AVERAGE` | 🌍 | 平均成本基础 |
+| 英国份额池化 | `UK_SHARE_POOLING` | 🇬🇧 | Section 104 资金池 + 30 天规则 |
+
+## IRS 说明
+
+IRS 允许加密货币使用 **FIFO** 和 **Specific Identification**（Rev. Rul. 2023-14）。LIFO 和 HIFO 在技术上属于 Specific ID 策略 — 你必须维护批次级别的记录并持续应用所选方法。
+
+## 使用方法
+
+```typescript
+import { computeGains, compareAllMethods } from '@dtax/tax-engine';
+
+// Single method
+const result = computeGains(transactions, {
+  method: 'FIFO',
+  taxYear: 2024,
+});
+
+// Compare all 7 comparable methods (excludes SPECIFIC_ID)
+const comparison = compareAllMethods(transactions, 2024);
+comparison.forEach(({ method, totalGain, recommendation }) => {
+  console.log(`${method}: $${totalGain} ${recommendation ? '← recommended' : ''}`);
+});
+```
+
+## 返回结构
+
+```typescript
+interface GainResult {
+  shortTermGain: number;
+  longTermGain: number;
+  totalGain: number;
+  disposals: Disposal[];
+  unrealizedGain?: number;
+}
+```

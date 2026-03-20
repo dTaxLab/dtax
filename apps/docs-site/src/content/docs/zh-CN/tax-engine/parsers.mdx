@@ -1,0 +1,83 @@
+---
+title: 交易所解析器
+description: 支持来自 23 个交易所和区块链的 CSV 导出格式
+draft: false
+---
+
+import { Badge } from '@astrojs/starlight/components';
+
+## 支持的交易所
+
+| 交易所 | 格式 ID | 说明 |
+|----------|-----------|-------|
+| Coinbase / Coinbase Pro | `coinbase` | 交易记录 + 成交明细 |
+| Binance 国际版 | `binance` | 现货 + 兑换历史 |
+| Binance US | `binance_us` | |
+| Kraken | `kraken` | 账本导出 |
+| Gemini | `gemini` | 交易历史 |
+| Crypto.com | `crypto_com` | App 导出 |
+| KuCoin | `kucoin` | |
+| OKX | `okx` | |
+| Bybit | `bybit` | |
+| Gate.io | `gate` | |
+| Bitget | `bitget` | |
+| MEXC | `mexc` | |
+| HTX（火币） | `htx` | |
+| Bitfinex | `bitfinex` | |
+| Poloniex | `poloniex` | |
+
+## 区块链浏览器
+
+| 来源 | 格式 ID | 说明 |
+|--------|-----------|-------|
+| Etherscan（交易记录） | `etherscan` | 需要 `userAddress` + `nativeAsset` |
+| Etherscan（ERC-20 代币） | `etherscan_erc20` | 需要 `userAddress` |
+| Solscan（SOL 转账） | `solscan` | 需要 `userAddress` |
+| Solscan（DeFi） | `solscan_defi` | |
+
+## 导入工具
+
+| 工具 | 格式 ID |
+|------|-----------|
+| Koinly | `koinly` |
+| CoinTracker | `cointracker` |
+| Cryptact | `cryptact` |
+| 通用 CSV | `generic` |
+
+## 使用方法
+
+```typescript
+import { parseCsv } from '@dtax/tax-engine';
+
+// Specific format
+const result = parseCsv(csv, { format: 'kraken' });
+
+// Etherscan with wallet address
+const result = parseCsv(csv, {
+  format: 'etherscan',
+  userAddress: '0xYourWalletAddress',
+  nativeAsset: 'ETH', // or 'BNB', 'MATIC', 'AVAX', 'FTM'
+});
+
+// Auto-detect
+const result = parseCsv(csv);
+console.log(result.summary.format); // detected format
+```
+
+## 通用 CSV 格式
+
+如果你的交易所不在列表中，请使用 `generic` 格式。CSV 文件须包含以下列：
+
+| 列名 | 必填 | 描述 |
+|--------|----------|-------------|
+| `Date` | ✅ | ISO 8601 或 MM/DD/YYYY |
+| `Type` | ✅ | BUY、SELL、TRADE 等 |
+| `Sent Amount` | — | |
+| `Sent Currency` | — | |
+| `Received Amount` | — | |
+| `Received Currency` | — | |
+| `Fee Amount` | — | |
+| `Fee Currency` | — | |
+| `Notes` | — | |
+
+[下载 CSV 模板](https://getdtax.com/csv-template.csv)

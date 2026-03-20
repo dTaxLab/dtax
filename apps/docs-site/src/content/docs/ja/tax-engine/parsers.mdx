@@ -1,0 +1,78 @@
+---
+title: 取引所パーサー
+description: 23 の取引所・ブロックチェーンに対応した CSV エクスポートフォーマット
+draft: false
+---
+
+import { Badge } from '@astrojs/starlight/components';
+
+## 対応取引所
+
+| 取引所 | フォーマット ID | 備考 |
+|--------|--------------|------|
+| Coinbase / Coinbase Pro | `coinbase` | トランザクション + 約定履歴 |
+| Binance International | `binance` | スポット + コンバート履歴 |
+| Binance US | `binance_us` | |
+| Kraken | `kraken` | 台帳エクスポート |
+| Gemini | `gemini` | 取引履歴 |
+| Crypto.com | `crypto_com` | アプリエクスポート |
+| KuCoin | `kucoin` | |
+| OKX | `okx` | |
+| Bybit | `bybit` | |
+| Gate.io | `gate` | |
+| Bitget | `bitget` | |
+| MEXC | `mexc` | |
+| HTX (Huobi) | `htx` | |
+| Bitfinex | `bitfinex` | |
+| Poloniex | `poloniex` | |
+
+## ブロックチェーンエクスプローラー
+
+| ソース | フォーマット ID | 備考 |
+|--------|--------------|------|
+| Etherscan（トランザクション） | `etherscan` | `userAddress` + `nativeAsset` が必要 |
+| Etherscan（ERC-20 トークン） | `etherscan_erc20` | `userAddress` が必要 |
+| Solscan（SOL 送金） | `solscan` | `userAddress` が必要 |
+| Solscan（DeFi） | `solscan_defi` | |
+
+## インポートツール
+
+| ツール | フォーマット ID |
+|--------|--------------|
+| Koinly | `koinly` |
+| CoinTracker | `cointracker` |
+| Cryptact | `cryptact` |
+| Generic CSV | `generic` |
+
+## 使用方法
+
+```typescript
+import { parseCsv } from '@dtax/tax-engine';
+
+const result = parseCsv(csv, { format: 'kraken' });
+
+const result2 = parseCsv(csv, {
+  format: 'etherscan',
+  userAddress: '0xYourWalletAddress',
+  nativeAsset: 'ETH',
+});
+
+const result3 = parseCsv(csv);
+console.log(result3.summary.format);
+```
+
+## 汎用 CSV フォーマット
+
+| カラム | 必須 | 説明 |
+|--------|------|------|
+| `Date` | ✅ | ISO 8601 または MM/DD/YYYY |
+| `Type` | ✅ | BUY、SELL、TRADE など |
+| `Sent Amount` | — | |
+| `Sent Currency` | — | |
+| `Received Amount` | — | |
+| `Received Currency` | — | |
+| `Fee Amount` | — | |
+| `Fee Currency` | — | |
+| `Notes` | — | |
+
+[CSV テンプレートをダウンロード](https://getdtax.com/csv-template.csv)

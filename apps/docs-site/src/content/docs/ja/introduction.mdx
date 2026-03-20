@@ -1,0 +1,38 @@
+---
+title: はじめに
+description: dTax とは何か、そして dtax.dev デベロッパーハブについて
+draft: false
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# dTax デベロッパーハブ
+
+**dTax** はオープンコアの仮想通貨税計算プラットフォームです。コア計算エンジンは AGPL-3.0 ライセンスのもと npm パッケージとして公開されており、プロフェッショナルグレードの仮想通貨税計算を自分のアプリケーションに組み込むことができます。
+
+## このハブでできること
+
+<CardGrid>
+  <Card title="@dtax/tax-engine" icon="seti:npm">
+    取引所の CSV を解析し、任意のコスト基準計算方法でキャピタルゲインを計算する、依存関係ゼロの TypeScript ライブラリ。
+  </Card>
+  <Card title="REST API" icon="random">
+    取引のインポート、税務計算の実行、Form 8949 / TXF レポートの生成を行うマネージド API。インフラ管理不要。
+  </Card>
+  <Card title="23 取引所パーサー" icon="document">
+    Coinbase、Binance、Kraken、Gemini、Etherscan、Solscan、OKX、Bybit、その他 15 取引所向けの組み込みパーサー。
+  </Card>
+  <Card title="8 つのコスト基準計算方法" icon="puzzle">
+    FIFO、LIFO、HIFO、Specific ID、Germany FIFO、PMPA、Total Average、UK Share Pooling。
+  </Card>
+</CardGrid>
+
+## オープンコアモデル
+
+| レイヤー | ライセンス | アクセス |
+|---------|-----------|--------|
+| `@dtax/tax-engine` | AGPL-3.0 | GitHub + npm で公開 |
+| REST API | 商用 | getdtax.com |
+| Web アプリ | 商用 | getdtax.com |
+
+商用製品で税計算エンジンを使用する場合は、変更内容をオープンソース化（AGPL-3.0）するか、**または**商用ライセンスについてお問い合わせください。

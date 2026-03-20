@@ -1,0 +1,55 @@
+---
+title: 거래소 파서
+description: 23개 거래소 및 블록체인의 지원 CSV 내보내기 형식
+draft: false
+---
+
+import { Badge } from '@astrojs/starlight/components';
+
+## 지원 거래소
+
+| 거래소 | 형식 ID | 비고 |
+|----------|-----------|-------|
+| Coinbase / Coinbase Pro | `coinbase` | 거래 내역 + 체결 내역 |
+| Binance International | `binance` | 현물 + 전환 내역 |
+| Binance US | `binance_us` | |
+| Kraken | `kraken` | 원장 내보내기 |
+| Gemini | `gemini` | 거래 내역 |
+| Crypto.com | `crypto_com` | 앱 내보내기 |
+| KuCoin | `kucoin` | |
+| OKX | `okx` | |
+| Bybit | `bybit` | |
+| Gate.io | `gate` | |
+| Bitget | `bitget` | |
+| MEXC | `mexc` | |
+| HTX (Huobi) | `htx` | |
+| Bitfinex | `bitfinex` | |
+| Poloniex | `poloniex` | |
+
+## 블록체인 탐색기
+
+| 소스 | 형식 ID | 비고 |
+|--------|-----------|-------|
+| Etherscan (트랜잭션) | `etherscan` | `userAddress` + `nativeAsset` 필요 |
+| Etherscan (ERC-20 토큰) | `etherscan_erc20` | `userAddress` 필요 |
+| Solscan (SOL 전송) | `solscan` | `userAddress` 필요 |
+| Solscan (DeFi) | `solscan_defi` | |
+
+## 가져오기 도구
+
+| 도구 | 형식 ID |
+|------|-----------|
+| Koinly | `koinly` |
+| CoinTracker | `cointracker` |
+| Cryptact | `cryptact` |
+| 일반 CSV | `generic` |
+
+## 사용법
+
+```typescript
+import { parseCsv } from '@dtax/tax-engine';
+const result = parseCsv(csv, { format: 'kraken' });
+const result2 = parseCsv(csv, { format: 'etherscan', userAddress: '0xYourWalletAddress', nativeAsset: 'ETH' });
+const result3 = parseCsv(csv);
+console.log(result3.summary.format);
+```

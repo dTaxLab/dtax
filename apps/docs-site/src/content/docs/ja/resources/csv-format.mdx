@@ -1,0 +1,44 @@
+---
+title: 汎用 CSV フォーマット
+description: 対応取引所以外の CSV をインポートする際のフォーマット方法
+draft: false
+---
+
+ご利用の取引所が [パーサー一覧](/tax-engine/parsers) に含まれていない場合は、汎用 CSV フォーマットをご利用ください。
+
+## テンプレートのダウンロード
+
+[CSV テンプレートをダウンロード](https://getdtax.com/csv-template.csv)
+
+## カラムリファレンス
+
+| カラム | 必須 | 型 | 例 |
+|--------|------|----|----|
+| `Date` | ✅ | ISO 8601 / MM-DD-YYYY | `2024-03-15T14:30:00Z` |
+| `Type` | ✅ | enum | `BUY` |
+| `Sent Amount` | — | 小数 | `0.5` |
+| `Sent Currency` | — | ティッカー | `BTC` |
+| `Sent Value USD` | — | 小数 | `25000.00` |
+| `Received Amount` | — | 小数 | `10000` |
+| `Received Currency` | — | ティッカー | `USDC` |
+| `Received Value USD` | — | 小数 | `10000.00` |
+| `Fee Amount` | — | 小数 | `0.001` |
+| `Fee Currency` | — | ティッカー | `ETH` |
+| `Fee Value USD` | — | 小数 | `2.50` |
+| `Notes` | — | 文字列 | `Sold on Uniswap` |
+
+## トランザクションタイプ
+
+| タイプ | 説明 |
+|--------|------|
+| `BUY` | 法定通貨で仮想通貨を購入 |
+| `SELL` | 仮想通貨を法定通貨で売却 |
+| `TRADE` | 仮想通貨同士のスワップ |
+| `TRANSFER_IN` | 別ウォレットからの受け取り（課税対象外） |
+| `TRANSFER_OUT` | 別ウォレットへの送付（課税対象外） |
+| `STAKING` | ステーキング報酬の受け取り |
+| `MINING` | マイニング報酬 |
+| `AIRDROP` | エアドロップの受け取り |
+| `INCOME` | その他の仮想通貨収入 |
+| `FEE` | 単独の手数料 |
+| `UNKNOWN` | AI による自動分類 |

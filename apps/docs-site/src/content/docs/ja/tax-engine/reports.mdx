@@ -1,0 +1,32 @@
+---
+title: レポート生成
+description: Form 8949、Schedule D、TXF、PDF レポートの生成
+draft: false
+---
+
+## Form 8949（CSV）
+
+```typescript
+import { computeGains, generateForm8949Csv } from '@dtax/tax-engine';
+
+const result = computeGains(transactions, { method: 'FIFO', taxYear: 2024 });
+const csv = generateForm8949Csv(result.disposals, { taxYear: 2024 });
+```
+
+## TXF エクスポート
+
+TXF（Tax Exchange Format）は TurboTax、H&R Block、TaxAct に対応しています：
+
+```typescript
+import { generateTxfFile } from '@dtax/tax-engine';
+
+const txf = generateTxfFile(result.disposals, { taxYear: 2024 });
+```
+
+## Schedule D サマリー
+
+```typescript
+const { scheduleD } = result;
+console.log(`Short-term net: $${scheduleD.shortTermNet}`);
+console.log(`Long-term net:  $${scheduleD.longTermNet}`);
+```

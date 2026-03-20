@@ -1,0 +1,44 @@
+---
+title: 身份认证
+description: 如何向 dTax REST API 进行身份认证
+draft: false
+---
+
+dTax API 使用 **HttpOnly 会话 Cookie** 进行身份认证，以防止 XSS 令牌窃取。
+
+## 注册 / 登录
+
+```bash
+# Create account
+curl -X POST https://getdtax.com/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com","password":"yourpassword"}' \
+  -c cookies.txt
+
+# Login
+curl -X POST https://getdtax.com/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com","password":"yourpassword"}' \
+  -c cookies.txt
+```
+
+响应会设置一个有效期为 7 天的 `session` HttpOnly Cookie。
+
+## 使用 Cookie
+
+```bash
+# All subsequent requests use -b cookies.txt
+curl https://getdtax.com/api/v1/transactions \
+  -b cookies.txt
+```
+
+## OAuth
+
+同时支持 Google 和 GitHub OAuth：
+
+```
+GET https://getdtax.com/auth/google
+GET https://getdtax.com/auth/github
+```
+
+认证成功后均会重定向到 `getdtax.com/auth/callback`。

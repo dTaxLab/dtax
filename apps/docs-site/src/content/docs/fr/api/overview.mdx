@@ -1,0 +1,48 @@
+---
+title: Aperçu de l'API REST
+description: API REST gérée par dTax — importez des transactions, calculez les plus-values, téléchargez des rapports
+draft: false
+---
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+L'API REST dTax est un service géré disponible à **`https://getdtax.com/api/v1`**. Elle prend en charge le stockage, le calcul et la génération de rapports, vous n'avez donc pas besoin de gérer l'état vous-même.
+
+## URL de base
+
+```
+https://getdtax.com/api/v1
+```
+
+## Authentification
+
+Tous les endpoints nécessitent un cookie de session obtenu via `/auth/login`. Consultez [Authentification](/fr/api/authentication) pour plus de détails.
+
+## Endpoints principaux
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /transactions/import` | Charger un CSV, parser automatiquement, dédupliquer, stocker |
+| `GET /transactions` | Lister les transactions de l'utilisateur avec des filtres |
+| `GET /tax/summary` | Résumé des plus-values pour une année fiscale |
+| `POST /tax/calculate` | Exécuter le calcul complet des gains |
+| `GET /tax/reports/:id/download` | Télécharger Form 8949 / TXF / PDF |
+| `GET /notifications` | Fil de notifications de l'utilisateur |
+
+## Spécification OpenAPI
+
+La spécification complète OpenAPI 3.1 est disponible :
+
+<LinkCard
+  title="OpenAPI JSON"
+  description="Spécification lisible par machine pour tous les endpoints"
+  href="https://getdtax.com/api/v1/docs/openapi.json"
+/>
+
+## Limites de débit
+
+| Forfait | Limite |
+|---------|--------|
+| FREE | 50 transactions, 5 messages IA/jour |
+| PRO (49 $/mois) | Illimité |
+| CPA (499 $/an) | Illimité + 10 comptes clients |
