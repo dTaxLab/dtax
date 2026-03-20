@@ -1,0 +1,48 @@
+---
+title: REST API Overview
+description: dTax managed REST API — import transactions, calculate gains, download reports
+draft: false
+---
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+The dTax REST API is a managed service at **`https://getdtax.com/api/v1`**. It handles storage, computation, and report generation so you don't need to manage state yourself.
+
+## Base URL
+
+```
+https://getdtax.com/api/v1
+```
+
+## Authentication
+
+All endpoints require a session cookie obtained via `/auth/login`. See [Authentication](/api/authentication) for details.
+
+## Key endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /transactions/import` | Upload CSV, auto-parse, deduplicate, store |
+| `GET /transactions` | List user's transactions with filters |
+| `GET /tax/summary` | Capital gains summary for a tax year |
+| `POST /tax/calculate` | Run full gain calculation |
+| `GET /tax/reports/:id/download` | Download Form 8949 / TXF / PDF |
+| `GET /notifications` | User notification feed |
+
+## OpenAPI specification
+
+The full OpenAPI 3.1 spec is available:
+
+<LinkCard
+  title="OpenAPI JSON"
+  description="Machine-readable spec for all endpoints"
+  href="https://getdtax.com/api/v1/docs/openapi.json"
+/>
+
+## Rate limits
+
+| Plan | Limit |
+|------|-------|
+| FREE | 50 transactions, 5 AI messages/day |
+| PRO ($49/mo) | Unlimited |
+| CPA ($499/yr) | Unlimited + 10 client accounts |

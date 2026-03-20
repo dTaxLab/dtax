@@ -1,0 +1,53 @@
+---
+title: Tax Engine Overview
+description: '@dtax/tax-engine — the core calculation engine'
+draft: false
+---
+
+`@dtax/tax-engine` is a TypeScript-first, zero-dependency library for crypto tax calculation.
+
+## Features
+
+- **23 exchange parsers** — auto-detect or manually specify format
+- **8 cost-basis methods** — FIFO, LIFO, HIFO, Specific ID, and more
+- **Transaction types** — Buy, Sell, Trade, Staking, Mining, Airdrop, NFT, DeFi, Fees
+- **Report generation** — Form 8949 (CSV/PDF/TXF), Schedule D summary
+- **Wash sale detection** — flags 30-day repurchase rule violations
+- **Deduplication** — content-fingerprint based duplicate detection
+
+## Core functions
+
+| Function | Description |
+|----------|-------------|
+| `parseCsv(csv, options?)` | Parse an exchange CSV into normalized transactions |
+| `computeGains(txs, options)` | Compute capital gains for a tax year |
+| `compareAllMethods(txs, year)` | Compare gains across all 7 comparable methods |
+| `generateForm8949Csv(disposals, options)` | Export Form 8949 as CSV |
+| `generateTxfFile(disposals, options)` | Export TXF file for tax software |
+
+## TypeScript types
+
+```typescript
+type CsvFormat =
+  | 'coinbase' | 'binance' | 'binance_us' | 'kraken' | 'gemini'
+  | 'crypto_com' | 'kucoin' | 'okx' | 'bybit' | 'gate' | 'bitget'
+  | 'mexc' | 'htx' | 'etherscan' | 'etherscan_erc20'
+  | 'solscan' | 'solscan_defi' | 'bitfinex' | 'poloniex'
+  | 'koinly' | 'cointracker' | 'cryptact' | 'generic';
+
+type CostBasisMethod =
+  | 'FIFO' | 'LIFO' | 'HIFO' | 'SPECIFIC_ID'
+  | 'GERMANY_FIFO' | 'PMPA' | 'TOTAL_AVERAGE' | 'UK_SHARE_POOLING';
+
+interface ParsedTransaction {
+  type: TransactionType;
+  timestamp: string;        // ISO 8601
+  sentAsset?: string;
+  sentAmount?: number;
+  receivedAsset?: string;
+  receivedAmount?: number;
+  feeAsset?: string;
+  feeAmount?: number;
+  notes?: string;
+}
+```
