@@ -10,7 +10,7 @@ export default defineConfig({
       defaultLocale: 'en',
       locales: {
         en: { label: 'English' },
-        'zh-CN': { label: '简体中文', lang: 'zh-CN' },
+        'zh-cn': { label: '简体中文', lang: 'zh-CN' },
         ja: { label: '日本語' },
         ko: { label: '한국어' },
         de: { label: 'Deutsch' },
