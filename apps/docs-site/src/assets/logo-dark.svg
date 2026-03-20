@@ -1,10 +1,112 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="96" height="28" viewBox="0 0 96 28">
+<svg xmlns="http://www.w3.org/2000/svg" width="156" height="38" viewBox="0 0 156 38">
   <defs>
-    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#818cf8"/>
+    <linearGradient id="bdg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="wm" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#e0e7ff"/>
       <stop offset="100%" stop-color="#c7d2fe"/>
     </linearGradient>
   </defs>
-  <text x="0" y="22" font-family="system-ui,-apple-system,sans-serif" font-weight="800" font-size="22" fill="url(#g)" letter-spacing="-0.5">dTax</text>
-  <text x="56" y="22" font-family="system-ui,-apple-system,sans-serif" font-weight="400" font-size="13" fill="#818cf8" opacity="0.8">.dev</text>
+
+  <!-- Badge: 36×36 rounded square, indigo→violet gradient -->
+  <rect x="1" y="1" width="36" height="36" rx="9" fill="url(#bdg)"/>
+  <!-- Subtle top gloss -->
+  <ellipse cx="19" cy="8" rx="10" ry="4.5" fill="white" opacity="0.10"/>
+
+  <!--
+    "d" glyph in badge — white, fill-rule=evenodd.
+    Bowl: center (15.8, 22), outer radius 7.8.
+    Stem: from y=8.5 to y=29.8, left edge x=23.6 (= 15.8+7.8), right x=26.8.
+    Outer path starts at top-left of stem, drops to bowl tangent, arcs left
+    around bowl (large arc, CCW = sweep=0), back to bottom tangent, up stem.
+    Counter: two-arc full circle CW at (15.8,22) r=4.4 to punch out interior.
+
+    Arc parameters: A rx ry x-rotation large-arc-flag sweep-flag x y
+    CCW = sweep=0; large = 1 because arc > 180°.
+  -->
+  <path fill="white" fill-rule="evenodd" opacity="0.95"
+    d="M23.6 8.5 L26.8 8.5 L26.8 29.8 L23.6 29.8 A7.8 7.8 0 1 1 23.6 14.2 Z
+       M11.4 22 a4.4 4.4 0 1 0 8.8 0 a4.4 4.4 0 1 0 -8.8 0"
+  />
+
+  <!-- ── Wordmark "Tax" ── -->
+
+  <!-- T -->
+  <path fill="url(#wm)"
+    d="M46 10 L65.5 10 L65.5 13.4 L57.5 13.4 L57.5 30 L54.0 30 L54.0 13.4 L46 13.4 Z"
+  />
+
+  <!-- a: open-aperture, bowl with diagonal stem -->
+  <path fill="url(#wm)"
+    d="M82.5 18.3 C80.6 16.7 78.2 16.0 75.5 16.0
+       C71.7 16.0 69.0 17.4 67.4 19.9 L70.2 21.5
+       C71.3 19.8 73.0 19.0 75.5 19.0
+       C78.0 19.0 79.5 20.2 79.5 22.2 L79.5 22.6
+       C78.0 22.4 76.5 22.3 75.1 22.3
+       C71.0 22.3 68.2 24.0 68.2 27.0
+       C68.2 29.7 70.6 30.4 73.5 30.4
+       C75.8 30.4 77.8 29.5 79.5 27.9 L79.5 30 L82.8 30
+       L82.8 22.3 C82.8 20.1 82.7 18.9 82.5 18.3 Z
+       M79.5 25.6 C79.5 27.5 77.6 28.2 75.0 28.2
+       C73.3 28.2 71.9 27.4 71.9 26.1
+       C71.9 24.6 73.5 24.0 75.7 24.0
+       C77.0 24.0 78.3 24.1 79.5 24.4 Z"
+  />
+
+  <!-- x -->
+  <path fill="url(#wm)"
+    d="M86 16.3 L91.2 23.3 L86.3 30 L90.0 30 L93.6 24.7
+       L97.3 30 L101.0 30 L96.0 23.2 L101.2 16.3
+       L97.5 16.3 L93.6 21.6 L89.7 16.3 Z"
+  />
+
+  <!-- ── .dev suffix ── -->
+
+  <!-- period -->
+  <circle cx="105.5" cy="28.0" r="2.0" fill="#818cf8" opacity="0.70"/>
+
+  <!--
+    Small "d": bowl center (113.4, 22), outer r=5.0, inner r=2.5.
+    Right tangent x = 113.4+5 = 118.4. Stem right edge x=121.0.
+    Outer top tangent y=17, bottom y=27.
+    Counter: two-arc full circle relative, offset from 110.9,22.
+  -->
+  <path fill="#818cf8" fill-rule="evenodd" opacity="0.72"
+    d="M118.4 10.0 L121.0 10.0 L121.0 28.0 L118.4 28.0
+       A5.0 5.0 0 1 1 118.4 17.0 Z
+       M110.9 22 a2.5 2.5 0 1 0 5.0 0 a2.5 2.5 0 1 0 -5.0 0"
+  />
+
+  <!--
+    Small "e": center (128.0, 22), outer r=5.0, inner r=2.8.
+    Drawn as an outline ring with a horizontal crossbar gap on the right.
+
+    Outer ring path (CCW, large arc) from just below mid-right, sweeping
+    around to just above mid-right, then closed by a crossbar line:
+      Start: (133, 22) rightmost
+      Arc CCW, large (270°) to (128, 17) top  → A 5 5 0 1 0 128 17
+      Then line to inner top: (128, 19.2)
+      Inner arc CW back: A 2.8 2.8 0 1 1 128 24.8
+      Line back to (133, 22) crossbar
+      Close Z
+
+    This traces the ring outline going CCW on outside, CW on inside,
+    which with nonzero fill-rule gives the ring, minus the right gap.
+  -->
+  <path fill="#818cf8" opacity="0.72"
+    d="M133.0 22.0
+       A5.0 5.0 0 1 0 128.0 17.0
+       L128.0 19.2
+       A2.8 2.8 0 1 1 128.0 24.8
+       L133.0 22.0 Z"
+  />
+
+  <!-- small "v" -->
+  <path fill="#818cf8" opacity="0.72"
+    d="M136 16.3 L139.8 26.8 L143.6 16.3 L146.2 16.3
+       L141.2 28.0 L138.4 28.0 L133.4 16.3 Z"
+  />
+
 </svg>
