@@ -18,8 +18,7 @@ export default defineConfig({
         es: { label: 'Español' },
       },
       logo: {
-        light: './src/assets/logo-light.svg',
-        dark: './src/assets/logo-dark.svg',
+        src: './src/assets/logo.png',
         replacesTitle: false,
       },
       social: [
