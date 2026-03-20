@@ -1,0 +1,35 @@
+---
+title: Centro de Desarrolladores de dTax
+description: Motor de impuestos cripto de código abierto — 23 parsers de exchanges, 8 métodos de base de costo, exportación Form 8949 / TXF.
+template: splash
+hero:
+  tagline: Cálculos de impuestos cripto de nivel profesional como paquete npm.
+  image:
+    file: ../../../assets/logo-light.svg
+  actions:
+    - text: Comenzar
+      link: /introduction/
+      icon: right-arrow
+      variant: primary
+    - text: Ver en GitHub
+      link: https://github.com/dTaxLab/dtax
+      icon: external
+      variant: minimal
+---
+
+import { CardGrid, Card } from '@astrojs/starlight/components';
+
+<CardGrid stagger>
+  <Card title="@dtax/tax-engine" icon="seti:npm">
+    Librería TypeScript sin dependencias. Parsea CSV, calcula ganancias de capital, exporta Form 8949 / TXF.
+  </Card>
+  <Card title="23 Parsers de Exchanges" icon="document">
+    Coinbase, Binance, Kraken, Gemini, Etherscan, Solscan, OKX, Bybit y 15 más.
+  </Card>
+  <Card title="8 Métodos de Base de Costo" icon="puzzle">
+    FIFO, LIFO, HIFO, Specific ID, Germany FIFO, PMPA, Total Average, UK Share Pooling.
+  </Card>
+  <Card title="AGPL-3.0 Open Core" icon="open-book">
+    Gratuito para uso de código abierto. Licencia comercial disponible para productos SaaS.
+  </Card>
+</CardGrid>

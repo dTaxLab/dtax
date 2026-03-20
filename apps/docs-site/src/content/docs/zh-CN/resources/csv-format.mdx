@@ -1,0 +1,46 @@
+---
+title: 通用 CSV 格式
+description: 若你的交易所不在支持列表中，如何格式化 CSV 进行导入
+draft: false
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+如果你的交易所不在[解析器列表](/tax-engine/parsers)中，可以使用我们的通用 CSV 格式。
+
+## 下载模板
+
+[下载 CSV 模板](https://getdtax.com/csv-template.csv)
+
+## 列说明
+
+| 列名 | 必填 | 类型 | 示例 |
+|--------|----------|------|---------|
+| `Date` | ✅ | ISO 8601 / MM-DD-YYYY | `2024-03-15T14:30:00Z` |
+| `Type` | ✅ | 枚举值（见下文） | `BUY` |
+| `Sent Amount` | — | 小数 | `0.5` |
+| `Sent Currency` | — | 币种代码 | `BTC` |
+| `Sent Value USD` | — | 小数 | `25000.00` |
+| `Received Amount` | — | 小数 | `10000` |
+| `Received Currency` | — | 币种代码 | `USDC` |
+| `Received Value USD` | — | 小数 | `10000.00` |
+| `Fee Amount` | — | 小数 | `0.001` |
+| `Fee Currency` | — | 币种代码 | `ETH` |
+| `Fee Value USD` | — | 小数 | `2.50` |
+| `Notes` | — | 字符串 | `Sold on Uniswap` |
+
+## 交易类型
+
+| Type | 描述 |
+|------|-------------|
+| `BUY` | 用法币购买加密货币 |
+| `SELL` | 将加密货币出售为法币 |
+| `TRADE` | 加密货币之间的兑换 |
+| `TRANSFER_IN` | 从其他钱包接收（不应税） |
+| `TRANSFER_OUT` | 发送到其他钱包（不应税） |
+| `STAKING` | 获得质押奖励 |
+| `MINING` | 挖矿奖励 |
+| `AIRDROP` | 空投获得的资产 |
+| `INCOME` | 其他加密货币收入 |
+| `FEE` | 独立手续费 |
+| `UNKNOWN` | 将由 AI 自动分类 |

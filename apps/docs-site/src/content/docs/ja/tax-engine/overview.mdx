@@ -1,0 +1,44 @@
+---
+title: 税計算エンジン概要
+description: '@dtax/tax-engine — コア計算エンジン'
+draft: false
+---
+
+`@dtax/tax-engine` は仮想通貨税計算のための TypeScript ファースト・依存関係ゼロのライブラリです。
+
+## 機能
+
+- **23 の取引所パーサー** — フォーマットの自動検出または手動指定
+- **8 つのコスト基準計算方法** — FIFO、LIFO、HIFO、Specific ID など
+- **トランザクションタイプ** — Buy、Sell、Trade、Staking、Mining、Airdrop、NFT、DeFi、Fees
+- **レポート生成** — Form 8949（CSV/PDF/TXF）、Schedule D サマリー
+- **Wash Sale 検出** — 30日の再購入ルール違反をフラグ
+- **重複排除** — コンテンツフィンガープリントによる重複検出
+
+## コア関数
+
+| 関数 | 説明 |
+|------|------|
+| `parseCsv(csv, options?)` | 取引所の CSV を正規化されたトランザクションに解析する |
+| `computeGains(txs, options)` | 課税年度のキャピタルゲインを計算する |
+| `compareAllMethods(txs, year)` | 7つの比較可能なメソッド全体でゲインを比較する |
+| `generateForm8949Csv(disposals, options)` | Form 8949 を CSV としてエクスポートする |
+| `generateTxfFile(disposals, options)` | 税務ソフトウェア向けに TXF ファイルをエクスポートする |
+
+## TypeScript 型（コードは翻訳しない）
+
+```typescript
+type CsvFormat = 'coinbase' | 'binance' | 'kraken' | 'gemini' | 'etherscan' | 'generic' /* ... */;
+type CostBasisMethod = 'FIFO' | 'LIFO' | 'HIFO' | 'SPECIFIC_ID' | 'GERMANY_FIFO' | 'PMPA' | 'TOTAL_AVERAGE' | 'UK_SHARE_POOLING';
+interface ParsedTransaction {
+  type: TransactionType;
+  timestamp: string;
+  sentAsset?: string;
+  sentAmount?: number;
+  receivedAsset?: string;
+  receivedAmount?: number;
+  feeAsset?: string;
+  feeAmount?: number;
+  notes?: string;
+}
+```

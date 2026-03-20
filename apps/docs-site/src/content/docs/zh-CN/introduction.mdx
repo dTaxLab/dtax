@@ -1,0 +1,38 @@
+---
+title: 简介
+description: dTax 是什么，以及 dtax.dev 开发者中心介绍
+draft: false
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# dTax 开发者中心
+
+**dTax** 是一个开放核心的加密货币税务平台。核心计算引擎采用 AGPL-3.0 许可证，以 npm 包形式提供 — 你可以将专业级加密货币税务计算集成到自己的应用中。
+
+## 包含内容
+
+<CardGrid>
+  <Card title="@dtax/tax-engine" icon="seti:npm">
+    零依赖的 TypeScript 库，用于解析交易所 CSV 文件并使用任意计税方法计算资本利得。
+  </Card>
+  <Card title="REST API" icon="random">
+    托管 API 服务，支持导入交易记录、运行税务计算、生成 Form 8949 / TXF 报告 — 无需自行管理基础设施。
+  </Card>
+  <Card title="23 个交易所解析器" icon="document">
+    内置支持 Coinbase、Binance、Kraken、Gemini、Etherscan、Solscan、OKX、Bybit 及其他 15 个平台。
+  </Card>
+  <Card title="8 种计税方法" icon="puzzle">
+    FIFO、LIFO、HIFO、Specific ID、Germany FIFO、PMPA、Total Average、UK Share Pooling。
+  </Card>
+</CardGrid>
+
+## 开放核心模式
+
+| 层级 | 许可证 | 获取方式 |
+|-------|---------|--------|
+| `@dtax/tax-engine` | AGPL-3.0 | GitHub + npm 公开获取 |
+| REST API | 商业许可 | getdtax.com |
+| Web 应用 | 商业许可 | getdtax.com |
+
+若你在商业产品中使用税务引擎，必须开源你的修改（AGPL-3.0），**或者**联系我们获取商业许可证。

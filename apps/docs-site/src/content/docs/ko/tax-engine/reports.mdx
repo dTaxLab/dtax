@@ -1,0 +1,30 @@
+---
+title: 보고서 생성
+description: Form 8949, Schedule D, TXF, PDF 보고서 생성
+draft: false
+---
+
+## Form 8949 (CSV)
+
+```typescript
+import { computeGains, generateForm8949Csv } from '@dtax/tax-engine';
+const result = computeGains(transactions, { method: 'FIFO', taxYear: 2024 });
+const csv = generateForm8949Csv(result.disposals, { taxYear: 2024 });
+```
+
+## TXF 내보내기
+
+TXF (Tax Exchange Format)는 TurboTax, H&R Block, TaxAct에서 지원됩니다:
+
+```typescript
+import { generateTxfFile } from '@dtax/tax-engine';
+const txf = generateTxfFile(result.disposals, { taxYear: 2024 });
+```
+
+## Schedule D 요약
+
+```typescript
+const { scheduleD } = result;
+console.log(`Short-term net: $${scheduleD.shortTermNet}`);
+console.log(`Long-term net:  $${scheduleD.longTermNet}`);
+```

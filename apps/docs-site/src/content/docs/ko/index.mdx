@@ -1,0 +1,35 @@
+---
+title: dTax 개발자 허브
+description: 오픈소스 암호화폐 세금 엔진 — 23개 거래소 파서, 8가지 원가 계산 방법, Form 8949 / TXF 내보내기.
+template: splash
+hero:
+  tagline: npm 패키지로 제공되는 전문가급 암호화폐 세금 계산.
+  image:
+    file: ../../../assets/logo-light.svg
+  actions:
+    - text: 시작하기
+      link: /introduction/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/dTaxLab/dtax
+      icon: external
+      variant: minimal
+---
+
+import { CardGrid, Card } from '@astrojs/starlight/components';
+
+<CardGrid stagger>
+  <Card title="@dtax/tax-engine" icon="seti:npm">
+    의존성 없는 TypeScript 라이브러리. CSV 파싱, 자본 이득 계산, Form 8949 / TXF 내보내기.
+  </Card>
+  <Card title="23개 거래소 파서" icon="document">
+    Coinbase, Binance, Kraken, Gemini, Etherscan, Solscan, OKX, Bybit 및 15개 이상.
+  </Card>
+  <Card title="8가지 원가 계산 방법" icon="puzzle">
+    FIFO, LIFO, HIFO, Specific ID, Germany FIFO, PMPA, Total Average, UK Share Pooling.
+  </Card>
+  <Card title="AGPL-3.0 오픈 코어" icon="open-book">
+    오픈소스 사용은 무료. SaaS 제품용 상업 라이선스도 제공됩니다.
+  </Card>
+</CardGrid>

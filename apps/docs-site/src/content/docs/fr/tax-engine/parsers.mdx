@@ -1,0 +1,83 @@
+---
+title: Parseurs d'Exchange
+description: Formats d'export CSV pris en charge pour 23 exchanges et blockchains
+draft: false
+---
+
+import { Badge } from '@astrojs/starlight/components';
+
+## Exchanges pris en charge
+
+| Exchange | ID de format | Notes |
+|----------|-------------|-------|
+| Coinbase / Coinbase Pro | `coinbase` | Transactions + fills |
+| Binance International | `binance` | Historique Spot + convert |
+| Binance US | `binance_us` | |
+| Kraken | `kraken` | Export du grand livre |
+| Gemini | `gemini` | Historique des transactions |
+| Crypto.com | `crypto_com` | Export de l'application |
+| KuCoin | `kucoin` | |
+| OKX | `okx` | |
+| Bybit | `bybit` | |
+| Gate.io | `gate` | |
+| Bitget | `bitget` | |
+| MEXC | `mexc` | |
+| HTX (Huobi) | `htx` | |
+| Bitfinex | `bitfinex` | |
+| Poloniex | `poloniex` | |
+
+## Explorateurs de blockchain
+
+| Source | ID de format | Notes |
+|--------|-------------|-------|
+| Etherscan (Transactions) | `etherscan` | Nécessite `userAddress` + `nativeAsset` |
+| Etherscan (Tokens ERC-20) | `etherscan_erc20` | Nécessite `userAddress` |
+| Solscan (Transferts SOL) | `solscan` | Nécessite `userAddress` |
+| Solscan (DeFi) | `solscan_defi` | |
+
+## Outils d'importation
+
+| Outil | ID de format |
+|-------|-------------|
+| Koinly | `koinly` |
+| CoinTracker | `cointracker` |
+| Cryptact | `cryptact` |
+| CSV Générique | `generic` |
+
+## Utilisation
+
+```typescript
+import { parseCsv } from '@dtax/tax-engine';
+
+// Specific format
+const result = parseCsv(csv, { format: 'kraken' });
+
+// Etherscan with wallet address
+const result = parseCsv(csv, {
+  format: 'etherscan',
+  userAddress: '0xYourWalletAddress',
+  nativeAsset: 'ETH', // or 'BNB', 'MATIC', 'AVAX', 'FTM'
+});
+
+// Auto-detect
+const result = parseCsv(csv);
+console.log(result.summary.format); // detected format
+```
+
+## Format CSV générique
+
+Si votre exchange n'est pas listé, utilisez le format `generic`. Votre CSV doit comporter ces colonnes :
+
+| Colonne | Requis | Description |
+|---------|--------|-------------|
+| `Date` | ✅ | ISO 8601 ou MM/DD/YYYY |
+| `Type` | ✅ | BUY, SELL, TRADE, etc. |
+| `Sent Amount` | — | |
+| `Sent Currency` | — | |
+| `Received Amount` | — | |
+| `Received Currency` | — | |
+| `Fee Amount` | — | |
+| `Fee Currency` | — | |
+| `Notes` | — | |
+
+[Télécharger le modèle CSV](https://getdtax.com/csv-template.csv)

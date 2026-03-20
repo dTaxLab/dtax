@@ -1,0 +1,52 @@
+---
+title: Méthodes de Coût de Base
+description: FIFO, LIFO, HIFO, Specific ID, Germany FIFO, PMPA, Total Average, UK Share Pooling
+draft: false
+---
+
+## Méthodes prises en charge
+
+| Méthode | ID | Conforme IRS | Notes |
+|---------|----|--------------|-------|
+| First In, First Out | `FIFO` | ✅ Par défaut | Les lots les plus anciens vendus en premier |
+| Last In, First Out | `LIFO` | ⚠️ Specific ID | Doit choisir Specific ID |
+| Highest In, First Out | `HIFO` | ⚠️ Specific ID | Doit choisir Specific ID |
+| Specific ID | `SPECIFIC_ID` | ✅ | Sélection manuelle des lots |
+| Germany FIFO | `GERMANY_FIFO` | 🇩🇪 | §23 EStG, détention 1 an |
+| PMPA | `PMPA` | 🇨🇦 🇦🇺 | Adjusted Cost Base |
+| Total Average | `TOTAL_AVERAGE` | 🌍 | Coût de base moyen |
+| UK Share Pooling | `UK_SHARE_POOLING` | 🇬🇧 | Section 104 pool + règle des 30 jours |
+
+## Note IRS
+
+L'IRS autorise **FIFO** et **Specific Identification** pour les cryptos (Rev. Rul. 2023-14). LIFO et HIFO sont techniquement des stratégies Specific ID — vous devez tenir des registres par lot et appliquer votre méthode de manière cohérente.
+
+## Utilisation
+
+```typescript
+import { computeGains, compareAllMethods } from '@dtax/tax-engine';
+
+// Single method
+const result = computeGains(transactions, {
+  method: 'FIFO',
+  taxYear: 2024,
+});
+
+// Compare all 7 comparable methods (excludes SPECIFIC_ID)
+const comparison = compareAllMethods(transactions, 2024);
+comparison.forEach(({ method, totalGain, recommendation }) => {
+  console.log(`${method}: $${totalGain} ${recommendation ? '← recommended' : ''}`);
+});
+```
+
+## Structure du résultat
+
+```typescript
+interface GainResult {
+  shortTermGain: number;
+  longTermGain: number;
+  totalGain: number;
+  disposals: Disposal[];
+  unrealizedGain?: number;
+}
+```

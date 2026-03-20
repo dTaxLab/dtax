@@ -1,0 +1,46 @@
+---
+title: REST API 概要
+description: dTax マネージド REST API — 取引のインポート、ゲインの計算、レポートのダウンロード
+draft: false
+---
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+dTax REST API は **`https://getdtax.com/api/v1`** で提供されるマネージドサービスです。ストレージ、計算処理、レポート生成をすべて担うため、状態管理を自前で行う必要はありません。
+
+## ベース URL
+
+```
+https://getdtax.com/api/v1
+```
+
+## 認証
+
+すべてのエンドポイントは `/auth/login` で取得したセッションクッキーが必要です。詳細は [認証](/api/authentication) を参照してください。
+
+## 主要エンドポイント
+
+| エンドポイント | 説明 |
+|--------------|------|
+| `POST /transactions/import` | CSV をアップロードし、自動解析・重複排除・保存を行う |
+| `GET /transactions` | フィルター付きでユーザーの取引一覧を取得する |
+| `GET /tax/summary` | 課税年度のキャピタルゲインサマリーを取得する |
+| `POST /tax/calculate` | 完全なゲイン計算を実行する |
+| `GET /tax/reports/:id/download` | Form 8949 / TXF / PDF をダウンロードする |
+| `GET /notifications` | ユーザーの通知フィードを取得する |
+
+## OpenAPI 仕様
+
+<LinkCard
+  title="OpenAPI JSON"
+  description="全エンドポイントのマシンリーダブルな仕様書"
+  href="https://getdtax.com/api/v1/docs/openapi.json"
+/>
+
+## レート制限
+
+| プラン | 制限 |
+|--------|------|
+| FREE | 取引 50件、AI メッセージ 5件/日 |
+| PRO ($49/月) | 無制限 |
+| CPA ($499/年) | 無制限 + クライアントアカウント 10件 |

@@ -1,0 +1,48 @@
+---
+title: REST API Übersicht
+description: dTax verwaltete REST API — Transaktionen importieren, Gewinne berechnen, Berichte herunterladen
+draft: false
+---
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+Die dTax REST API ist ein verwalteter Dienst unter **`https://getdtax.com/api/v1`**. Sie übernimmt Speicherung, Berechnung und Berichtserstellung, sodass Sie keinen eigenen Zustand verwalten müssen.
+
+## Basis-URL
+
+```
+https://getdtax.com/api/v1
+```
+
+## Authentifizierung
+
+Alle Endpunkte erfordern ein Session-Cookie, das über `/auth/login` erhalten wird. Weitere Details finden Sie unter [Authentifizierung](/de/api/authentication).
+
+## Wichtige Endpunkte
+
+| Endpunkt | Beschreibung |
+|----------|--------------|
+| `POST /transactions/import` | CSV hochladen, automatisch parsen, deduplizieren und speichern |
+| `GET /transactions` | Benutzertransaktionen mit Filtern auflisten |
+| `GET /tax/summary` | Kursgewinn-Zusammenfassung für ein Steuerjahr |
+| `POST /tax/calculate` | Vollständige Gewinnberechnung ausführen |
+| `GET /tax/reports/:id/download` | Formular 8949 / TXF / PDF herunterladen |
+| `GET /notifications` | Benachrichtigungs-Feed des Benutzers |
+
+## OpenAPI-Spezifikation
+
+Die vollständige OpenAPI 3.1-Spezifikation ist verfügbar:
+
+<LinkCard
+  title="OpenAPI JSON"
+  description="Maschinenlesbare Spezifikation für alle Endpunkte"
+  href="https://getdtax.com/api/v1/docs/openapi.json"
+/>
+
+## Ratenlimits
+
+| Plan | Limit |
+|------|-------|
+| FREE | 50 Transaktionen, 5 KI-Nachrichten/Tag |
+| PRO ($49/Monat) | Unbegrenzt |
+| CPA ($499/Jahr) | Unbegrenzt + 10 Kundenkonten |

@@ -1,0 +1,46 @@
+---
+title: Formato CSV Genérico
+description: Cómo formatear un CSV para importación si tu exchange no está soportado
+draft: false
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Si tu exchange no está en la [lista de parsers](/tax-engine/parsers), puedes usar nuestro formato CSV genérico.
+
+## Descargar la plantilla
+
+[Descargar plantilla CSV](https://getdtax.com/csv-template.csv)
+
+## Referencia de columnas
+
+| Columna | Requerida | Tipo | Ejemplo |
+|---------|-----------|------|---------|
+| `Date` | ✅ | ISO 8601 / MM-DD-YYYY | `2024-03-15T14:30:00Z` |
+| `Type` | ✅ | enum (ver abajo) | `BUY` |
+| `Sent Amount` | — | decimal | `0.5` |
+| `Sent Currency` | — | ticker | `BTC` |
+| `Sent Value USD` | — | decimal | `25000.00` |
+| `Received Amount` | — | decimal | `10000` |
+| `Received Currency` | — | ticker | `USDC` |
+| `Received Value USD` | — | decimal | `10000.00` |
+| `Fee Amount` | — | decimal | `0.001` |
+| `Fee Currency` | — | ticker | `ETH` |
+| `Fee Value USD` | — | decimal | `2.50` |
+| `Notes` | — | string | `Sold on Uniswap` |
+
+## Tipos de transacción
+
+| Tipo | Descripción |
+|------|-------------|
+| `BUY` | Compra de cripto con fiat |
+| `SELL` | Venta de cripto por fiat |
+| `TRADE` | Intercambio de cripto a cripto |
+| `TRANSFER_IN` | Recepción desde otra billetera (no tributable) |
+| `TRANSFER_OUT` | Envío a otra billetera (no tributable) |
+| `STAKING` | Recompensas de staking recibidas |
+| `MINING` | Recompensas de minería |
+| `AIRDROP` | Airdrop recibido |
+| `INCOME` | Otros ingresos en cripto |
+| `FEE` | Comisión independiente |
+| `UNKNOWN` | Será clasificado automáticamente por IA |

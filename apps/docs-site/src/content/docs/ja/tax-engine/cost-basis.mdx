@@ -1,0 +1,47 @@
+---
+title: コスト基準計算方法
+description: FIFO、LIFO、HIFO、Specific ID、Germany FIFO、PMPA、Total Average、UK Share Pooling
+draft: false
+---
+
+## 対応メソッド
+
+| メソッド | ID | IRS 準拠 | 備考 |
+|---------|----|---------|----|
+| First In, First Out | `FIFO` | ✅ デフォルト | 最も古いロットから売却 |
+| Last In, First Out | `LIFO` | ⚠️ Specific ID | Specific ID を選択する必要あり |
+| Highest In, First Out | `HIFO` | ⚠️ Specific ID | Specific ID を選択する必要あり |
+| Specific ID | `SPECIFIC_ID` | ✅ | ロットの手動選択 |
+| Germany FIFO | `GERMANY_FIFO` | 🇩🇪 | §23 EStG、1年保有 |
+| PMPA | `PMPA` | 🇨🇦 🇦🇺 | Adjusted Cost Base |
+| Total Average | `TOTAL_AVERAGE` | 🌍 | 平均コスト基準 |
+| UK Share Pooling | `UK_SHARE_POOLING` | 🇬🇧 | Section 104 プール + 30日ルール |
+
+## IRS に関する注記
+
+IRS は仮想通貨に対して **FIFO** と **Specific Identification** を認めています（Rev. Rul. 2023-14）。LIFO と HIFO は技術的には Specific ID 戦略であり、ロットレベルの記録を維持し、選択した方法を一貫して適用する必要があります。
+
+## 使用方法（コードブロック — 翻訳しない）
+
+```typescript
+import { computeGains, compareAllMethods } from '@dtax/tax-engine';
+
+const result = computeGains(transactions, { method: 'FIFO', taxYear: 2024 });
+
+const comparison = compareAllMethods(transactions, 2024);
+comparison.forEach(({ method, totalGain, recommendation }) => {
+  console.log(`${method}: $${totalGain} ${recommendation ? '← recommended' : ''}`);
+});
+```
+
+## 結果の型
+
+```typescript
+interface GainResult {
+  shortTermGain: number;
+  longTermGain: number;
+  totalGain: number;
+  disposals: Disposal[];
+  unrealizedGain?: number;
+}
+```

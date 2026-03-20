@@ -1,0 +1,35 @@
+---
+title: dTax 开发者中心
+description: 开源加密货币税务引擎 — 23个交易所解析器，8种计税方法，支持 Form 8949 / TXF 导出。
+template: splash
+hero:
+  tagline: 专业级加密货币税务计算，以 npm 包形式提供。
+  image:
+    file: ../../../assets/logo-light.svg
+  actions:
+    - text: 快速开始
+      link: /introduction/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/dTaxLab/dtax
+      icon: external
+      variant: minimal
+---
+
+import { CardGrid, Card } from '@astrojs/starlight/components';
+
+<CardGrid stagger>
+  <Card title="@dtax/tax-engine" icon="seti:npm">
+    零依赖 TypeScript 库。解析 CSV 文件，计算资本利得，导出 Form 8949 / TXF。
+  </Card>
+  <Card title="23 个交易所解析器" icon="document">
+    支持 Coinbase、Binance、Kraken、Gemini、Etherscan、Solscan、OKX、Bybit 及其他 15 个平台。
+  </Card>
+  <Card title="8 种计税方法" icon="puzzle">
+    FIFO、LIFO、HIFO、Specific ID、Germany FIFO、PMPA、Total Average、UK Share Pooling。
+  </Card>
+  <Card title="AGPL-3.0 开放核心" icon="open-book">
+    开源项目免费使用。SaaS 产品可购买商业许可证。
+  </Card>
+</CardGrid>

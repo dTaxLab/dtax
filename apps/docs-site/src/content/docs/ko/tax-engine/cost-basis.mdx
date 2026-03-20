@@ -1,0 +1,45 @@
+---
+title: 원가 계산 방법
+description: FIFO, LIFO, HIFO, Specific ID, Germany FIFO, PMPA, Total Average, UK Share Pooling
+draft: false
+---
+
+## 지원 방법
+
+| 방법 | ID | IRS 준수 | 비고 |
+|--------|----|---------------|-------|
+| First In, First Out | `FIFO` | ✅ 기본값 | 가장 오래된 로트부터 매도 |
+| Last In, First Out | `LIFO` | ⚠️ Specific ID | Specific ID로 선택 필요 |
+| Highest In, First Out | `HIFO` | ⚠️ Specific ID | Specific ID로 선택 필요 |
+| Specific ID | `SPECIFIC_ID` | ✅ | 수동 로트 선택 |
+| Germany FIFO | `GERMANY_FIFO` | 🇩🇪 | §23 EStG, 1년 보유 |
+| PMPA | `PMPA` | 🇨🇦 🇦🇺 | Adjusted Cost Base |
+| Total Average | `TOTAL_AVERAGE` | 🌍 | 평균 원가 기준 |
+| UK Share Pooling | `UK_SHARE_POOLING` | 🇬🇧 | Section 104 풀 + 30일 규칙 |
+
+## IRS 참고 사항
+
+IRS는 암호화폐에 대해 **FIFO**와 **Specific Identification**을 허용합니다 (Rev. Rul. 2023-14). LIFO와 HIFO는 기술적으로 Specific ID 전략의 하위 유형입니다.
+
+## 사용법
+
+```typescript
+import { computeGains, compareAllMethods } from '@dtax/tax-engine';
+const result = computeGains(transactions, { method: 'FIFO', taxYear: 2024 });
+const comparison = compareAllMethods(transactions, 2024);
+comparison.forEach(({ method, totalGain, recommendation }) => {
+  console.log(`${method}: $${totalGain} ${recommendation ? '← recommended' : ''}`);
+});
+```
+
+## 결과 구조
+
+```typescript
+interface GainResult {
+  shortTermGain: number;
+  longTermGain: number;
+  totalGain: number;
+  disposals: Disposal[];
+  unrealizedGain?: number;
+}
+```

@@ -7,6 +7,16 @@ export default defineConfig({
     starlight({
       title: 'dTax Developer Hub',
       description: 'Open-source crypto tax engine. 23 exchange parsers, FIFO/LIFO/HIFO, Form 8949.',
+      defaultLocale: 'en',
+      locales: {
+        en: { label: 'English' },
+        'zh-CN': { label: '简体中文', lang: 'zh-CN' },
+        ja: { label: '日本語' },
+        ko: { label: '한국어' },
+        de: { label: 'Deutsch' },
+        fr: { label: 'Français' },
+        es: { label: 'Español' },
+      },
       logo: {
         light: './src/assets/logo-light.svg',
         dark: './src/assets/logo-dark.svg',
@@ -16,6 +26,9 @@ export default defineConfig({
         { icon: 'github', label: 'GitHub', href: 'https://github.com/dTaxLab/dtax' },
       ],
       customCss: ['./src/styles/custom.css'],
+      components: {
+        Footer: './src/components/Footer.astro',
+      },
       sidebar: [
         {
           label: 'Getting Started',

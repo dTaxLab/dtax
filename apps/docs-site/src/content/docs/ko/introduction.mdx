@@ -1,0 +1,38 @@
+---
+title: 소개
+description: dTax와 dtax.dev 개발자 허브에 대한 소개
+draft: false
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# dTax 개발자 허브
+
+**dTax**는 오픈 코어 암호화폐 세금 플랫폼입니다. 핵심 계산 엔진은 AGPL-3.0 라이선스로 npm 패키지로 제공되어, 자체 애플리케이션에 전문가급 암호화폐 세금 계산 기능을 통합할 수 있습니다.
+
+## 제공 내용
+
+<CardGrid>
+  <Card title="@dtax/tax-engine" icon="seti:npm">
+    거래소 CSV를 파싱하고 원하는 원가 계산 방법으로 자본 이득을 계산하는 의존성 없는 TypeScript 라이브러리.
+  </Card>
+  <Card title="REST API" icon="random">
+    거래 내역 가져오기, 세금 계산 실행, Form 8949 / TXF 보고서 생성을 위한 관리형 API — 별도 인프라 불필요.
+  </Card>
+  <Card title="23개 거래소 파서" icon="document">
+    Coinbase, Binance, Kraken, Gemini, Etherscan, Solscan, OKX, Bybit 및 15개 이상의 내장 파서.
+  </Card>
+  <Card title="8가지 원가 계산 방법" icon="puzzle">
+    FIFO, LIFO, HIFO, Specific ID, Germany FIFO, PMPA, Total Average, UK Share Pooling.
+  </Card>
+</CardGrid>
+
+## 오픈 코어 모델
+
+| 레이어 | 라이선스 | 접근 방법 |
+|-------|---------|--------|
+| `@dtax/tax-engine` | AGPL-3.0 | GitHub + npm 공개 |
+| REST API | 상업용 | getdtax.com |
+| 웹 앱 | 상업용 | getdtax.com |
+
+세금 엔진을 상업 제품에 사용하는 경우, 변경 사항을 오픈소스로 공개(AGPL-3.0)하거나 **또는** 상업 라이선스 문의를 해주세요.

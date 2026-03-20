@@ -1,0 +1,37 @@
+---
+title: 認証
+description: dTax REST API への認証方法
+draft: false
+---
+
+dTax API は認証に **HttpOnly セッションクッキー** を使用します。これにより XSS によるトークン盗難を防ぎます。
+
+## サインアップ / ログイン
+
+```bash
+# Create account
+curl -X POST https://getdtax.com/api/v1/auth/register   -H "Content-Type: application/json"   -d '{"email":"you@example.com","password":"yourpassword"}'   -c cookies.txt
+
+# Login
+curl -X POST https://getdtax.com/api/v1/auth/login   -H "Content-Type: application/json"   -d '{"email":"you@example.com","password":"yourpassword"}'   -c cookies.txt
+```
+
+レスポンスには、7日間有効な `session` HttpOnly クッキーが設定されます。
+
+## クッキーの使用方法
+
+```bash
+# All subsequent requests use -b cookies.txt
+curl https://getdtax.com/api/v1/transactions   -b cookies.txt
+```
+
+## OAuth
+
+Google および GitHub による OAuth 認証もサポートしています：
+
+```
+GET https://getdtax.com/auth/google
+GET https://getdtax.com/auth/github
+```
+
+認証成功後、どちらも `getdtax.com/auth/callback` にリダイレクトされます。
