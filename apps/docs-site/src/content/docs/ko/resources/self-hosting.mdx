@@ -1,0 +1,202 @@
+---
+title: 셀프 호스팅
+description: Docker Compose를 사용하여 자체 서버에 dTax 배포 — PostgreSQL, Redis, API, Web 전체 스택
+draft: false
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+Docker Compose를 사용하여 Linux 서버에 dTax를 15분 내에 배포할 수 있습니다.
+
+## 사전 요구사항
+
+- Linux 서버 (Ubuntu 22.04+ 권장), RAM 2GB 이상
+- Docker Engine 24+ 및 Docker Compose v2
+- 서버 IP로 연결된 도메인 이름
+- 방화벽에서 포트 80 및 443 개방
+
+## 빠른 시작
+
+<Steps>
+
+1. **저장소 클론**
+
+   ```bash
+   git clone https://github.com/dTaxLab/dtax.git
+   cd dtax
+   ```
+
+2. **환경 변수 설정**
+
+   ```bash
+   cp .env.production.example .env
+   ```
+
+   `.env`를 편집하여 모든 필수 값을 입력하세요:
+
+   | 변수 | 설명 |
+   | ---- | ---- |
+   | `POSTGRES_PASSWORD` | 강력한 데이터베이스 비밀번호 |
+   | `JWT_SECRET` | 무작위 문자열, 32자 이상 |
+   | `ENCRYPTION_KEY` | **64자 16진수 문자열** — 아래 주의사항 참조 |
+   | `CORS_ORIGIN` | 도메인 (예: `https://tax.example.com`) |
+   | `APP_URL` | 동일 도메인 (비밀번호 재설정 이메일 링크에 사용) |
+   | `NEXT_PUBLIC_API_URL` | `https://tax.example.com/api`（**빌드 시간 변수** — `docker compose build` 실행 전에 설정 필수） |
+
+   <Aside type="caution" title="ENCRYPTION_KEY 형식">
+   암호화 키는 **64자 16진수 문자열**(32 바이트)이어야 합니다. 다른 형식을 사용하면 API가 시작 시 크래시됩니다.
+
+   ```bash
+   openssl rand -hex 32      # → ENCRYPTION_KEY
+   openssl rand -base64 32   # → JWT_SECRET
+   openssl rand -base64 24   # → POSTGRES_PASSWORD
+   ```
+   </Aside>
+
+3. **서비스 시작**
+
+   ```bash
+   docker compose up -d
+   ```
+
+   PostgreSQL, Redis, API, Web, nginx가 시작됩니다. `migrate` 서비스가 데이터베이스 마이그레이션을 자동으로 실행합니다.
+
+   동작 확인:
+
+   ```bash
+   docker compose ps
+   curl http://localhost/api/health
+   ```
+
+</Steps>
+
+## 아키텍처
+
+```
+                ┌──────────┐
+  :80/:443  ────│  nginx   │
+                └────┬─────┘
+                ┌────┴─────┐
+          ┌─────│  라우팅  │─────┐
+          │     └──────────┘     │
+     ┌────┴───┐            ┌─────┴────┐
+     │  API   │            │   Web    │
+     │ :3001  │            │  :3000   │
+     └────┬───┘            └──────────┘
+     ┌────┴───┐  ┌───────┐
+     │Postgres│  │ Redis │
+     └────────┘  └───────┘
+```
+
+## TLS 인증서 (Let's Encrypt)
+
+<Steps>
+
+1. **nginx 설정 업데이트**
+
+   `docker/nginx/nginx.conf`를 편집하여 `server_name _;`을 도메인으로 교체:
+
+   ```nginx
+   server_name tax.example.com;
+   ```
+
+2. **인증서 발급**
+
+   ```bash
+   docker compose up -d nginx
+
+   docker run --rm \
+     -v dtax_letsencrypt:/etc/letsencrypt \
+     -v dtax_certbot-data:/var/www/certbot \
+     certbot/certbot certonly \
+     --webroot -w /var/www/certbot \
+     -d tax.example.com \
+     --agree-tos --email you@example.com
+   ```
+
+3. **HTTPS 활성화 후 nginx 재시작**
+
+   ```bash
+   docker compose restart nginx
+   ```
+
+4. **인증서 자동 갱신**
+
+   ```bash
+   echo "0 3 * * * docker run --rm \
+     -v dtax_letsencrypt:/etc/letsencrypt \
+     -v dtax_certbot-data:/var/www/certbot \
+     certbot/certbot renew --quiet \
+     && docker compose restart nginx" | crontab -
+   ```
+
+</Steps>
+
+## 첫 번째 관리자 계정
+
+1. `https://yourdomain.com/register`에서 계정 등록
+2. 데이터베이스에서 관리자로 승격:
+
+```bash
+docker compose exec postgres psql -U dtax -c \
+  "UPDATE \"User\" SET role='ADMIN' WHERE email='your@email.com';"
+```
+
+## 업데이트
+
+```bash
+git pull
+docker compose build
+docker compose up -d
+```
+
+## 백업
+
+```bash
+chmod +x docker/scripts/backup.sh
+./docker/scripts/backup.sh ./backups
+
+# 매일 오전 2시 자동 백업
+echo "0 2 * * * /path/to/dtax/docker/scripts/backup.sh /path/to/dtax/backups" | crontab -
+
+# 백업에서 복원
+gunzip -c backups/dtax_20260313_020000.sql.gz | \
+  docker compose exec -T postgres psql -U dtax dtax
+```
+
+## 선택적 서비스
+
+| 서비스 | 환경 변수 | 용도 |
+| ------ | --------- | ---- |
+| Resend | `RESEND_API_KEY`, `FROM_EMAIL` | 이메일 인증 및 비밀번호 재설정 (미설정 시 비밀번호 재설정 불가) |
+| Stripe | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_ID`, `STRIPE_CPA_PRICE_ID` | 구독 결제 |
+| Anthropic | `ANTHROPIC_API_KEY` | AI 트랜잭션 분류 및 채팅 |
+| Etherscan | `ETHERSCAN_API_KEY` | EVM 블록체인 인덱싱 |
+| Solscan | `SOLSCAN_API_KEY` | Solana 블록체인 인덱싱 |
+| PostHog | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` | 제품 분석 |
+| Sentry | `SENTRY_DSN` | 오류 추적 |
+
+## 문제 해결
+
+**서비스가 시작되지 않음**
+
+```bash
+docker compose logs api
+docker compose logs web
+docker compose logs nginx
+```
+
+**API가 즉시 크래시**
+
+API 로그에서 `FATAL: ENCRYPTION_KEY`를 확인하세요. `openssl rand -hex 32`로 재생성하세요.
+
+**모든 것 초기화**
+
+<Aside type="danger">
+데이터베이스를 포함한 모든 데이터가 삭제됩니다. 먼저 백업하세요.
+</Aside>
+
+```bash
+docker compose down -v
+docker compose up -d
+```

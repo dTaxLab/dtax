@@ -1,0 +1,202 @@
+---
+title: Auto-hébergement
+description: Déployer dTax sur votre propre serveur avec Docker Compose — stack complet avec PostgreSQL, Redis, API et Web
+draft: false
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+Déployez dTax sur votre serveur Linux en moins de 15 minutes avec Docker Compose.
+
+## Prérequis
+
+- Serveur Linux (Ubuntu 22.04+ recommandé), 2+ Go de RAM
+- Docker Engine 24+ et Docker Compose v2
+- Un nom de domaine pointant vers l'IP du serveur
+- Ports 80 et 443 ouverts dans le pare-feu
+
+## Démarrage rapide
+
+<Steps>
+
+1. **Cloner le dépôt**
+
+   ```bash
+   git clone https://github.com/dTaxLab/dtax.git
+   cd dtax
+   ```
+
+2. **Configurer les variables d'environnement**
+
+   ```bash
+   cp .env.production.example .env
+   ```
+
+   Éditez `.env` et renseignez toutes les valeurs requises :
+
+   | Variable | Description |
+   | -------- | ----------- |
+   | `POSTGRES_PASSWORD` | Mot de passe de base de données robuste |
+   | `JWT_SECRET` | Chaîne aléatoire, 32 caractères minimum |
+   | `ENCRYPTION_KEY` | **Chaîne hexadécimale de 64 caractères** — voir note ci-dessous |
+   | `CORS_ORIGIN` | Votre domaine, ex. `https://tax.example.com` |
+   | `APP_URL` | Même domaine (utilisé dans les emails de réinitialisation) |
+   | `NEXT_PUBLIC_API_URL` | `https://tax.example.com/api` (**variable compilée** — doit être définie avant `docker compose build`) |
+
+   <Aside type="caution" title="Format de ENCRYPTION_KEY">
+   La clé de chiffrement **doit** être une chaîne hexadécimale de 64 caractères (32 octets bruts). Tout autre format provoque un crash de l'API au démarrage.
+
+   ```bash
+   openssl rand -hex 32      # → ENCRYPTION_KEY
+   openssl rand -base64 32   # → JWT_SECRET
+   openssl rand -base64 24   # → POSTGRES_PASSWORD
+   ```
+   </Aside>
+
+3. **Démarrer les services**
+
+   ```bash
+   docker compose up -d
+   ```
+
+   Lance PostgreSQL, Redis, API, Web et nginx. Le service `migrate` exécute automatiquement les migrations de base de données.
+
+   Vérifier le bon fonctionnement :
+
+   ```bash
+   docker compose ps
+   curl http://localhost/api/health
+   ```
+
+</Steps>
+
+## Architecture
+
+```
+                ┌──────────┐
+  :80/:443  ────│  nginx   │
+                └────┬─────┘
+                ┌────┴─────┐
+          ┌─────│ Routage  │─────┐
+          │     └──────────┘     │
+     ┌────┴───┐            ┌─────┴────┐
+     │  API   │            │   Web    │
+     │ :3001  │            │  :3000   │
+     └────┬───┘            └──────────┘
+     ┌────┴───┐  ┌───────┐
+     │Postgres│  │ Redis │
+     └────────┘  └───────┘
+```
+
+## TLS avec Let's Encrypt
+
+<Steps>
+
+1. **Mettre à jour la configuration nginx**
+
+   Éditez `docker/nginx/nginx.conf` et remplacez `server_name _;` par votre domaine :
+
+   ```nginx
+   server_name tax.example.com;
+   ```
+
+2. **Obtenir le certificat**
+
+   ```bash
+   docker compose up -d nginx
+
+   docker run --rm \
+     -v dtax_letsencrypt:/etc/letsencrypt \
+     -v dtax_certbot-data:/var/www/certbot \
+     certbot/certbot certonly \
+     --webroot -w /var/www/certbot \
+     -d tax.example.com \
+     --agree-tos --email you@example.com
+   ```
+
+3. **Activer HTTPS et redémarrer nginx**
+
+   ```bash
+   docker compose restart nginx
+   ```
+
+4. **Renouvellement automatique des certificats**
+
+   ```bash
+   echo "0 3 * * * docker run --rm \
+     -v dtax_letsencrypt:/etc/letsencrypt \
+     -v dtax_certbot-data:/var/www/certbot \
+     certbot/certbot renew --quiet \
+     && docker compose restart nginx" | crontab -
+   ```
+
+</Steps>
+
+## Premier administrateur
+
+1. Créez un compte sur `https://yourdomain.com/register`
+2. Promouvez le compte en administrateur via la base de données :
+
+```bash
+docker compose exec postgres psql -U dtax -c \
+  "UPDATE \"User\" SET role='ADMIN' WHERE email='your@email.com';"
+```
+
+## Mises à jour
+
+```bash
+git pull
+docker compose build
+docker compose up -d
+```
+
+## Sauvegardes
+
+```bash
+chmod +x docker/scripts/backup.sh
+./docker/scripts/backup.sh ./backups
+
+# Sauvegarde automatique chaque jour à 2h
+echo "0 2 * * * /path/to/dtax/docker/scripts/backup.sh /path/to/dtax/backups" | crontab -
+
+# Restaurer depuis une sauvegarde
+gunzip -c backups/dtax_20260313_020000.sql.gz | \
+  docker compose exec -T postgres psql -U dtax dtax
+```
+
+## Services optionnels
+
+| Service | Variables d'environnement | Rôle |
+| ------- | ------------------------- | ---- |
+| Resend | `RESEND_API_KEY`, `FROM_EMAIL` | Vérification email & réinitialisation mot de passe (sans cela, impossible de réinitialiser les mots de passe) |
+| Stripe | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_ID`, `STRIPE_CPA_PRICE_ID` | Facturation des abonnements |
+| Anthropic | `ANTHROPIC_API_KEY` | Classification IA des transactions & chat |
+| Etherscan | `ETHERSCAN_API_KEY` | Indexation blockchain EVM |
+| Solscan | `SOLSCAN_API_KEY` | Indexation blockchain Solana |
+| PostHog | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` | Analytics produit |
+| Sentry | `SENTRY_DSN` | Suivi des erreurs |
+
+## Dépannage
+
+**Les services ne démarrent pas**
+
+```bash
+docker compose logs api
+docker compose logs web
+docker compose logs nginx
+```
+
+**L'API crashe immédiatement**
+
+Cherchez `FATAL: ENCRYPTION_KEY` dans les logs API. Régénérez la clé avec `openssl rand -hex 32`.
+
+**Tout réinitialiser**
+
+<Aside type="danger">
+Supprime toutes les données, y compris la base de données. Effectuez d'abord une sauvegarde.
+</Aside>
+
+```bash
+docker compose down -v
+docker compose up -d
+```

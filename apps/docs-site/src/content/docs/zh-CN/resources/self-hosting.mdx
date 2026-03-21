@@ -1,0 +1,263 @@
+---
+title: 自托管部署
+description: 使用 Docker Compose 在自有服务器上部署 dTax — 包含 PostgreSQL、Redis、API 和 Web 完整栈
+draft: false
+---
+
+import { Steps, Code, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+使用 Docker Compose 在自有 Linux 服务器上部署 dTax，15 分钟内完成。
+
+## 前提条件
+
+- Linux 服务器（推荐 Ubuntu 22.04+），2 GB+ 内存
+- Docker Engine 24+ 和 Docker Compose v2
+- 已将域名指向服务器 IP
+- 防火墙开放 80 和 443 端口
+
+## 快速开始
+
+<Steps>
+
+1. **克隆仓库**
+
+   ```bash
+   git clone https://github.com/dTaxLab/dtax.git
+   cd dtax
+   ```
+
+2. **配置环境变量**
+
+   ```bash
+   cp .env.production.example .env
+   ```
+
+   编辑 `.env`，填写所有必填项：
+
+   | 变量 | 说明 |
+   | ---- | ---- |
+   | `POSTGRES_PASSWORD` | 强数据库密码 |
+   | `JWT_SECRET` | 随机字符串，至少 32 字符 |
+   | `ENCRYPTION_KEY` | **64 字符十六进制字符串** — 见下方说明 |
+   | `CORS_ORIGIN` | 你的域名，例如 `https://tax.example.com` |
+   | `APP_URL` | 同上域名（用于密码重置邮件链接） |
+   | `NEXT_PUBLIC_API_URL` | `https://tax.example.com/api`（**构建时变量**，必须在 `docker compose build` 之前设置） |
+
+   <Aside type="caution" title="ENCRYPTION_KEY 格式要求">
+   加密密钥**必须**是 64 字符十六进制字符串（32 原始字节）。使用其他格式会导致 API 在启动时崩溃。
+
+   ```bash
+   openssl rand -hex 32      # → ENCRYPTION_KEY
+   openssl rand -base64 32   # → JWT_SECRET
+   openssl rand -base64 24   # → POSTGRES_PASSWORD
+   ```
+   </Aside>
+
+3. **启动服务**
+
+   <Aside type="caution" title="先构建再启动">
+   在运行 `docker compose build` **之前**，必须先在 `.env` 中设置所有变量。`NEXT_PUBLIC_*` 变量会在镜像构建时被编译进 JavaScript bundle，构建后修改无效。
+
+   ```bash
+   docker compose build
+   docker compose up -d
+   ```
+   </Aside>
+
+   此命令会启动 PostgreSQL、Redis、API、Web 和 nginx。`migrate` 服务会自动执行数据库迁移。
+
+   验证运行状态：
+
+   ```bash
+   docker compose ps
+   curl http://localhost/api/health
+   ```
+
+</Steps>
+
+## 架构说明
+
+```
+                ┌──────────┐
+  :80/:443  ────│  nginx   │
+                └────┬─────┘
+                ┌────┴─────┐
+          ┌─────│  路由    │─────┐
+          │     └──────────┘     │
+     ┌────┴───┐            ┌─────┴────┐
+     │  API   │            │   Web    │
+     │ :3001  │            │  :3000   │
+     └────┬───┘            └──────────┘
+     ┌────┴───┐  ┌───────┐
+     │Postgres│  │ Redis │
+     └────────┘  └───────┘
+```
+
+## TLS 证书（Let's Encrypt）
+
+<Steps>
+
+1. **更新 nginx 配置**
+
+   编辑 `docker/nginx/nginx.conf`，将 `server_name _;` 替换为你的域名：
+
+   ```nginx
+   server_name tax.example.com;
+   ```
+
+2. **申请证书**
+
+   ```bash
+   docker compose up -d nginx
+
+   docker run --rm \
+     -v dtax_letsencrypt:/etc/letsencrypt \
+     -v dtax_certbot-data:/var/www/certbot \
+     certbot/certbot certonly \
+     --webroot -w /var/www/certbot \
+     -d tax.example.com \
+     --agree-tos --email you@example.com
+   ```
+
+3. **启用 HTTPS**
+
+   在 `docker/nginx/nginx.conf` 中添加 HTTPS 服务块：
+
+   ```nginx
+   server {
+       listen 443 ssl http2;
+       server_name tax.example.com;
+
+       ssl_certificate /etc/letsencrypt/live/tax.example.com/fullchain.pem;
+       ssl_certificate_key /etc/letsencrypt/live/tax.example.com/privkey.pem;
+       include /etc/nginx/snippets/ssl-params.conf;
+
+       location /api/ {
+           proxy_pass http://api/api/;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+           proxy_buffering off;
+           proxy_cache off;
+           proxy_read_timeout 300s;
+       }
+
+       location / {
+           proxy_pass http://web;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+       }
+   }
+   ```
+
+   ```bash
+   docker compose restart nginx
+   ```
+
+4. **自动续期证书**
+
+   ```bash
+   echo "0 3 * * * docker run --rm \
+     -v dtax_letsencrypt:/etc/letsencrypt \
+     -v dtax_certbot-data:/var/www/certbot \
+     certbot/certbot renew --quiet \
+     && docker compose restart nginx" | crontab -
+   ```
+
+</Steps>
+
+## 创建管理员账号
+
+1. 访问 `https://yourdomain.com/register` 注册账号
+2. 通过数据库将账号提升为管理员：
+
+```bash
+docker compose exec postgres psql -U dtax -c \
+  "UPDATE \"User\" SET role='ADMIN' WHERE email='your@email.com';"
+```
+
+## 更新
+
+```bash
+git pull
+docker compose build
+docker compose up -d
+```
+
+`migrate` 服务会自动应用新的数据库迁移。
+
+## 数据备份
+
+```bash
+# 执行备份
+chmod +x docker/scripts/backup.sh
+./docker/scripts/backup.sh ./backups
+
+# 每天凌晨 2 点自动备份
+echo "0 2 * * * /path/to/dtax/docker/scripts/backup.sh /path/to/dtax/backups" | crontab -
+
+# 从备份恢复
+gunzip -c backups/dtax_20260313_020000.sql.gz | \
+  docker compose exec -T postgres psql -U dtax dtax
+```
+
+## 可选服务
+
+| 服务 | 环境变量 | 用途 |
+| ---- | -------- | ---- |
+| Resend | `RESEND_API_KEY`、`FROM_EMAIL` | 邮件验证和密码重置（未配置则用户无法找回密码） |
+| Stripe | `STRIPE_SECRET_KEY`、`STRIPE_WEBHOOK_SECRET`、`STRIPE_PRO_PRICE_ID`、`STRIPE_CPA_PRICE_ID` | 订阅付费功能 |
+| Anthropic | `ANTHROPIC_API_KEY` | AI 交易分类和智能对话 |
+| Etherscan | `ETHERSCAN_API_KEY` | EVM 链上交易索引（以太坊、Polygon、BSC、Arbitrum、Optimism） |
+| Solscan | `SOLSCAN_API_KEY` | Solana 链上交易索引 |
+| PostHog | `NEXT_PUBLIC_POSTHOG_KEY`、`NEXT_PUBLIC_POSTHOG_HOST` | 产品数据分析 |
+| Sentry | `SENTRY_DSN` | 错误追踪 |
+
+所有可选服务未配置时均会优雅降级，不影响核心功能。
+
+## 常见问题
+
+**服务启动失败**
+
+```bash
+docker compose logs api    # 查看 API 日志
+docker compose logs web    # 查看 Web 日志
+docker compose logs nginx  # 查看 nginx 日志
+```
+
+**API 立即崩溃**
+
+在 API 日志中查找 `FATAL: ENCRYPTION_KEY` — 这表示 `ENCRYPTION_KEY` 不是有效的 64 字符十六进制字符串。使用 `openssl rand -hex 32` 重新生成。
+
+**数据库连接错误**
+
+确认 `.env` 中的 `POSTGRES_PASSWORD` 与 postgres 卷首次创建时使用的密码一致：
+
+```bash
+docker compose ps postgres
+docker compose logs postgres
+```
+
+**端口冲突**
+
+如果 80 或 443 端口已被占用，编辑 `docker-compose.yml` 修改 nginx 的端口映射。
+
+**磁盘空间不足**
+
+```bash
+docker system prune -f     # 清理未使用的镜像和容器
+```
+
+**重置所有数据**
+
+<Aside type="danger">
+此操作会销毁所有数据，包括数据库内容。请先完成备份。
+</Aside>
+
+```bash
+docker compose down -v
+docker compose up -d
+```

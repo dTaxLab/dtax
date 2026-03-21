@@ -1,0 +1,205 @@
+---
+title: セルフホスティング
+description: Docker Compose を使用して自分のサーバーに dTax をデプロイ — PostgreSQL、Redis、API、Web の完全スタック
+draft: false
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+Docker Compose を使って Linux サーバーに dTax を 15 分以内でデプロイできます。
+
+## 前提条件
+
+- Linux サーバー（Ubuntu 22.04+ 推奨）、2 GB 以上の RAM
+- Docker Engine 24+ および Docker Compose v2
+- サーバーの IP に向けたドメイン名
+- ファイアウォールでポート 80 と 443 を開放
+
+## クイックスタート
+
+<Steps>
+
+1. **リポジトリをクローン**
+
+   ```bash
+   git clone https://github.com/dTaxLab/dtax.git
+   cd dtax
+   ```
+
+2. **環境変数を設定**
+
+   ```bash
+   cp .env.production.example .env
+   ```
+
+   `.env` を編集して必須項目をすべて入力してください：
+
+   | 変数 | 説明 |
+   | ---- | ---- |
+   | `POSTGRES_PASSWORD` | 強力なデータベースパスワード |
+   | `JWT_SECRET` | ランダムな文字列（32 文字以上） |
+   | `ENCRYPTION_KEY` | **64 文字の 16 進数文字列** — 下記の注意事項を参照 |
+   | `CORS_ORIGIN` | ドメイン名（例: `https://tax.example.com`） |
+   | `APP_URL` | 同じドメイン（パスワードリセットメールのリンクに使用） |
+   | `NEXT_PUBLIC_API_URL` | `https://tax.example.com/api`（**ビルド時変数** — `docker compose build` 実行前に設定必須） |
+
+   <Aside type="caution" title="ENCRYPTION_KEY の形式">
+   暗号化キーは **64 文字の 16 進数文字列**（32 バイト）でなければなりません。他の形式の場合、API は起動時にクラッシュします。
+
+   ```bash
+   openssl rand -hex 32      # → ENCRYPTION_KEY
+   openssl rand -base64 32   # → JWT_SECRET
+   openssl rand -base64 24   # → POSTGRES_PASSWORD
+   ```
+   </Aside>
+
+3. **サービスを起動**
+
+   ```bash
+   docker compose up -d
+   ```
+
+   PostgreSQL、Redis、API、Web、nginx が起動します。`migrate` サービスがデータベースマイグレーションを自動実行します。
+
+   動作確認：
+
+   ```bash
+   docker compose ps
+   curl http://localhost/api/health
+   ```
+
+</Steps>
+
+## アーキテクチャ
+
+```
+                ┌──────────┐
+  :80/:443  ────│  nginx   │
+                └────┬─────┘
+                ┌────┴─────┐
+          ┌─────│ ルーティング │─────┐
+          │     └──────────┘       │
+     ┌────┴───┐              ┌─────┴────┐
+     │  API   │              │   Web    │
+     │ :3001  │              │  :3000   │
+     └────┬───┘              └──────────┘
+     ┌────┴───┐  ┌───────┐
+     │Postgres│  │ Redis │
+     └────────┘  └───────┘
+```
+
+## TLS 証明書（Let's Encrypt）
+
+<Steps>
+
+1. **nginx 設定を更新**
+
+   `docker/nginx/nginx.conf` を編集して `server_name _;` をドメインに変更：
+
+   ```nginx
+   server_name tax.example.com;
+   ```
+
+2. **証明書を取得**
+
+   ```bash
+   docker compose up -d nginx
+
+   docker run --rm \
+     -v dtax_letsencrypt:/etc/letsencrypt \
+     -v dtax_certbot-data:/var/www/certbot \
+     certbot/certbot certonly \
+     --webroot -w /var/www/certbot \
+     -d tax.example.com \
+     --agree-tos --email you@example.com
+   ```
+
+3. **HTTPS を有効化**
+
+   `docker/nginx/nginx.conf` に HTTPS サーバーブロックを追加後、nginx を再起動：
+
+   ```bash
+   docker compose restart nginx
+   ```
+
+4. **証明書の自動更新**
+
+   ```bash
+   echo "0 3 * * * docker run --rm \
+     -v dtax_letsencrypt:/etc/letsencrypt \
+     -v dtax_certbot-data:/var/www/certbot \
+     certbot/certbot renew --quiet \
+     && docker compose restart nginx" | crontab -
+   ```
+
+</Steps>
+
+## 最初の管理者ユーザー
+
+1. `https://yourdomain.com/register` でアカウントを登録
+2. データベースで管理者に昇格：
+
+```bash
+docker compose exec postgres psql -U dtax -c \
+  "UPDATE \"User\" SET role='ADMIN' WHERE email='your@email.com';"
+```
+
+## アップデート
+
+```bash
+git pull
+docker compose build
+docker compose up -d
+```
+
+## バックアップ
+
+```bash
+# バックアップ実行
+chmod +x docker/scripts/backup.sh
+./docker/scripts/backup.sh ./backups
+
+# 毎日午前 2 時に自動バックアップ
+echo "0 2 * * * /path/to/dtax/docker/scripts/backup.sh /path/to/dtax/backups" | crontab -
+
+# バックアップから復元
+gunzip -c backups/dtax_20260313_020000.sql.gz | \
+  docker compose exec -T postgres psql -U dtax dtax
+```
+
+## オプションサービス
+
+| サービス | 環境変数 | 用途 |
+| -------- | -------- | ---- |
+| Resend | `RESEND_API_KEY`、`FROM_EMAIL` | メール認証・パスワードリセット（未設定の場合パスワードリセット不可） |
+| Stripe | `STRIPE_SECRET_KEY`、`STRIPE_WEBHOOK_SECRET`、`STRIPE_PRO_PRICE_ID`、`STRIPE_CPA_PRICE_ID` | サブスクリプション課金 |
+| Anthropic | `ANTHROPIC_API_KEY` | AI トランザクション分類・チャット |
+| Etherscan | `ETHERSCAN_API_KEY` | EVM ブロックチェーンインデックス |
+| Solscan | `SOLSCAN_API_KEY` | Solana ブロックチェーンインデックス |
+| PostHog | `NEXT_PUBLIC_POSTHOG_KEY`、`NEXT_PUBLIC_POSTHOG_HOST` | プロダクト分析 |
+| Sentry | `SENTRY_DSN` | エラートラッキング |
+
+## トラブルシューティング
+
+**サービスが起動しない**
+
+```bash
+docker compose logs api
+docker compose logs web
+docker compose logs nginx
+```
+
+**API が即座にクラッシュする**
+
+API ログで `FATAL: ENCRYPTION_KEY` を確認してください。`ENCRYPTION_KEY` が有効な 64 文字の 16 進数文字列でないことを示しています。`openssl rand -hex 32` で再生成してください。
+
+**すべてをリセット**
+
+<Aside type="danger">
+データベースを含むすべてのデータが削除されます。事前にバックアップを取ってください。
+</Aside>
+
+```bash
+docker compose down -v
+docker compose up -d
+```

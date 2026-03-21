@@ -26,18 +26,19 @@ cp .env.production.example .env
 
 Edit `.env` and set **all required values**:
 
-| Variable            | Description                                 |
-| ------------------- | ------------------------------------------- |
-| `POSTGRES_PASSWORD` | Strong database password                    |
-| `JWT_SECRET`        | Random string, at least 32 characters       |
-| `ENCRYPTION_KEY`    | Random string, at least 32 characters       |
-| `CORS_ORIGIN`       | Your domain, e.g. `https://tax.example.com` |
+| Variable            | Description                                                                                                     |
+| ------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_PASSWORD` | Strong database password                                                                                        |
+| `JWT_SECRET`        | Random string, at least 32 characters                                                                           |
+| `ENCRYPTION_KEY`    | **64-character hex string** (32 raw bytes). Use `openssl rand -hex 32` — other formats crash the API on startup |
+| `CORS_ORIGIN`       | Your domain, e.g. `https://tax.example.com`                                                                     |
+| `APP_URL`           | Public URL of your web app (used in password-reset emails), e.g. `https://tax.example.com`                      |
 
 Generate secure secrets:
 
 ```bash
-openssl rand -base64 48  # Use output for JWT_SECRET
-openssl rand -base64 48  # Use output for ENCRYPTION_KEY
+openssl rand -hex 32     # Use output for ENCRYPTION_KEY (must be 64-char hex)
+openssl rand -base64 32  # Use output for JWT_SECRET
 openssl rand -base64 24  # Use output for POSTGRES_PASSWORD
 ```
 
@@ -190,15 +191,15 @@ gunzip -c backups/dtax_20260313_020000.sql.gz | \
 
 ## Optional Services
 
-| Service   | Env Variable              | Purpose                              |
-| --------- | ------------------------- | ------------------------------------ |
-| Resend    | `RESEND_API_KEY`          | Email verification & password reset  |
-| Stripe    | `STRIPE_SECRET_KEY`       | Payment processing                   |
-| Anthropic | `ANTHROPIC_API_KEY`       | AI transaction classification & chat |
-| Etherscan | `ETHERSCAN_API_KEY`       | EVM blockchain indexing              |
-| Solscan   | `SOLSCAN_API_KEY`         | Solana blockchain indexing           |
-| PostHog   | `NEXT_PUBLIC_POSTHOG_KEY` | Product analytics                    |
-| Sentry    | `SENTRY_DSN`              | Error tracking                       |
+| Service   | Env Variables                                                                              | Purpose                                                                          |
+| --------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| Resend    | `RESEND_API_KEY`, `FROM_EMAIL`                                                             | Email verification & password reset (without this, users cannot reset passwords) |
+| Stripe    | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_ID`, `STRIPE_CPA_PRICE_ID` | Payment processing & subscription billing                                        |
+| Anthropic | `ANTHROPIC_API_KEY`                                                                        | AI transaction classification & chat                                             |
+| Etherscan | `ETHERSCAN_API_KEY`                                                                        | EVM blockchain indexing (Ethereum, Polygon, BSC, Arbitrum, Optimism)             |
+| Solscan   | `SOLSCAN_API_KEY`                                                                          | Solana blockchain indexing                                                       |
+| PostHog   | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`                                      | Product analytics                                                                |
+| Sentry    | `SENTRY_DSN`                                                                               | Error tracking                                                                   |
 
 All optional services degrade gracefully when not configured.
 
