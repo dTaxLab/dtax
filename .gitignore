@@ -58,3 +58,4 @@ data/reports/
 
 # Generated
 *.tsbuildinfo
+apps/data/
