@@ -166,3 +166,6 @@ export type {
   RiskReport,
   RiskScanTransaction,
 } from "./risk-scanner";
+
+// Price Provider Interface
+export type { PriceProvider, PricePoint } from "./price-provider";
