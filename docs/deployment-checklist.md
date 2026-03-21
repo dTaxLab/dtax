@@ -125,6 +125,7 @@ docker compose up -d api
 ### nginx 要点
 
 - 确认 `ssl-params.conf` 中 `add_header Strict-Transport-Security` 包含 `preload`
+- 确认 `ssl-params.conf` 中 `Content-Security-Policy` 已配置，包含你实际使用的 CDN/分析服务域名
 - HTTP (80) → HTTPS (443) 强制跳转已在 `nginx.conf` 配置
 - API 反向代理路径：`/api/ → localhost:3001`
 
