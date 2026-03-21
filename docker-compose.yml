@@ -1,6 +1,6 @@
 # DTax Self-Hosted — Production Docker Compose
-# Start with: docker compose up -d
-# Access: http://localhost:3000
+# Start with: docker compose build && docker compose up -d
+# Access: http://localhost (port 80)
 
 services:
   postgres:
@@ -44,9 +44,25 @@ services:
       HOST: "0.0.0.0"
       PORT: "3001"
       NODE_ENV: "production"
-      CORS_ORIGIN: ${CORS_ORIGIN:-https://getdtax.com}
+      CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN is required}
+      APP_URL: ${APP_URL:?APP_URL is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
+      # Email (required for password reset)
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      FROM_EMAIL: ${FROM_EMAIL:-noreply@getdtax.com}
+      # Payments
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRO_PRICE_ID: ${STRIPE_PRO_PRICE_ID:-}
+      STRIPE_CPA_PRICE_ID: ${STRIPE_CPA_PRICE_ID:-}
+      # AI
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Blockchain indexers
+      ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY:-}
+      SOLSCAN_API_KEY: ${SOLSCAN_API_KEY:-}
+      # Analytics / error tracking
+      SENTRY_DSN: ${SENTRY_DSN:-}
     expose:
       - "3001"
     healthcheck:
@@ -54,20 +70,31 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 15s
+      start_period: 30s
 
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        # NEXT_PUBLIC_* vars are baked into the JS bundle at build time.
+        # Set these in .env BEFORE running docker compose build.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL must be set before building}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-}
+        NEXT_PUBLIC_POSTHOG_KEY: ${NEXT_PUBLIC_POSTHOG_KEY:-}
+        NEXT_PUBLIC_POSTHOG_HOST: ${NEXT_PUBLIC_POSTHOG_HOST:-https://us.i.posthog.com}
     restart: unless-stopped
     depends_on:
       api:
         condition: service_healthy
-    environment:
-      NEXT_PUBLIC_API_URL: "http://localhost:3001"
     expose:
       - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   nginx:
     image: nginx:alpine
@@ -76,7 +103,7 @@ services:
       api:
         condition: service_healthy
       web:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "80:80"
       - "443:443"

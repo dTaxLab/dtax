@@ -1,0 +1,263 @@
+---
+title: Self-Hosting
+description: Deploy dTax on your own server using Docker Compose — full stack with PostgreSQL, Redis, API, and Web
+draft: false
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+Deploy dTax on your own Linux server in under 15 minutes using Docker Compose.
+
+## Prerequisites
+
+- Linux server (Ubuntu 22.04+ recommended), 2+ GB RAM
+- Docker Engine 24+ and Docker Compose v2
+- A domain name pointed to your server's IP
+- Ports 80 and 443 open in your firewall
+
+## Quick Start
+
+<Steps>
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/dTaxLab/dtax.git
+   cd dtax
+   ```
+
+2. **Configure environment**
+
+   ```bash
+   cp .env.production.example .env
+   ```
+
+   Edit `.env` and set all required values:
+
+   | Variable            | Description |
+   | ------------------- | ----------- |
+   | `POSTGRES_PASSWORD` | Strong database password |
+   | `JWT_SECRET`        | Random string, at least 32 characters |
+   | `ENCRYPTION_KEY`    | **64-character hex string** — see note below |
+   | `CORS_ORIGIN`       | Your domain, e.g. `https://tax.example.com` |
+   | `APP_URL`           | Same domain (used in password-reset emails) |
+   | `NEXT_PUBLIC_API_URL` | `https://tax.example.com/api` (**build-time**, must be set before `docker compose build`) |
+
+   <Aside type="caution" title="ENCRYPTION_KEY format">
+   The encryption key **must** be a 64-character hex string (32 raw bytes). The API will crash on startup if any other format is used.
+
+   ```bash
+   openssl rand -hex 32      # → ENCRYPTION_KEY
+   openssl rand -base64 32   # → JWT_SECRET
+   openssl rand -base64 24   # → POSTGRES_PASSWORD
+   ```
+   </Aside>
+
+3. **Start services**
+
+   <Aside type="caution" title="Build before starting">
+   Set all variables in `.env` **before** running `docker compose build`. `NEXT_PUBLIC_*` variables are baked into the JavaScript bundle at image build time — changing them after the build has no effect.
+
+   ```bash
+   docker compose build
+   docker compose up -d
+   ```
+   </Aside>
+
+   This starts PostgreSQL, Redis, API, Web, and nginx. The `migrate` service runs database migrations automatically.
+
+   Verify everything is running:
+
+   ```bash
+   docker compose ps
+   curl http://localhost/api/health
+   ```
+
+</Steps>
+
+## Architecture
+
+```
+                ┌──────────┐
+  :80/:443  ────│  nginx   │
+                └────┬─────┘
+                ┌────┴─────┐
+          ┌─────│  routes  │─────┐
+          │     └──────────┘     │
+     ┌────┴───┐            ┌─────┴────┐
+     │  API   │            │   Web    │
+     │ :3001  │            │  :3000   │
+     └────┬───┘            └──────────┘
+     ┌────┴───┐  ┌───────┐
+     │Postgres│  │ Redis │
+     └────────┘  └───────┘
+```
+
+## TLS with Let's Encrypt
+
+<Steps>
+
+1. **Update nginx config**
+
+   Edit `docker/nginx/nginx.conf` and replace `server_name _;` with your domain:
+
+   ```nginx
+   server_name tax.example.com;
+   ```
+
+2. **Obtain certificate**
+
+   ```bash
+   docker compose up -d nginx
+
+   docker run --rm \
+     -v dtax_letsencrypt:/etc/letsencrypt \
+     -v dtax_certbot-data:/var/www/certbot \
+     certbot/certbot certonly \
+     --webroot -w /var/www/certbot \
+     -d tax.example.com \
+     --agree-tos --email you@example.com
+   ```
+
+3. **Enable HTTPS**
+
+   Add an HTTPS server block to `docker/nginx/nginx.conf`:
+
+   ```nginx
+   server {
+       listen 443 ssl http2;
+       server_name tax.example.com;
+
+       ssl_certificate /etc/letsencrypt/live/tax.example.com/fullchain.pem;
+       ssl_certificate_key /etc/letsencrypt/live/tax.example.com/privkey.pem;
+       include /etc/nginx/snippets/ssl-params.conf;
+
+       location /api/ {
+           proxy_pass http://api/api/;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+           proxy_buffering off;
+           proxy_cache off;
+           proxy_read_timeout 300s;
+       }
+
+       location / {
+           proxy_pass http://web;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+       }
+   }
+   ```
+
+   ```bash
+   docker compose restart nginx
+   ```
+
+4. **Auto-renew certificates**
+
+   ```bash
+   echo "0 3 * * * docker run --rm \
+     -v dtax_letsencrypt:/etc/letsencrypt \
+     -v dtax_certbot-data:/var/www/certbot \
+     certbot/certbot renew --quiet \
+     && docker compose restart nginx" | crontab -
+   ```
+
+</Steps>
+
+## First Admin User
+
+1. Register at `https://yourdomain.com/register`
+2. Promote your account to admin:
+
+```bash
+docker compose exec postgres psql -U dtax -c \
+  "UPDATE \"User\" SET role='ADMIN' WHERE email='your@email.com';"
+```
+
+## Updates
+
+```bash
+git pull
+docker compose build
+docker compose up -d
+```
+
+The `migrate` service runs automatically to apply new database migrations.
+
+## Backups
+
+```bash
+# Run backup
+chmod +x docker/scripts/backup.sh
+./docker/scripts/backup.sh ./backups
+
+# Schedule daily at 2am
+echo "0 2 * * * /path/to/dtax/docker/scripts/backup.sh /path/to/dtax/backups" | crontab -
+
+# Restore from backup
+gunzip -c backups/dtax_20260313_020000.sql.gz | \
+  docker compose exec -T postgres psql -U dtax dtax
+```
+
+## Optional Services
+
+| Service   | Environment Variables | Purpose |
+| --------- | --------------------- | ------- |
+| Resend    | `RESEND_API_KEY`, `FROM_EMAIL` | Email verification & password reset — without this, users cannot reset passwords or verify email |
+| Stripe    | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_ID`, `STRIPE_CPA_PRICE_ID` | Subscription billing |
+| Anthropic | `ANTHROPIC_API_KEY` | AI transaction classification & chat |
+| Etherscan | `ETHERSCAN_API_KEY` | EVM blockchain indexing (Ethereum, Polygon, BSC, Arbitrum, Optimism) |
+| Solscan   | `SOLSCAN_API_KEY` | Solana blockchain indexing |
+| PostHog   | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` | Product analytics |
+| Sentry    | `SENTRY_DSN` | Error tracking |
+
+All optional services degrade gracefully when not configured.
+
+## Troubleshooting
+
+**Services fail to start**
+
+```bash
+docker compose logs api    # Check API logs
+docker compose logs web    # Check Web logs
+docker compose logs nginx  # Check nginx logs
+```
+
+**API crashes immediately**
+
+Check for `FATAL: ENCRYPTION_KEY` in the API logs — this means your `ENCRYPTION_KEY` is not a valid 64-character hex string. Regenerate with `openssl rand -hex 32`.
+
+**Database connection errors**
+
+Ensure `POSTGRES_PASSWORD` in `.env` matches the value used when the postgres volume was first created:
+
+```bash
+docker compose ps postgres
+docker compose logs postgres
+```
+
+**Port conflicts**
+
+If ports 80 or 443 are already in use, edit `docker-compose.yml` to change the nginx port mappings.
+
+**Out of disk space**
+
+```bash
+docker system prune -f     # Remove unused images/containers
+```
+
+**Reset everything**
+
+<Aside type="danger">
+This destroys all data including the database. Back up first.
+</Aside>
+
+```bash
+docker compose down -v
+docker compose up -d
+```
