@@ -1,0 +1,48 @@
+---
+title: Häufig gestellte Fragen
+description: Häufige Fragen zu dTax-Transaktionssynchronisierung, Wallet-Unterstützung und Steuerberechnungen
+draft: false
+---
+
+## Warum fehlen einige kleine Überweisungen in meiner Transaktionshistorie?
+
+dTax filtert automatisch **Dust-Angriffs-Transaktionen** heraus – Mikroüberweisungen von weniger als 1.000 Wei (0,000001 ETH, ca. $0,003) an Ihre Wallet-Adresse.
+
+### Was ist ein Dust-Angriff?
+
+Ein Dust-Angriff liegt vor, wenn ein böswilliger Akteur eine extrem kleine Menge Kryptowährung (oft nur 1 Wei = 0,000000001 ETH) an Ihre Wallet sendet. Das Ziel ist die De-Anonymisierung von Wallets durch Verfolgung nachfolgender Transaktionen. Diese Überweisungen wurden nicht von Ihnen initiiert und haben keinerlei steuerliche Auswirkungen.
+
+### Warum werden sie gefiltert?
+
+| Grund | Details |
+|-------|---------|
+| **Keine steuerliche Auswirkung** | Beträge unter 1.000 Wei sind weniger als $0,01 wert und stellen keine steuerpflichtigen Ereignisse dar |
+| **Nicht Ihre Transaktionen** | Dust wird *ohne Ihr Einverständnis* an Sie gesendet – Sie haben diese Mittel nie kontrolliert oder bewegt |
+| **Branchenstandard** | CoinTracker, Koinly und andere Krypto-Steuer-Tools filtern Dust-Überweisungen automatisch heraus |
+| **Sauberere Aufzeichnungen** | Das Entfernen von Spam sorgt für eine genaue und prüfbare Transaktionshistorie |
+
+### Was ist der Schwellenwert?
+
+Überweisungen unter **1.000 Wei** (0,000001 ETH) werden für die Transaktionstypen `TRANSFER_IN` und `TRANSFER_OUT` gefiltert. Alle anderen Transaktionstypen (Swaps, Trades, Staking-Rewards usw.) werden unabhängig vom Betrag immer erfasst.
+
+### Beeinflusst das meinen Steuerbericht?
+
+Nein. Das IRS verlangt keine Meldung von Dust-Angriffen – Sie haben diese Vermögenswerte nicht absichtlich erworben, und ihr Wert ist vernachlässigbar. Das Filtern hat keine Auswirkungen auf Ihre Form 8949 oder Kapitalgewinnberechnungen.
+
+---
+
+## Warum zeigt die Preisanreicherung eine Teilanzahl (z. B. „9 / 50")?
+
+Die Preisanreicherungszahl umfasst nur **steuerpflichtige Transaktionen** (BUY, SELL, TRADE, DEX_SWAP, STAKING_REWARD usw.). Einfache Überweisungen zwischen eigenen Wallets (`TRANSFER_IN` / `TRANSFER_OUT`) werden ausgeschlossen, da diese keine steuerpflichtigen Ereignisse sind und für die Steuererklärung keinen USD-Preis benötigen.
+
+---
+
+## Warum dauert die Wallet-Synchronisierung so lange?
+
+Die EVM-Wallet-Synchronisierung fragt bis zu 5 Blockchain-Netzwerke (Ethereum, Polygon, BNB Chain, Arbitrum, Optimism) sequenziell ab, um Ethersscans Free-Tier-Ratenlimit von 5 Anfragen pro Sekunde einzuhalten. Jede Chain führt 5 parallele API-Aufrufe durch. Eine vollständige Synchronisierung aller Chains kann 30–60 Sekunden dauern.
+
+---
+
+## Warum zeigt meine Steuerberechnung $0 für Wallet-Transaktionen?
+
+Wenn Ihre Wallet nur `TRANSFER_IN`- und `TRANSFER_OUT`-Transaktionen enthält, beträgt die Steuersumme $0. Überweisungen zwischen eigenen Wallets sind **keine steuerpflichtigen Ereignisse** – Kapitalgewinne oder -verluste entstehen erst beim Verkauf, Tausch oder Einsatz des Vermögenswerts.

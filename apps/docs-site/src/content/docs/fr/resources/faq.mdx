@@ -1,0 +1,48 @@
+---
+title: Foire aux questions
+description: Questions fréquentes sur la synchronisation des transactions dTax, la prise en charge des portefeuilles et les calculs fiscaux
+draft: false
+---
+
+## Pourquoi certains micro-transferts sont-ils absents de mon historique de transactions ?
+
+dTax filtre automatiquement les **transactions de dust attack** — des micro-transferts inférieurs à 1 000 wei (0,000001 ETH, soit environ $0,003) envoyés à votre adresse de portefeuille.
+
+### Qu'est-ce qu'une dust attack ?
+
+Une dust attack consiste pour un acteur malveillant à envoyer une quantité infime de cryptomonnaie (souvent 1 wei = 0,000000001 ETH) à votre portefeuille. L'objectif est de désanonymiser les portefeuilles en traçant les transactions ultérieures. Ces transferts ne sont pas initiés par vous et n'ont aucune incidence fiscale.
+
+### Pourquoi les filtrer ?
+
+| Raison | Détail |
+|--------|--------|
+| **Aucun impact fiscal** | Les montants inférieurs à 1 000 wei valent moins de $0,01 et ne constituent pas des événements imposables |
+| **Ce ne sont pas vos transactions** | Le dust vous est envoyé *sans votre consentement* — vous n'avez jamais contrôlé ni déplacé ces fonds |
+| **Norme du secteur** | CoinTracker, Koinly et autres outils fiscaux crypto filtrent silencieusement les transferts de dust |
+| **Historique plus propre** | Éliminer le spam rend votre historique de transactions plus précis et plus facilement auditable |
+
+### Quel est le seuil ?
+
+Les transferts inférieurs à **1 000 wei** (0,000001 ETH) sont filtrés pour les types de transactions `TRANSFER_IN` et `TRANSFER_OUT`. Tous les autres types (swaps, trades, récompenses de staking, etc.) sont toujours enregistrés quel que soit le montant.
+
+### Cela affecte-t-il mon rapport fiscal ?
+
+Non. L'IRS n'exige pas de déclarer les dust attacks — vous n'avez pas acquis ces actifs intentionnellement et leur valeur est négligeable. Le filtrage n'a aucun effet sur votre formulaire 8949 ni sur vos calculs de plus-values.
+
+---
+
+## Pourquoi l'enrichissement des prix affiche-t-il un nombre partiel (ex. « 9 / 50 ») ?
+
+Le compteur d'enrichissement des prix ne comprend que les **transactions imposables** (BUY, SELL, TRADE, DEX_SWAP, STAKING_REWARD, etc.). Les simples transferts entre vos propres portefeuilles (`TRANSFER_IN` / `TRANSFER_OUT`) sont exclus car ils ne sont pas des événements imposables et ne nécessitent pas de prix en USD pour la déclaration fiscale.
+
+---
+
+## Pourquoi la synchronisation de mon portefeuille prend-elle autant de temps ?
+
+La synchronisation d'un portefeuille EVM interroge jusqu'à 5 réseaux blockchain (Ethereum, Polygon, BNB Chain, Arbitrum, Optimism) de manière séquentielle pour respecter la limite de débit du plan gratuit d'Etherscan (5 requêtes/seconde). Chaque chaîne effectue 5 appels API en parallèle. Une synchronisation complète sur toutes les chaînes peut prendre 30 à 60 secondes.
+
+---
+
+## Pourquoi mon calcul fiscal affiche-t-il $0 pour les transactions de portefeuille ?
+
+Si votre portefeuille ne contient que des transactions `TRANSFER_IN` et `TRANSFER_OUT`, le total fiscal sera $0. Les transferts entre vos propres portefeuilles ne sont **pas des événements imposables** — aucune plus-value ou moins-value n'est réalisée tant que vous ne vendez pas, n'échangez pas ou n'utilisez pas l'actif.

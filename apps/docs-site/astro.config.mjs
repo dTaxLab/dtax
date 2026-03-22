@@ -58,6 +58,7 @@ export default defineConfig({
             { label: 'Self-Hosting', slug: 'resources/self-hosting' },
             { label: 'CSV Format Guide', slug: 'resources/csv-format' },
             { label: 'Open Core License', slug: 'resources/license' },
+            { label: 'FAQ', slug: 'resources/faq' },
           ],
         },
       ],
