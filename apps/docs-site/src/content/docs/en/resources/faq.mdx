@@ -1,0 +1,48 @@
+---
+title: Frequently Asked Questions
+description: Common questions about dTax transaction syncing, wallet support, and tax calculations
+draft: false
+---
+
+## Why are some tiny transfers missing from my transaction history?
+
+dTax automatically filters out **dust attack transactions** — micro-transfers of less than 1,000 wei (0.000001 ETH, approximately $0.003) sent to your wallet address.
+
+### What is a dust attack?
+
+A dust attack is when a malicious actor sends an extremely small amount of cryptocurrency (often just 1 wei = 0.000000001 ETH) to your wallet. The goal is to de-anonymize wallets by tracking subsequent transactions. These are not real transfers you initiated, and they have zero tax impact.
+
+### Why filter them?
+
+| Reason | Detail |
+|--------|--------|
+| **Zero tax impact** | Amounts below 1,000 wei are worth less than $0.01 and do not constitute taxable events |
+| **Not your transactions** | Dust is sent *to* you without consent — you never controlled or moved these funds |
+| **Industry standard** | CoinTracker, Koinly, and other crypto tax tools silently filter dust transfers |
+| **Cleaner records** | Eliminating spam keeps your transaction history accurate and auditable |
+
+### What is the threshold?
+
+Transfers of less than **1,000 wei** (0.000001 ETH) are filtered for `TRANSFER_IN` and `TRANSFER_OUT` transaction types. All other transaction types (swaps, trades, staking rewards, etc.) are always recorded regardless of amount.
+
+### Does this affect my tax report?
+
+No. The IRS does not require reporting of dust attacks — you did not acquire these assets intentionally, and their value is negligible. Filtering them has no effect on your Form 8949 or capital gains calculations.
+
+---
+
+## Why does price enrichment show a partial count (e.g. "9 / 50")?
+
+The price enrichment count only includes **tax-relevant transactions** (BUY, SELL, TRADE, DEX_SWAP, STAKING_REWARD, etc.). Simple transfers between your own wallets (`TRANSFER_IN` / `TRANSFER_OUT`) are excluded because they are not taxable events and do not require a USD price for tax reporting.
+
+---
+
+## Why is my wallet sync taking a long time?
+
+EVM wallet syncing queries up to 5 blockchain networks (Ethereum, Polygon, BNB Chain, Arbitrum, Optimism) sequentially to stay within Etherscan's free-tier rate limit of 5 requests per second. Each chain performs 5 parallel API calls. A full sync across all chains may take 30–60 seconds.
+
+---
+
+## Why does my tax calculation show $0 for wallet transactions?
+
+If your wallet only contains `TRANSFER_IN` and `TRANSFER_OUT` transactions, the tax total will be $0. Transfers between your own wallets are **not taxable events** — no capital gain or loss is realized until you sell, trade, or spend the asset.

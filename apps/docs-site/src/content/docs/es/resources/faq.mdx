@@ -1,0 +1,48 @@
+---
+title: Preguntas frecuentes
+description: Preguntas comunes sobre la sincronización de transacciones, soporte de billeteras y cálculos fiscales en dTax
+draft: false
+---
+
+## ¿Por qué faltan algunas transferencias pequeñas en mi historial de transacciones?
+
+dTax filtra automáticamente las **transacciones de dust attack** — microtransferencias de menos de 1.000 wei (0,000001 ETH, aproximadamente $0,003) enviadas a la dirección de tu billetera.
+
+### ¿Qué es un dust attack?
+
+Un dust attack ocurre cuando un actor malicioso envía una cantidad extremadamente pequeña de criptomoneda (a menudo solo 1 wei = 0,000000001 ETH) a tu billetera. El objetivo es desanonimizar billeteras rastreando transacciones posteriores. Estas no son transferencias que hayas iniciado y no tienen ningún impacto fiscal.
+
+### ¿Por qué filtrarlas?
+
+| Razón | Detalle |
+|-------|---------|
+| **Impacto fiscal cero** | Los montos inferiores a 1.000 wei valen menos de $0,01 y no constituyen eventos imponibles |
+| **No son tus transacciones** | El dust se envía *a ti sin tu consentimiento* — nunca controlaste ni moviste esos fondos |
+| **Estándar de la industria** | CoinTracker, Koinly y otras herramientas fiscales de cripto filtran silenciosamente las transferencias de dust |
+| **Historial más limpio** | Eliminar el spam hace que tu historial de transacciones sea más preciso y fácil de auditar |
+
+### ¿Cuál es el umbral?
+
+Las transferencias de menos de **1.000 wei** (0,000001 ETH) se filtran para los tipos de transacción `TRANSFER_IN` y `TRANSFER_OUT`. Todos los demás tipos de transacción (swaps, operaciones, recompensas de staking, etc.) siempre se registran independientemente del monto.
+
+### ¿Esto afecta mi informe fiscal?
+
+No. El IRS no requiere reportar dust attacks — no adquiriste estos activos intencionalmente y su valor es insignificante. El filtrado no tiene ningún efecto en tu Formulario 8949 ni en los cálculos de ganancias de capital.
+
+---
+
+## ¿Por qué el enriquecimiento de precios muestra un número parcial (p. ej., "9 / 50")?
+
+El recuento de enriquecimiento de precios solo incluye **transacciones imponibles** (BUY, SELL, TRADE, DEX_SWAP, STAKING_REWARD, etc.). Las transferencias simples entre tus propias billeteras (`TRANSFER_IN` / `TRANSFER_OUT`) se excluyen porque no son eventos imponibles y no requieren un precio en USD para la declaración fiscal.
+
+---
+
+## ¿Por qué la sincronización de mi billetera tarda tanto?
+
+La sincronización de billeteras EVM consulta hasta 5 redes blockchain (Ethereum, Polygon, BNB Chain, Arbitrum, Optimism) de forma secuencial para mantenerse dentro del límite de velocidad del plan gratuito de Etherscan de 5 solicitudes por segundo. Cada cadena realiza 5 llamadas API en paralelo. Una sincronización completa de todas las cadenas puede tardar entre 30 y 60 segundos.
+
+---
+
+## ¿Por qué mi cálculo fiscal muestra $0 para las transacciones de billetera?
+
+Si tu billetera solo contiene transacciones `TRANSFER_IN` y `TRANSFER_OUT`, el total fiscal será $0. Las transferencias entre tus propias billeteras **no son eventos imponibles** — no se realiza ninguna ganancia o pérdida de capital hasta que vendes, intercambias o gastas el activo.
