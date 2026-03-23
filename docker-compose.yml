@@ -19,6 +19,7 @@ services:
       retries: 5
 
   api:
+    image: ghcr.io/dtaxlab/dtax-api:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -75,6 +76,7 @@ services:
       start_period: 30s
 
   web:
+    image: ghcr.io/dtaxlab/dtax-web:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: apps/web/Dockerfile
@@ -129,6 +131,7 @@ services:
 
   # Run database migrations on first start
   migrate:
+    image: ghcr.io/dtaxlab/dtax-api:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: apps/api/Dockerfile
