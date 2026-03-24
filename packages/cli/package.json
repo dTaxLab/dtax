@@ -54,10 +54,11 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@dtax/tax-engine": "workspace:*",
-    "@dtax/shared-types": "workspace:*"
+    "@dtax/shared-types": "workspace:*",
+    "@dtax/tax-engine": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^25",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
     "vitest": "^2.1.9"
