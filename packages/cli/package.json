@@ -48,6 +48,7 @@
   },
   "scripts": {
     "build": "tsup",
+    "typecheck": "tsc --noEmit",
     "dev": "tsup src/index.ts --format cjs --watch",
     "test": "vitest run",
     "clean": "rm -rf dist"
