@@ -172,14 +172,14 @@ sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' /tmp/crontab-clean 2>/dev/null || true
 cat >> /tmp/crontab-clean << 'CRON'
 
 # ========== dTax 定时任务 ==========
-# 每天凌晨 2 点：自动备份数据库（保留 30 天）
+# 每天凌晨 2:00 备份数据库（保留 30 天）
 0 2 * * * cd /data/dtax && ./docker/scripts/backup.sh /data/dtax/backups >> /data/dtax/backups/cron.log 2>&1
-# 每周一凌晨 3 点：重载 Nginx（SSL 证书续期生效）
+# 每周一 3:00 重载 Nginx（SSL 证书续期生效）
 0 3 * * 1 cd /data/dtax && docker compose exec -T nginx nginx -s reload >> /data/dtax/backups/cron.log 2>&1
-# 每小时整点：自动更新（拉取代码，按需构建镜像、迁移、重启）
-0 * * * * cd /data/dtax && bash scripts/auto-update.sh 2>&1
-# 每周日凌晨 4 点：清理 Docker 旧镜像
-0 4 * * 0 docker image prune -f >> /data/dtax/backups/cron.log 2>&1
+# 每小时 :30 自动更新（错开整点，避免和备份冲突；带锁防并发）
+30 * * * * cd /data/dtax && bash scripts/auto-update.sh 2>&1
+# 每周日 4:00 清理 Docker 旧镜像 + 旧日志
+0 4 * * 0 docker image prune -af --filter "until=168h" >> /data/dtax/backups/cron.log 2>&1; find /data/dtax/backups -name "cron.log" -size +10M -exec truncate -s 1M {} \; 2>/dev/null
 # ========== dTax 定时任务结束 ==========
 CRON
 
@@ -202,10 +202,10 @@ done
 
 echo ""
 echo "  定时任务:"
-echo "    每天 02:00  数据库备份"
+echo "    每天 02:00  数据库备份（保留 30 天）"
 echo "    每周一 03:00  Nginx SSL 重载"
-echo "    每小时 xx:00  自动更新（拉取+按需构建+迁移+重启）"
-echo "    每周日 04:00  Docker 磁盘清理"
+echo "    每小时 xx:30  自动更新（拉取+按需构建+迁移+重启）"
+echo "    每周日 04:00  清理旧镜像（7天前）+ 旧日志"
 
 # 健康检查
 echo ""

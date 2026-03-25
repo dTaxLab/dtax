@@ -3,7 +3,7 @@
 # dTax 自动更新脚本
 #
 # 拉取最新代码，检测变更类型，按需构建镜像、执行迁移、重启服务
-# 设计为 cron 定时运行，幂等安全
+# 带锁机制防止并发执行
 #
 # 用法: cd /data/dtax && bash scripts/auto-update.sh
 # ============================================================================
@@ -13,32 +13,48 @@ set -euo pipefail
 PROJECT_DIR="/data/dtax"
 BACKUP_DIR="${PROJECT_DIR}/backups"
 LOG_FILE="${BACKUP_DIR}/auto-update.log"
+LOCK_FILE="/tmp/dtax-update.lock"
+LOG_MAX_LINES=5000
 
 cd "$PROJECT_DIR"
+mkdir -p "$BACKUP_DIR"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"; }
 
-mkdir -p "$BACKUP_DIR"
+# ---- 锁机制：防止并发执行 ----
+if [ -f "$LOCK_FILE" ]; then
+    LOCK_PID=$(cat "$LOCK_FILE" 2>/dev/null)
+    if kill -0 "$LOCK_PID" 2>/dev/null; then
+        log "跳过: 上一次更新仍在运行 (PID: $LOCK_PID)"
+        exit 0
+    else
+        rm -f "$LOCK_FILE"
+    fi
+fi
+echo $$ > "$LOCK_FILE"
+trap 'rm -f "$LOCK_FILE"' EXIT
 
-# 记录当前 commit
+# ---- 日志轮转 ----
+if [ -f "$LOG_FILE" ] && [ "$(wc -l < "$LOG_FILE")" -gt "$LOG_MAX_LINES" ]; then
+    tail -n 2000 "$LOG_FILE" > "${LOG_FILE}.tmp"
+    mv "${LOG_FILE}.tmp" "$LOG_FILE"
+    log "日志已轮转（保留最近 2000 行）"
+fi
+
+# ---- 拉取代码 ----
 OLD_COMMIT=$(git rev-parse HEAD)
-
-# 拉取最新代码
 git pull --quiet 2>>"$LOG_FILE" || { log "ERROR: git pull failed"; exit 1; }
-
-# 检查是否有更新
 NEW_COMMIT=$(git rev-parse HEAD)
+
 if [ "$OLD_COMMIT" = "$NEW_COMMIT" ]; then
-    # 无更新，退出
     exit 0
 fi
 
-log "代码更新: $OLD_COMMIT -> $NEW_COMMIT"
+log "代码更新: ${OLD_COMMIT:0:7} -> ${NEW_COMMIT:0:7}"
 
-# 获取变更文件列表
+# ---- 分析变更类型 ----
 CHANGED=$(git diff --name-only "$OLD_COMMIT" "$NEW_COMMIT")
 
-# ---- 判断变更类型 ----
 NEED_BUILD_API=false
 NEED_BUILD_WEB=false
 NEED_MIGRATE=false
@@ -49,7 +65,7 @@ while IFS= read -r file; do
         apps/api/* | packages/shared-types/* | packages/tax-engine/*)
             NEED_BUILD_API=true; BLOG_ONLY=false ;;
         apps/web/content/blog/*)
-            ;; # 博客文件，volume 挂载自动生效
+            ;; # 博客，volume 自动生效
         apps/web/*)
             NEED_BUILD_WEB=true; BLOG_ONLY=false ;;
         docker/* | docker-compose.yml | .env.production.example)
@@ -59,18 +75,14 @@ while IFS= read -r file; do
     esac
 done <<< "$CHANGED"
 
-# 检查数据库迁移
-if echo "$CHANGED" | grep -q "prisma/migrations/"; then
-    NEED_MIGRATE=true
-fi
+echo "$CHANGED" | grep -q "prisma/migrations/" && NEED_MIGRATE=true
 
-# ---- 仅博客更新 ----
 if [ "$BLOG_ONLY" = true ]; then
-    log "仅博客更新，无需操作（volume 自动生效）"
+    log "仅博客更新，volume 自动生效"
     exit 0
 fi
 
-# ---- 备份数据库（有构建或迁移时）----
+# ---- 备份数据库 ----
 if [ "$NEED_BUILD_API" = true ] || [ "$NEED_MIGRATE" = true ]; then
     log "备份数据库..."
     ./docker/scripts/backup.sh "$BACKUP_DIR" >> "$LOG_FILE" 2>&1 || log "WARNING: 备份失败"
@@ -96,7 +108,7 @@ if [ "$NEED_MIGRATE" = true ]; then
     log "数据库迁移完成"
 fi
 
-# ---- 重启变更的服务 ----
+# ---- 重启服务 ----
 if [ "$NEED_BUILD_API" = true ] && [ "$NEED_BUILD_WEB" = true ]; then
     log "重启所有服务..."
     docker compose up -d >> "$LOG_FILE" 2>&1
@@ -108,15 +120,12 @@ elif [ "$NEED_BUILD_WEB" = true ]; then
     docker compose up -d web >> "$LOG_FILE" 2>&1
 fi
 
-# ---- 等待健康检查 ----
+# ---- 健康检查 ----
 sleep 10
-API_OK=false
-docker exec dtax-api-1 node -e \
+if docker exec dtax-api-1 node -e \
     "fetch('http://localhost:3001/api/health').then(r=>{if(!r.ok)throw 1}).catch(()=>process.exit(1))" \
-    2>/dev/null && API_OK=true
-
-if [ "$API_OK" = true ]; then
+    2>/dev/null; then
     log "更新完成，服务正常"
 else
-    log "WARNING: API 健康检查未通过，请检查日志"
+    log "WARNING: API 健康检查未通过"
 fi
