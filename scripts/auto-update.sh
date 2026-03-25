@@ -21,6 +21,12 @@ mkdir -p "$BACKUP_DIR"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"; }
 
+# ---- 维护模式：存在 .maintenance 文件则跳过 ----
+if [ -f "$PROJECT_DIR/.maintenance" ]; then
+    log "维护模式，跳过自动更新（删除 .maintenance 文件恢复）"
+    exit 0
+fi
+
 # ---- 锁机制：防止并发执行 ----
 if [ -f "$LOCK_FILE" ]; then
     LOCK_PID=$(cat "$LOCK_FILE" 2>/dev/null)
