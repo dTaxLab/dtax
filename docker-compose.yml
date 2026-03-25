@@ -134,20 +134,6 @@ services:
       - letsencrypt:/etc/letsencrypt
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done'"
 
-  # Run database migrations on first start
-  migrate:
-    image: ghcr.io/dtaxlab/dtax-api:${IMAGE_TAG:-latest}
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: "postgresql://dtax:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/dtax?schema=public"
-    command: ["npx", "prisma", "migrate", "deploy", "--schema", "apps/api/prisma/schema.prisma"]
-    restart: "no"
-
 volumes:
   postgres-data:
   reports-data:
