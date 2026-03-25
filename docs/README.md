@@ -1,12 +1,10 @@
-# DTax Documentation
+# dTax Documentation
 
-Documentation site for DTax, hosted at [dtax.dev](https://dtax.dev).
+Developer documentation for dTax, hosted at [dtax.dev](https://dtax.dev).
 
 ## Sections
 
-- Getting Started
-- Tax Engine API Reference
-- CLI Reference
-- Self-Hosting Guide
-- Cloud Platform Guide
-- Contributing Guide
+- **Getting Started** — Introduction, Quick Start
+- **Tax Engine** — Overview, Exchange Parsers, Cost Basis Methods, Reports
+- **REST API** — Overview, Authentication
+- **Resources** — Self-Hosting (Docker), CSV Format Guide, Open Core License, FAQ
