@@ -163,8 +163,10 @@ fi
 # ============================================================================
 echo "[7/8] 配置定时任务..."
 
-# 导出现有 crontab，移除旧的 dtax 任务和标记
-crontab -l 2>/dev/null | grep -v "/data/dtax" | grep -v "dTax" > /tmp/crontab-clean || true
+# 导出现有 crontab，移除旧的 dtax 任务块（含注释和空行）
+crontab -l 2>/dev/null | sed '/# ========== dTax/,/# ========== dTax.*结束/d' | grep -v "/data/dtax" > /tmp/crontab-clean || true
+# 清理尾部多余空行
+sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' /tmp/crontab-clean 2>/dev/null || true
 
 # 添加新任务
 cat >> /tmp/crontab-clean << 'CRON'
