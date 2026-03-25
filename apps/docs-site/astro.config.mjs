@@ -1,8 +1,11 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
+import cloudflare from "@astrojs/cloudflare";
+
 export default defineConfig({
   site: 'https://dtax.dev',
+
   integrations: [
     starlight({
       title: 'dTax Developer Hub',
@@ -70,5 +73,7 @@ export default defineConfig({
       ],
     }),
   ],
+
   output: 'static',
+  adapter: cloudflare()
 });
