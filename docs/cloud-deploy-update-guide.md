@@ -1,165 +1,327 @@
-# dTax 云服务器部署更新指南
-
-> **给 dtax-ops Claude Code**：当需要更新云服务器上的 dTax 部署时，按此文档操作。
+# dTax 云服务器部署运维手册
 
 ## 服务器信息
 
-- **服务器**: Oracle Cloud（具体 IP 见 `.env` 或运维文档）
+- **服务器**: Oracle Cloud
 - **域名**: getdtax.com
-- **SSH**: `ssh <user>@<server-ip>`
-- **项目路径**: 服务器上的 dtax 仓库克隆位置
-- **Docker Compose**: 在项目根目录运行
+- **项目路径**: `/data/dtax`（dtax-private 源码仓库）
+- **SSH**: `ssh root@<server-ip>`
 
-## 更新类型判断
+---
 
-### 类型 A：仅博客内容更新（最常见，无需重建）
+## 架构说明
 
-**触发条件**: ops 仓库生成了新博客，已 push 到 dtax-private
-
-```bash
-ssh <user>@<server-ip>
-cd /path/to/dtax
-git pull origin main
-# 完成！博客 volume 挂载 + force-dynamic，下次访问自动生效
+```
+/data/dtax/                          ← git clone dtax-private
+├── .env                             ← 生产环境变量（chmod 600）
+├── .maintenance                     ← 维护模式标记（存在时暂停自动更新）
+├── docker-compose.yml               ← image: + build: 模式
+├── apps/
+│   ├── api/Dockerfile               ← API 镜像（node:24-slim）
+│   └── web/Dockerfile               ← Web 镜像（node:24-slim → alpine）
+├── scripts/
+│   ├── setup-server.sh              ← 一键部署/恢复
+│   ├── auto-update.sh               ← 自动更新（cron 调用）
+│   ├── maintenance.sh               ← 维护模式管理
+│   ├── ghcr-push.py                 ← 推送镜像到 GHCR（可选）
+│   └── docker-test.py               ← 镜像测试
+├── docker/
+│   ├── nginx/nginx.conf             ← Nginx 配置
+│   └── scripts/
+│       ├── backup.sh                ← 数据库备份
+│       └── init-letsencrypt.sh      ← SSL 证书初始化
+└── backups/
+    ├── dtax_YYYYMMDD_HHMMSS.sql.gz  ← 数据库备份
+    ├── auto-update.log              ← 自动更新日志
+    └── cron.log                     ← 定时任务日志
 ```
 
-**原理**: `docker-compose.yml` 把 `./apps/web/content/blog` 挂载到容器，`blog.ts` 运行时读取文件。
+---
 
-### 类型 B：前端代码更新（需要重建 Web 镜像）
-
-**触发条件**: 修改了 `apps/web/src/` 下的代码、CSS、组件、翻译文件
+## 首次部署
 
 ```bash
-ssh <user>@<server-ip>
-cd /path/to/dtax
-git pull origin main
+# 1. clone 源码
+cd /data && git clone https://github.com/dTaxLab/dtax-private.git dtax
+
+# 2. 配置环境变量
+cd /data/dtax
+cp .env.production.example .env
+nano .env    # 填入所有密钥
+
+# 3. 一键部署（构建镜像 + SSL证书 + 启动服务 + 配置定时任务）
+bash scripts/setup-server.sh
+```
+
+一条命令完成所有配置，后续无需手动干预。
+
+---
+
+## 自动化任务
+
+以下任务由 `setup-server.sh` 自动配置到 cron，无需手动管理：
+
+| 时间 | 任务 | 说明 |
+|------|------|------|
+| 每小时 :30 | 自动更新 | 拉取代码，按需构建镜像、迁移、重启 |
+| 每天 02:00 | 数据库备份 | pg_dump 压缩，自动清理 30 天前备份 |
+| 每周一 03:00 | Nginx 重载 | 让 SSL 证书续期生效 |
+| 每周日 04:00 | 清理旧数据 | 删除 7 天前镜像 + 截断大日志 |
+| 持续运行 | SSL 续期 | certbot 容器每 12 小时检查 |
+
+### 自动更新智能判断
+
+`auto-update.sh` 每小时 :30 运行，根据代码变更类型自动决定操作：
+
+| 变更内容 | 自动操作 |
+|---------|---------|
+| 无更新 | 跳过 |
+| 仅博客文件 | 跳过构建（volume 挂载自动生效） |
+| API / packages 代码 | 备份 DB → 构建 API → 重启 API |
+| Web 前端代码 | 构建 Web → 重启 Web |
+| 数据库迁移文件 | 备份 DB → 构建 API → 执行迁移 → 重启 |
+| Docker 配置 | 备份 DB → 构建全部 → 重启全部 |
+
+### 安全机制
+
+- **锁文件**：防止并发执行
+- **维护模式**：人工操作时暂停自动更新
+- **迁移前备份**：检测到迁移文件时自动备份
+- **构建失败不重启**：失败则退出，不影响运行中的服务
+- **健康检查**：重启后自动验证 API 是否正常
+
+---
+
+## 人工运维
+
+### 开启维护模式
+
+进行任何手动操作前，先暂停自动更新：
+
+```bash
+cd /data/dtax
+bash scripts/maintenance.sh on      # 开启（暂停自动更新）
+
+# ... 做操作 ...
+
+bash scripts/maintenance.sh off     # 关闭（恢复自动更新）
+bash scripts/maintenance.sh status  # 查看状态
+```
+
+### 手动更新类型
+
+#### 博客更新（无需重建）
+
+```bash
+bash scripts/maintenance.sh on
+git pull
+bash scripts/maintenance.sh off
+# 博客通过 volume 挂载，拉取后自动生效
+```
+
+#### 前端代码更新
+
+```bash
+bash scripts/maintenance.sh on
+git pull
+docker compose build web
+docker compose up -d web
+bash scripts/maintenance.sh off
+```
+
+> `NEXT_PUBLIC_*` 变量改了必须重新 build web。
+
+#### API 代码更新
+
+```bash
+bash scripts/maintenance.sh on
+git pull
+docker compose build api
+docker compose up -d api
+bash scripts/maintenance.sh off
+```
+
+#### 数据库迁移
+
+```bash
+bash scripts/maintenance.sh on
+./docker/scripts/backup.sh ./backups     # 必须先备份！
+git pull
+docker compose build api
+docker compose run --rm migrate
+docker compose up -d
+docker compose ps
+curl -s https://getdtax.com/api/health
+bash scripts/maintenance.sh off
+```
+
+#### 全量更新
+
+```bash
+bash scripts/maintenance.sh on
+./docker/scripts/backup.sh ./backups
+git pull
+nano .env                                # 如有新变量
+docker compose build api web
+docker compose up -d
+docker compose ps
+curl -s https://getdtax.com/api/health
+bash scripts/maintenance.sh off
+```
+
+#### 环境变量变更
+
+```bash
+nano .env
+# 运行时变量 → 重启即可
+docker compose restart api
+
+# NEXT_PUBLIC_* → 必须重建 Web 镜像
 docker compose build web
 docker compose up -d web
 ```
 
-**注意**: 如果修改了 `NEXT_PUBLIC_*` 环境变量，必须在 `docker compose build` 前设置到 `.env`。
-
-### 类型 C：API 代码更新（需要重建 API 镜像）
-
-**触发条件**: 修改了 `apps/api/src/` 下的代码
+#### Nginx 配置变更
 
 ```bash
-ssh <user>@<server-ip>
-cd /path/to/dtax
-git pull origin main
-docker compose build api
-docker compose up -d api
+git pull
+docker exec dtax-nginx-1 nginx -t         # 测试语法
+docker exec dtax-nginx-1 nginx -s reload   # 热重载
 ```
 
-### 类型 D：API 运行时配置更新（仅重启）
-
-**触发条件**: 修改了 `.env` 中的 API 变量（非 NEXT*PUBLIC*\*）
+### 回滚
 
 ```bash
-ssh <user>@<server-ip>
-cd /path/to/dtax
-# 编辑 .env
-docker compose restart api
-```
+bash scripts/maintenance.sh on
 
-### 类型 E：全量更新（代码 + 配置都变了）
+# 备份当前数据
+./docker/scripts/backup.sh ./backups
 
-```bash
-ssh <user>@<server-ip>
-cd /path/to/dtax
-git pull origin main
-docker compose build web api
+# 回退代码
+git log --oneline -5
+git checkout <旧commit-hash>
+
+# 重建并启动
+docker compose build api web
 docker compose up -d
+
+# 如需回滚数据库
+docker compose stop api web
+gunzip -c backups/dtax_回滚前备份.sql.gz | docker compose exec -T postgres psql -U dtax dtax
+docker compose start api web
+
+bash scripts/maintenance.sh off
 ```
 
-### 类型 F：数据库迁移
+### 故障恢复
 
-**触发条件**: `apps/api/prisma/schema.prisma` 有变更
+服务器出问题后，重新执行一键部署脚本即可恢复：
 
 ```bash
-ssh <user>@<server-ip>
-cd /path/to/dtax
-git pull origin main
-docker compose build api
-docker compose up -d    # migrate 服务自动运行
+cd /data/dtax
+bash scripts/setup-server.sh
 ```
 
-## 新增的环境变量清单（本次会话）
+---
 
-以下变量需要在服务器 `.env` 中配置：
+## 日常运维命令
 
 ```bash
-# Cloudflare Turnstile CAPTCHA
-TURNSTILE_SECRET_KEY=0x4AAAAAACvVv2UD7aw1ko3kbA_MV-8FzHc
+cd /data/dtax
 
-# Turnstile 前端（构建时变量，需要 docker compose build web）
-NEXT_PUBLIC_TURNSTILE_SITE_KEY=0x4AAAAAACvVv--h4YtlF8kp
+# ---- 状态 ----
+docker compose ps                          # 服务状态
+docker compose logs --tail=50 api          # API 日志
+docker compose logs -f api                 # 实时跟踪
+tail -f backups/auto-update.log            # 自动更新日志
+tail -f backups/cron.log                   # 定时任务日志
+
+# ---- 服务 ----
+docker compose restart api                 # 重启 API
+docker compose restart web                 # 重启 Web
+docker compose restart nginx               # 重启 Nginx
+
+# ---- 备份 ----
+./docker/scripts/backup.sh ./backups       # 手动备份
+ls -lh backups/                            # 查看备份
+
+# ---- 数据库 ----
+docker compose exec postgres psql -U dtax dtax   # 进入数据库
+
+# ---- 磁盘 ----
+df -h                                      # 磁盘使用
+docker system df                           # Docker 占用
+docker image prune -f                      # 清理旧镜像
+
+# ---- SSL ----
+docker compose run --rm certbot certificates     # 查看证书状态
+docker compose run --rm certbot renew            # 手动续期
+docker exec dtax-nginx-1 nginx -s reload         # 重载证书
+
+# ---- GHCR（可选）----
+python3 scripts/ghcr-push.py               # 构建并推送到 GHCR
+python3 scripts/ghcr-push.py --push-only   # 仅推送
 ```
+
+> **严禁** `docker compose down -v`（删除所有数据卷包括数据库）
+
+---
 
 ## 验证部署
 
 ```bash
-# 1. 检查所有服务运行状态
+# 服务状态
 docker compose ps
 
-# 2. API 健康检查
+# API 健康检查
 curl -s https://getdtax.com/api/health
+curl -s https://getdtax.com/api/health/deep
 
-# 3. 检查博客数量
-curl -s https://getdtax.com/zh/blog | grep -c "post-card"
+# Web 页面
+curl -sI https://getdtax.com
 
-# 4. 检查 Turnstile
-curl -sI https://getdtax.com/zh/auth | grep "Content-Security-Policy" | grep -o "challenges.cloudflare.com"
-
-# 5. 检查浮动 AI 助手
-curl -s -X POST https://getdtax.com/api/v1/chat/public \
-  -H "Content-Type: application/json" \
-  -d '{"message":"hello","locale":"zh"}'
+# 直接测试 API（绕过 Nginx）
+docker exec dtax-api-1 node -e "fetch('http://localhost:3001/api/health').then(r=>r.json()).then(console.log)"
 ```
 
-## 本次需要执行的更新
+---
 
-这是**类型 E（全量更新）**，因为本次会话修改了：
+## 注意事项
 
-1. **前端代码**: 浮动 AI 助手、Turnstile CAPTCHA、UI 改进、i18n SEO、scroll reveal、CSP 等
-2. **API 代码**: 公开 chat endpoint、博客知识库注入、Ollama tool call 解析器、maxTokens、Turnstile 验证
-3. **Docker 配置**: blog volume 挂载、Dockerfile 增加 content/blog 复制
-4. **新环境变量**: TURNSTILE_SECRET_KEY、NEXT_PUBLIC_TURNSTILE_SITE_KEY
+| 项目 | 说明 |
+|------|------|
+| 人工操作前 | 先 `bash scripts/maintenance.sh on` 暂停自动更新 |
+| 数据库迁移 | 不可逆，**必须先备份** |
+| `NEXT_PUBLIC_*` | 烘焙在 Web 镜像中，改了必须 `docker compose build web` |
+| 运行时变量 | 改 `.env` 后 `docker compose restart api` 即可 |
+| 博客更新 | `git pull` 自动生效，不需要重建镜像 |
+| Nginx | 改了先 `nginx -t` 测试，再 `nginx -s reload` |
+| 回滚 | 代码用 `git checkout`，数据库只能从备份恢复 |
+| 故障恢复 | `bash scripts/setup-server.sh` 一键恢复 |
 
-### 执行步骤
+---
 
-```bash
-# 1. SSH 到服务器
-ssh <user>@<server-ip>
+## 自动清理策略
 
-# 2. 拉取代码
-cd /path/to/dtax
-git pull origin main
+| 清理对象 | 策略 | 触发时间 |
+|---------|------|---------|
+| 数据库备份 | 保留 30 天 | 每次备份时清理 |
+| Docker 旧镜像 | 保留 7 天 | 每周日 04:00 |
+| auto-update.log | 超 5000 行轮转为 2000 行 | 每次自动更新时 |
+| cron.log | 超 10MB 截断为 1MB | 每周日 04:00 |
+| SSL 证书 | Let's Encrypt 自动续期 | certbot 持续运行 |
 
-# 3. 添加新环境变量
-echo "" >> .env
-echo "# Cloudflare Turnstile" >> .env
-echo "TURNSTILE_SECRET_KEY=0x4AAAAAACvVv2UD7aw1ko3kbA_MV-8FzHc" >> .env
-echo "NEXT_PUBLIC_TURNSTILE_SITE_KEY=0x4AAAAAACvVv--h4YtlF8kp" >> .env
+---
 
-# 4. 重建所有镜像
-docker compose build web api
+## 故障排查
 
-# 5. 启动（migrate 自动运行）
-docker compose up -d
-
-# 6. 验证
-docker compose ps
-curl -s https://getdtax.com/api/health
-```
-
-## 自动化博客更新（可选）
-
-在服务器上设置 cron 每小时自动 pull：
-
-```bash
-# 每小时从 GitHub 拉取最新博客内容
-echo "0 * * * * cd /path/to/dtax && git pull origin main --quiet" | crontab -
-```
-
-或使用 GitHub webhook + 简单脚本自动触发。
+| 现象 | 排查 | 常见原因 |
+|------|------|---------|
+| API unhealthy | `docker compose logs api --tail=50` | ENCRYPTION_KEY 格式错误 |
+| Web 打不开 | `docker compose logs nginx --tail=50` | SSL 证书不存在 |
+| 502/504 | `docker compose ps api` | API 崩溃 |
+| 登录 UNAUTHORIZED | `docker compose logs api --tail=10` | Nginx 转发路径错误 |
+| 登录 INTERNAL_ERROR | `docker compose run --rm migrate` | 数据库表不存在 |
+| 数据库连接失败 | `docker compose exec postgres pg_isready -U dtax` | 密码不一致 |
+| 自动更新没生效 | `tail backups/auto-update.log` | 维护模式开着 / 锁文件残留 |
+| 磁盘满 | `df -h && docker system df` | `docker image prune -af` |
