@@ -176,8 +176,8 @@ cat >> /tmp/crontab-clean << 'CRON'
 0 2 * * * cd /data/dtax && ./docker/scripts/backup.sh /data/dtax/backups >> /data/dtax/backups/cron.log 2>&1
 # 每周一凌晨 3 点：重载 Nginx（SSL 证书续期生效）
 0 3 * * 1 cd /data/dtax && docker compose exec -T nginx nginx -s reload >> /data/dtax/backups/cron.log 2>&1
-# 每小时整点：自动拉取代码（博客 volume 挂载，拉取后自动生效）
-0 * * * * cd /data/dtax && git pull --quiet >> /data/dtax/backups/cron.log 2>&1
+# 每小时整点：自动更新（拉取代码，按需构建镜像、迁移、重启）
+0 * * * * cd /data/dtax && bash scripts/auto-update.sh 2>&1
 # 每周日凌晨 4 点：清理 Docker 旧镜像
 0 4 * * 0 docker image prune -f >> /data/dtax/backups/cron.log 2>&1
 # ========== dTax 定时任务结束 ==========
@@ -204,7 +204,7 @@ echo ""
 echo "  定时任务:"
 echo "    每天 02:00  数据库备份"
 echo "    每周一 03:00  Nginx SSL 重载"
-echo "    每小时 xx:00  Git 拉取（博客更新）"
+echo "    每小时 xx:00  自动更新（拉取+按需构建+迁移+重启）"
 echo "    每周日 04:00  Docker 磁盘清理"
 
 # 健康检查
