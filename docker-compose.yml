@@ -96,6 +96,8 @@ services:
         condition: service_healthy
     environment:
       SENTRY_DSN: ${SENTRY_DSN:-}
+    volumes:
+      - ./apps/web/content/blog:/app/content/blog:ro
     expose:
       - "3000"
     healthcheck:
