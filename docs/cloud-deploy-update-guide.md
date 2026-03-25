@@ -38,6 +38,111 @@
 
 ---
 
+## 自动更新流程
+
+每小时 :30 由 cron 触发 `auto-update.sh`，智能判断变更类型并执行对应操作：
+
+```mermaid
+flowchart TD
+    A[cron 每小时 :30 触发] --> B{.maintenance 存在?}
+    B -->|是| Z1[跳过，退出]
+    B -->|否| C{锁文件存在?}
+    C -->|是，进程存活| Z2[跳过，退出]
+    C -->|否| D[创建锁文件]
+    D --> E[git pull]
+    E --> F{有新 commit?}
+    F -->|否| Z3[释放锁，退出]
+    F -->|是| G[分析变更文件]
+    G --> H{变更类型}
+
+    H -->|仅博客| Z4[跳过构建\nvolume 自动生效]
+    H -->|API / packages| I[备份 DB]
+    H -->|Web 前端| J[构建 Web 镜像]
+    H -->|数据库迁移| K[备份 DB]
+    H -->|Docker 配置| L[备份 DB]
+
+    I --> I2[构建 API 镜像]
+    I2 --> I3[重启 API]
+
+    J --> J2[重启 Web]
+
+    K --> K2[构建 API 镜像]
+    K2 --> K3[执行迁移]
+    K3 --> K4[重启全部]
+
+    L --> L2[构建 API + Web]
+    L2 --> L3[重启全部]
+
+    I3 --> M[健康检查]
+    J2 --> M
+    K4 --> M
+    L3 --> M
+    Z4 --> N[释放锁]
+
+    M --> N
+    N --> O[写日志，退出]
+```
+
+## 定时任务时间线
+
+所有定时任务错开执行，避免冲突：
+
+```mermaid
+gantt
+    title 每日定时任务时间线
+    dateFormat HH:mm
+    axisFormat %H:%M
+
+    section 每小时
+    自动更新（带锁）  :active, 00:30, 5min
+    自动更新（带锁）  :active, 01:30, 5min
+    自动更新（带锁）  :active, 02:30, 5min
+    自动更新（带锁）  :active, 03:30, 5min
+
+    section 每天
+    数据库备份（保留30天）  :crit, 02:00, 5min
+
+    section 每周一
+    Nginx SSL 重载  : 03:00, 1min
+
+    section 每周日
+    清理旧镜像+日志  : 04:00, 5min
+
+    section 持续运行
+    certbot 证书续期  :done, 00:00, 24h
+```
+
+## 定时任务清单
+
+| 时间 | 任务 | 脚本 | 说明 |
+|------|------|------|------|
+| 每小时 :30 | 自动更新 | `scripts/auto-update.sh` | 拉取代码，按需构建/迁移/重启 |
+| 每天 02:00 | 数据库备份 | `docker/scripts/backup.sh` | pg_dump 压缩，清理 30 天前备份 |
+| 每周一 03:00 | Nginx 重载 | `docker compose exec nginx nginx -s reload` | SSL 证书续期生效 |
+| 每周日 04:00 | 清理旧数据 | `docker image prune + truncate` | 7 天前镜像 + 大日志截断 |
+| 持续 | SSL 续期 | certbot 容器 | 每 12 小时检查证书 |
+
+## 自动清理策略
+
+```mermaid
+flowchart LR
+    subgraph 每次备份时
+        A1[数据库备份 .sql.gz] -->|保留 30 天| A2[自动删除旧备份]
+    end
+    subgraph 每次自动更新时
+        B1[auto-update.log] -->|超 5000 行| B2[轮转为 2000 行]
+    end
+    subgraph 每周日 04:00
+        C1[Docker 旧镜像] -->|超 7 天| C2[prune 删除]
+        D1[cron.log] -->|超 10MB| D2[截断为 1MB]
+    end
+    subgraph 持续运行
+        E1[SSL 证书] -->|到期前 30 天| E2[certbot 自动续期]
+    end
+```
+
+---
+
 ## 首次部署
 
 ```bash
