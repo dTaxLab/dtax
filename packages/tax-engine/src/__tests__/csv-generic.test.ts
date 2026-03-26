@@ -102,4 +102,30 @@ describe("parseGenericCsv", () => {
     expect(result.transactions[0].sentValueUsd).toBeCloseTo(60000);
     expect(result.transactions[0].feeValueUsd).toBe(25);
   });
+
+  it("should parse dTax-exported CSV format via column aliases", () => {
+    const csv = [
+      "Date,Type,Sent Asset,Sent Amount,Sent Value (USD),Received Asset,Received Amount,Received Value (USD),Fee Asset,Fee Amount,Fee Value (USD),Notes",
+      "2025-10-11T05:24:20.000Z,BUY,USDT,199.99096,,DOGE,1102,199.99096,DOGE,1.102,,",
+      "2025-10-11T08:53:38.000Z,SELL,DOGE,1100,206.514,USDT,206.514,,USDT,0.206514,,",
+    ].join("\n");
+
+    const result = parseGenericCsv(csv);
+
+    expect(result.summary.parsed).toBe(2);
+    expect(result.summary.failed).toBe(0);
+
+    expect(result.transactions[0].type).toBe("BUY");
+    expect(result.transactions[0].timestamp).toContain("2025-10-11");
+    expect(result.transactions[0].sentAsset).toBe("USDT");
+    expect(result.transactions[0].sentAmount).toBeCloseTo(199.99096);
+    expect(result.transactions[0].receivedAsset).toBe("DOGE");
+    expect(result.transactions[0].receivedAmount).toBe(1102);
+    expect(result.transactions[0].receivedValueUsd).toBeCloseTo(199.99096);
+    expect(result.transactions[0].feeAsset).toBe("DOGE");
+    expect(result.transactions[0].feeAmount).toBeCloseTo(1.102);
+
+    expect(result.transactions[1].type).toBe("SELL");
+    expect(result.transactions[1].sentValueUsd).toBeCloseTo(206.514);
+  });
 });

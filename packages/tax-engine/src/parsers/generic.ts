@@ -32,6 +32,25 @@ const DEFAULT_COLUMN_MAP: GenericColumnMap = {
   notes: "notes",
 };
 
+/**
+ * Column name aliases — maps alternative header names to their canonical form.
+ * Keys are lowercase (csv-core lowercases all headers).
+ */
+const COLUMN_ALIASES: Record<string, string> = {
+  date: "timestamp",
+  datetime: "timestamp",
+  time: "timestamp",
+  "sent value (usd)": "sent value usd",
+  "received value (usd)": "received value usd",
+  "fee value (usd)": "fee value usd",
+  "sent currency": "sent asset",
+  "received currency": "received asset",
+  "fee currency": "fee asset",
+  description: "notes",
+  memo: "notes",
+  comment: "notes",
+};
+
 const VALID_TYPES = new Set([
   "BUY",
   "SELL",
@@ -88,7 +107,22 @@ export function parseGenericCsv(
   columnMap: Partial<GenericColumnMap> = {},
 ): CsvParseResult {
   const map = { ...DEFAULT_COLUMN_MAP, ...columnMap };
-  const objects = parseCsvToObjects(csv);
+  const rawObjects = parseCsvToObjects(csv);
+
+  // Normalize column names via aliases so dTax-exported CSVs
+  // (e.g. "Date" → "timestamp", "Sent Value (USD)" → "sent value usd")
+  // are recognised without explicit format selection.
+  const objects = rawObjects.map((row) => {
+    const normalized: Record<string, string> = {};
+    for (const [key, value] of Object.entries(row)) {
+      const canonical = COLUMN_ALIASES[key] ?? key;
+      // Keep the original key too if alias differs, so explicit columnMap still works
+      if (!(canonical in normalized)) normalized[canonical] = value;
+      if (canonical !== key && !(key in normalized)) normalized[key] = value;
+    }
+    return normalized;
+  });
+
   const transactions: ParsedTransaction[] = [];
   const errors: CsvParseError[] = [];
 
