@@ -30,6 +30,8 @@ const DEFAULT_COLUMN_MAP: GenericColumnMap = {
   feeAmount: "fee amount",
   feeValueUsd: "fee value usd",
   notes: "notes",
+  source: "source",
+  chain: "chain",
 };
 
 /**
@@ -49,6 +51,10 @@ const COLUMN_ALIASES: Record<string, string> = {
   description: "notes",
   memo: "notes",
   comment: "notes",
+  exchange: "source",
+  platform: "source",
+  network: "chain",
+  blockchain: "chain",
 };
 
 const VALID_TYPES = new Set([
@@ -178,6 +184,8 @@ export function parseGenericCsv(
           ? safeParseNumber(row[map.feeValueUsd])
           : undefined,
         notes: map.notes ? row[map.notes] || undefined : undefined,
+        source: map.source ? row[map.source] || undefined : undefined,
+        chain: map.chain ? row[map.chain] || undefined : undefined,
       };
 
       // Must have at least one asset

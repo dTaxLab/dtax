@@ -128,4 +128,21 @@ describe("parseGenericCsv", () => {
     expect(result.transactions[1].type).toBe("SELL");
     expect(result.transactions[1].sentValueUsd).toBeCloseTo(206.514);
   });
+
+  it("should parse dTax-exported CSV with Source and Chain columns", () => {
+    const csv = [
+      "Date,Type,Source,Chain,Sent Asset,Sent Amount,Sent Value (USD),Received Asset,Received Amount,Received Value (USD),Fee Asset,Fee Amount,Fee Value (USD),Notes",
+      "2025-10-11T05:24:20.000Z,BUY,Binance,ethereum,USDT,199.99,,DOGE,1102,199.99,DOGE,1.1,,",
+      "2025-11-05T01:44:52.000Z,BUY,Coinbase,,USDT,15.67,,SOL,0.1,15.67,SOL,0.0001,,",
+    ].join("\n");
+
+    const result = parseGenericCsv(csv);
+
+    expect(result.summary.parsed).toBe(2);
+    expect(result.transactions[0].source).toBe("Binance");
+    expect(result.transactions[0].chain).toBe("ethereum");
+    expect(result.transactions[0].sentAsset).toBe("USDT");
+    expect(result.transactions[1].source).toBe("Coinbase");
+    expect(result.transactions[1].chain).toBeUndefined();
+  });
 });

@@ -57,6 +57,10 @@ export interface ParsedTransaction {
   feeValueUsd?: number;
   /** Optional notes/memo */
   notes?: string;
+  /** Data source name (e.g. "Binance", "Coinbase") */
+  source?: string;
+  /** Blockchain name (e.g. "ethereum", "solana") */
+  chain?: string;
 }
 
 /** Result of a CSV parse operation */
@@ -98,4 +102,6 @@ export interface GenericColumnMap {
   feeAmount?: string;
   feeValueUsd?: string;
   notes?: string;
+  source?: string;
+  chain?: string;
 }
