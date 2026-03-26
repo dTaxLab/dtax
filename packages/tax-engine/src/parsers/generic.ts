@@ -32,6 +32,7 @@ const DEFAULT_COLUMN_MAP: GenericColumnMap = {
   notes: "notes",
   source: "source",
   chain: "chain",
+  contractAddress: "contract address",
 };
 
 /**
@@ -55,6 +56,8 @@ const COLUMN_ALIASES: Record<string, string> = {
   platform: "source",
   network: "chain",
   blockchain: "chain",
+  "token contract": "contract address",
+  "token address": "contract address",
 };
 
 const VALID_TYPES = new Set([
@@ -186,6 +189,9 @@ export function parseGenericCsv(
         notes: map.notes ? row[map.notes] || undefined : undefined,
         source: map.source ? row[map.source] || undefined : undefined,
         chain: map.chain ? row[map.chain] || undefined : undefined,
+        contractAddress: map.contractAddress
+          ? row[map.contractAddress] || undefined
+          : undefined,
       };
 
       // Must have at least one asset

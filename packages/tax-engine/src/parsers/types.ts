@@ -61,6 +61,8 @@ export interface ParsedTransaction {
   source?: string;
   /** Blockchain name (e.g. "ethereum", "solana") */
   chain?: string;
+  /** Token contract address (e.g. ERC-20/NFT contract) */
+  contractAddress?: string;
 }
 
 /** Result of a CSV parse operation */
@@ -104,4 +106,5 @@ export interface GenericColumnMap {
   notes?: string;
   source?: string;
   chain?: string;
+  contractAddress?: string;
 }
