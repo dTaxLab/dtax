@@ -60,3 +60,4 @@ data/reports/
 *.tsbuildinfo
 apps/data/
 .maintenance
+*.pyc
