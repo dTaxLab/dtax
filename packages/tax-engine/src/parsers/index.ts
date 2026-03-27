@@ -44,6 +44,9 @@ import { parsePoloniexCsv, isPoloniexCsv } from "./poloniex";
 import { parseKoinlyCsv, isKoinlyCsv } from "./koinly";
 import { parseCoinTrackerCsv, isCoinTrackerCsv } from "./cointracker";
 import { parseCryptactCsv, isCryptactCsv } from "./cryptact";
+import { parseBitstampCsv, isBitstampCsv } from "./bitstamp";
+import { parseUpbitCsv, isUpbitCsv } from "./upbit";
+import { parseRobinhoodCsv, isRobinhoodCsv } from "./robinhood";
 import type { CsvParseResult, CsvFormat, GenericColumnMap } from "./types";
 
 /**
@@ -64,6 +67,9 @@ export function detectCsvFormat(csv: string): CsvFormat {
   if (isKoinlyCsv(csv)) return "koinly";
   if (isCoinTrackerCsv(csv)) return "cointracker";
   if (isCryptactCsv(csv)) return "cryptact";
+  if (isBitstampCsv(csv)) return "bitstamp";
+  if (isUpbitCsv(csv)) return "upbit";
+  if (isRobinhoodCsv(csv)) return "robinhood";
   if (isKuCoinCsv(csv)) return "kucoin";
   if (isMexcCsv(csv)) return "mexc";
   if (isGateCsv(csv)) return "gate";
@@ -145,6 +151,12 @@ export function parseCsv(
       return parseCoinTrackerCsv(csv);
     case "cryptact":
       return parseCryptactCsv(csv);
+    case "bitstamp":
+      return parseBitstampCsv(csv);
+    case "upbit":
+      return parseUpbitCsv(csv);
+    case "robinhood":
+      return parseRobinhoodCsv(csv);
     case "generic":
     default:
       return parseGenericCsv(csv, options?.columnMap);
@@ -189,6 +201,9 @@ export { parsePoloniexCsv, isPoloniexCsv } from "./poloniex";
 export { parseKoinlyCsv, isKoinlyCsv } from "./koinly";
 export { parseCoinTrackerCsv, isCoinTrackerCsv } from "./cointracker";
 export { parseCryptactCsv, isCryptactCsv } from "./cryptact";
+export { parseBitstampCsv, isBitstampCsv } from "./bitstamp";
+export { parseUpbitCsv, isUpbitCsv } from "./upbit";
+export { parseRobinhoodCsv, isRobinhoodCsv } from "./robinhood";
 export { parseCsvRows, parseCsvToObjects } from "./csv-core";
 export type {
   CsvFormat,
