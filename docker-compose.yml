@@ -23,6 +23,8 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+      args:
+        GIT_HASH: ${GIT_HASH:-unknown}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -93,6 +95,7 @@ services:
         NEXT_PUBLIC_GITHUB_CLIENT_ID: ${NEXT_PUBLIC_GITHUB_CLIENT_ID:-}
         NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
         NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}
+        NEXT_PUBLIC_BUILD_ID: ${GIT_HASH:-unknown}
     restart: unless-stopped
     depends_on:
       api:
