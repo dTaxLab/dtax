@@ -262,7 +262,7 @@ export function parseEtherscanErc20Csv(
       );
       const txhash = row["txhash"] || "";
 
-      if (!symbol || !value) {
+      if (!symbol || value === undefined) {
         errors.push({ row: rowNum, message: "Missing token symbol or value" });
         continue;
       }

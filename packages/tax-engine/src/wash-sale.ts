@@ -16,9 +16,15 @@
  */
 
 import type { CalculationResult } from "./types";
+import { ddiv, dmul } from "./math";
 
-/** 30-day window in milliseconds */
-const WASH_SALE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+/** Return the number of UTC calendar days between two dates (signed) */
+function utcDaysDiff(a: Date, b: Date): number {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const aDay = Math.floor(a.getTime() / msPerDay);
+  const bDay = Math.floor(b.getTime() / msPerDay);
+  return bDay - aDay;
+}
 
 /** A detected wash sale with adjustment details */
 export interface WashSaleAdjustment {
@@ -95,18 +101,15 @@ export function detectWashSales(
 
   for (const lossResult of lossEvents) {
     const { event } = lossResult;
-    const saleDate = event.date.getTime();
-    const windowStart = saleDate - WASH_SALE_WINDOW_MS;
-    const windowEnd = saleDate + WASH_SALE_WINDOW_MS;
 
-    // Find replacement acquisitions: same asset, within 30-day window
+    // Find replacement acquisitions: same asset, within 30 calendar days (TAX-4: use UTC days, not ms)
     const replacements = sortedAcquisitions.filter((acq) => {
       // Must be same asset
       if (acq.asset !== event.asset) return false;
 
-      // Must be within 30-day window
-      const acqTime = acq.acquiredAt.getTime();
-      if (acqTime < windowStart || acqTime > windowEnd) return false;
+      // Must be within 30 calendar-day window (IRS counts calendar days, not hours)
+      const daysDiff = Math.abs(utcDaysDiff(event.date, acq.acquiredAt));
+      if (daysDiff > 30) return false;
 
       // Cannot be the same lot that was sold (lot consumed in this disposition)
       if (dispositionLotIds?.has(acq.lotId)) return false;
@@ -121,17 +124,19 @@ export function detectWashSales(
 
     // Match with the closest replacement (by date)
     const replacement = replacements.reduce((closest, r) => {
-      const closestDiff = Math.abs(closest.acquiredAt.getTime() - saleDate);
-      const rDiff = Math.abs(r.acquiredAt.getTime() - saleDate);
+      const closestDiff = Math.abs(
+        closest.acquiredAt.getTime() - event.date.getTime(),
+      );
+      const rDiff = Math.abs(r.acquiredAt.getTime() - event.date.getTime());
       return rDiff < closestDiff ? r : closest;
     });
 
-    // Calculate disallowed loss
+    // Calculate disallowed loss using Decimal math (TAX-3: avoid native JS division)
     const totalLoss = Math.abs(lossResult.gainLoss);
-    const lossPerUnit = totalLoss / event.amount;
+    const lossPerUnit = ddiv(totalLoss, event.amount);
     const disallowedAmount = Math.min(replacement.amount, event.amount);
     const disallowedLoss =
-      Math.round(lossPerUnit * disallowedAmount * 100) / 100;
+      Math.round(dmul(lossPerUnit, disallowedAmount) * 100) / 100;
 
     usedReplacementLots.add(replacement.lotId);
 

@@ -190,21 +190,17 @@ export function generateForm8949(
       0,
     );
 
-    const feeUsd = event.feeUsd ?? 0;
     const washSale = washSaleAdjustments?.get(event.id);
 
-    // Build adjustment code: E for fees, W for wash sale, or both
+    // Build adjustment code: W for wash sale only.
+    // TAX-12: Fee is already deducted in gainLoss (proceeds - basis - fee).
+    // Using adjCode "E" here would double-count the fee. IRS code "E" is
+    // "Section 1202 exclusion", not a fee code.
     let adjCode = "";
     let adjAmount = 0;
-    if (feeUsd > 0 && washSale) {
-      adjCode = "E;W";
-      adjAmount = round2(-feeUsd + washSale.disallowedLoss);
-    } else if (washSale) {
+    if (washSale) {
       adjCode = "W";
       adjAmount = round2(washSale.disallowedLoss);
-    } else if (feeUsd > 0) {
-      adjCode = "E";
-      adjAmount = round2(-feeUsd);
     }
 
     const adjustedGainLoss = washSale

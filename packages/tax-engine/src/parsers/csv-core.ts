@@ -10,6 +10,8 @@
  * Handles: quoted fields, commas inside quotes, escaped quotes (""), CRLF/LF.
  */
 export function parseCsvRows(csv: string): string[][] {
+  // Strip UTF-8 BOM (added by Excel exports) so the first header parses correctly
+  if (csv.charCodeAt(0) === 0xfeff) csv = csv.slice(1);
   const rows: string[][] = [];
   let current = "";
   let inQuotes = false;

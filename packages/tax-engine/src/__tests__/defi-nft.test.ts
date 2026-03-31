@@ -270,7 +270,8 @@ describe("NFT Tax Calculations", () => {
       expect(line.description).toContain("NFT:BAYC:1234");
       expect(line.proceeds).toBe(15000);
       expect(line.costBasis).toBe(5000);
-      expect(line.adjustmentAmount).toBe(-100); // fee
+      // TAX-12: fee is already deducted in gainLoss; no separate adjustment entry
+      expect(line.adjustmentAmount).toBe(0);
       expect(line.gainLoss).toBeCloseTo(9900, 2);
       expect(line.holdingPeriod).toBe("LONG_TERM");
     });

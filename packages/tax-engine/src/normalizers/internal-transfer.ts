@@ -60,9 +60,11 @@ export function matchInternalTransfers(
     let smallestTimeDiff = Infinity;
 
     for (const inTx of ins) {
-      // Skip if already assigned or wrong asset
+      // Skip if already assigned, wrong asset, or same wallet source
+      // CSV-6: transfers from the same sourceId are not internal transfers
       if (usedIns.has(inTx.id)) continue;
       if (inTx.asset !== outTx.asset) continue;
+      if (inTx.sourceId === outTx.sourceId) continue;
 
       // Check time bounds: 'IN' usually happens after or very close to 'OUT'
       const timeDiff = inTx.timestamp.getTime() - outTx.timestamp.getTime();

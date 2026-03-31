@@ -577,10 +577,10 @@ describe("Wash Sale Detection", () => {
       expect(report.lines).toHaveLength(1);
       const line = report.lines[0];
 
-      expect(line.adjustmentCode).toBe("E;W");
-      // Fee adjustment: -50, wash sale disallowed: +10050 (full loss including fee)
-      // Net adjustment: -50 + 10050 = 10000
-      expect(line.adjustmentAmount).toBe(10000);
+      // TAX-12: fee "E" code removed; only wash sale "W" remains
+      expect(line.adjustmentCode).toBe("W");
+      // Wash sale disallowed amount = 10050 (full loss)
+      expect(line.adjustmentAmount).toBe(10050);
       // Original gainLoss was -10050 (proceeds 40000 - basis 50000 - fee 50)
       // After wash sale: -10050 + 10050 = 0 (entire loss disallowed)
       expect(line.gainLoss).toBe(0);

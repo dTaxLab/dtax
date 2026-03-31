@@ -22,9 +22,9 @@ const WRAP_PAIRS: Record<string, string> = {
   WBNB: "BNB",
   WFTM: "FTM",
   WSOL: "SOL",
-  stETH: "ETH",
-  cbETH: "ETH",
-  rETH: "ETH",
+  STETH: "ETH",
+  CBETH: "ETH",
+  RETH: "ETH",
 };
 
 /**
@@ -32,9 +32,11 @@ const WRAP_PAIRS: Record<string, string> = {
  * Returns true if converting between them should be non-taxable.
  */
 export function isWrapPair(assetA: string, assetB: string): boolean {
-  // Direct match: WETH↔ETH
-  if (WRAP_PAIRS[assetA] === assetB) return true;
-  if (WRAP_PAIRS[assetB] === assetA) return true;
+  // Normalize to uppercase — WRAP_PAIRS keys are uppercase; CSV imports also uppercase symbols
+  const a = assetA.toUpperCase();
+  const b = assetB.toUpperCase();
+  if (WRAP_PAIRS[a] === b) return true;
+  if (WRAP_PAIRS[b] === a) return true;
   return false;
 }
 
@@ -43,7 +45,10 @@ export function isWrapPair(assetA: string, assetB: string): boolean {
  * Returns the token itself if it's not a known wrapped token.
  */
 export function getUnderlyingAsset(wrappedAsset: string): string {
-  return WRAP_PAIRS[wrappedAsset] || wrappedAsset;
+  const key = wrappedAsset.toUpperCase();
+  const underlying = WRAP_PAIRS[key];
+  // Return with original casing if not found; preserve underlying asset as-is from the map
+  return underlying ?? wrappedAsset;
 }
 
 export interface WrapEvent {

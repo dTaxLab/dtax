@@ -167,7 +167,7 @@ describe("Form 8949 Generator", () => {
     expect(report.lines[0].dateAcquired).toBe("VARIOUS");
   });
 
-  it("should handle fees with adjustment code E", () => {
+  it("should reflect fees in gainLoss without adjustment code (TAX-12)", () => {
     const lots = createTestLots();
     const lotDates = buildLotDateMap(lots);
 
@@ -187,8 +187,9 @@ describe("Form 8949 Generator", () => {
     const report = generateForm8949(results, { taxYear: 2024, lotDates });
 
     const line = report.lines[0];
-    expect(line.adjustmentCode).toBe("E");
-    expect(line.adjustmentAmount).toBe(-25);
+    // TAX-12: fee is already deducted in gainLoss; IRS code "E" = Section 1202 (not fees)
+    expect(line.adjustmentCode).toBe("");
+    expect(line.adjustmentAmount).toBe(0);
     // gainLoss = proceeds - costBasis - fee = 6000 - 4000 - 25 = 1975
     expect(line.gainLoss).toBe(1975);
   });

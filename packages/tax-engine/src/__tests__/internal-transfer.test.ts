@@ -14,9 +14,12 @@ import {
 } from "../normalizers/internal-transfer";
 
 function makeTransfer(overrides: Partial<TransferRecord>): TransferRecord {
+  const type = overrides.type ?? "TRANSFER_OUT";
+  const isIn = type === "TRANSFER_IN" || type === "BRIDGE_IN";
   return {
     id: "tx-1",
-    sourceId: "exchange-1",
+    // CSV-6: default different sourceIds so OUT and IN don't share a source
+    sourceId: isIn ? "exchange-2" : "exchange-1",
     type: "TRANSFER_OUT",
     timestamp: new Date("2025-01-15T10:00:00Z"),
     asset: "ETH",
@@ -58,11 +61,13 @@ describe("matchInternalTransfers — basic matching", () => {
       makeTransfer({
         id: "out-1",
         type: "TRANSFER_OUT",
+        sourceId: "binance",
         amount: 10,
       }),
       makeTransfer({
         id: "in-1",
         type: "TRANSFER_IN",
+        sourceId: "metamask",
         amount: 9.99,
         timestamp: new Date("2025-01-15T10:15:00Z"),
       }),
@@ -129,12 +134,14 @@ describe("matchInternalTransfers — asset filtering", () => {
       makeTransfer({
         id: "out-eth",
         type: "TRANSFER_OUT",
+        sourceId: "binance",
         asset: "ETH",
         amount: 5,
       }),
       makeTransfer({
         id: "out-btc",
         type: "TRANSFER_OUT",
+        sourceId: "binance",
         asset: "BTC",
         amount: 1,
         timestamp: new Date("2025-01-15T10:01:00Z"),
@@ -142,6 +149,7 @@ describe("matchInternalTransfers — asset filtering", () => {
       makeTransfer({
         id: "in-btc",
         type: "TRANSFER_IN",
+        sourceId: "metamask",
         asset: "BTC",
         amount: 1,
         timestamp: new Date("2025-01-15T10:30:00Z"),
@@ -149,6 +157,7 @@ describe("matchInternalTransfers — asset filtering", () => {
       makeTransfer({
         id: "in-eth",
         type: "TRANSFER_IN",
+        sourceId: "metamask",
         asset: "ETH",
         amount: 5,
         timestamp: new Date("2025-01-15T10:30:00Z"),
@@ -184,10 +193,11 @@ describe("matchInternalTransfers — time window", () => {
 
   it("accepts custom time window", () => {
     const transfers: TransferRecord[] = [
-      makeTransfer({ id: "out-1", type: "TRANSFER_OUT" }),
+      makeTransfer({ id: "out-1", type: "TRANSFER_OUT", sourceId: "binance" }),
       makeTransfer({
         id: "in-1",
         type: "TRANSFER_IN",
+        sourceId: "metamask",
         timestamp: new Date("2025-01-17T10:00:00Z"), // 48h later
       }),
     ];
@@ -202,11 +212,13 @@ describe("matchInternalTransfers — time window", () => {
       makeTransfer({
         id: "out-1",
         type: "TRANSFER_OUT",
+        sourceId: "binance",
         timestamp: new Date("2025-01-15T10:00:30Z"),
       }),
       makeTransfer({
         id: "in-1",
         type: "TRANSFER_IN",
+        sourceId: "metamask",
         timestamp: new Date("2025-01-15T10:00:00Z"), // 30s before OUT
       }),
     ];
@@ -463,7 +475,7 @@ describe("matchInternalTransfers — edge cases", () => {
     expect(result.matched).toHaveLength(1);
   });
 
-  it("handles transfers from same source (self-transfer)", () => {
+  it("does not match transfers from the same source (CSV-6: not an internal transfer)", () => {
     const transfers: TransferRecord[] = [
       makeTransfer({
         id: "out-1",
@@ -474,13 +486,15 @@ describe("matchInternalTransfers — edge cases", () => {
       makeTransfer({
         id: "in-1",
         type: "TRANSFER_IN",
-        sourceId: "wallet-1", // Same source — still matches
+        sourceId: "wallet-1", // Same source — should NOT match (would hide taxable income)
         amount: 5,
         timestamp: new Date("2025-01-15T10:05:00Z"),
       }),
     ];
 
     const result = matchInternalTransfers(transfers);
-    expect(result.matched).toHaveLength(1);
+    expect(result.matched).toHaveLength(0);
+    expect(result.unmatchedOut).toHaveLength(1);
+    expect(result.unmatchedIn).toHaveLength(1);
   });
 });
