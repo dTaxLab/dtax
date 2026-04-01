@@ -46,3 +46,42 @@ La synchronisation d'un portefeuille EVM interroge jusqu'à 5 réseaux blockchai
 ## Pourquoi mon calcul fiscal affiche-t-il $0 pour les transactions de portefeuille ?
 
 Si votre portefeuille ne contient que des transactions `TRANSFER_IN` et `TRANSFER_OUT`, le total fiscal sera $0. Les transferts entre vos propres portefeuilles ne sont **pas des événements imposables** — aucune plus-value ou moins-value n'est réalisée tant que vous ne vendez pas, n'échangez pas ou n'utilisez pas l'actif.
+
+---
+
+## Pourquoi mon tableau de bord affiche-t-il $0,00 après l'importation de transactions ?
+
+L'importation de transactions n'exécute pas automatiquement un calcul fiscal. Cliquez sur **Calculer les impôts** dans le tableau de bord pour calculer vos gains et pertes.
+
+### L'enrichissement des prix doit-il être terminé en premier ?
+
+Non. **Calculer les impôts** est entièrement indépendant de l'enrichissement des prix et peut être exécuté à tout moment. Les transactions sans prix USD historique sont traitées comme $0 dans le calcul. Vous pouvez recalculer autant de fois que nécessaire après chaque enrichissement des prix pour améliorer la précision.
+
+### Flux de travail recommandé
+
+| Étape | Action | Requis ? |
+|-------|--------|---------|
+| 1 | Importer les transactions (synchronisation du portefeuille ou téléchargement CSV) | ✓ |
+| 2 | Obtenir les prix historiques | Recommandé |
+| 3 | Calculer les impôts | ✓ |
+
+Les étapes 2 et 3 sont indépendantes — vous pouvez exécuter l'étape 3 sans l'étape 2, ou réexécuter l'étape 3 après l'étape 2 pour obtenir des résultats mis à jour.
+
+---
+
+## Que se passe-t-il lorsque j'utilise « Effacer les données » pour un portefeuille ?
+
+**Effacer les données** supprime définitivement toutes les transactions importées pour ce portefeuille. Cette action est irréversible.
+
+### Qu'est-ce qui est conservé ?
+
+- La connexion du portefeuille (adresse, paramètres de chaîne) est maintenue
+- Votre compte dTax et les données des autres portefeuilles ne sont pas affectés
+
+### Les transactions seront-elles récupérées lors de la prochaine synchronisation ?
+
+Oui. Effacer les données réinitialise le curseur de synchronisation à zéro. La prochaine synchronisation récupère le **l'historique complet des transactions** depuis le bloc 0, exactement comme si vous ajoutiez le portefeuille pour la première fois.
+
+### dTax met-il en cache les données brutes de la blockchain ?
+
+Non. dTax ne met pas en cache les réponses brutes de l'API blockchain. Chaque synchronisation interroge l'API blockchain en temps réel. Effacer les données et resynchroniser produit toujours le même résultat que l'importation originale.

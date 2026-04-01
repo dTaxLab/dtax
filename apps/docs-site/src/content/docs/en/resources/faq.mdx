@@ -46,3 +46,42 @@ EVM wallet syncing queries up to 5 blockchain networks (Ethereum, Polygon, BNB C
 ## Why does my tax calculation show $0 for wallet transactions?
 
 If your wallet only contains `TRANSFER_IN` and `TRANSFER_OUT` transactions, the tax total will be $0. Transfers between your own wallets are **not taxable events** — no capital gain or loss is realized until you sell, trade, or spend the asset.
+
+---
+
+## Why does my dashboard show $0.00 after importing transactions?
+
+Importing transactions does not automatically run a tax calculation. Click **Calculate Taxes** on the dashboard to compute your gains and losses.
+
+### Does price enrichment need to finish first?
+
+No. **Calculate Taxes** is completely independent of price enrichment and can be run at any time. Transactions missing a historical USD price are treated as $0 in the calculation. You can recalculate as many times as needed after running price enrichment to improve accuracy.
+
+### Recommended workflow
+
+| Step | Action | Required? |
+|------|--------|-----------|
+| 1 | Import transactions (wallet sync or CSV upload) | ✓ |
+| 2 | Get Historical Prices | Recommended |
+| 3 | Calculate Taxes | ✓ |
+
+Steps 2 and 3 are independent — you can run step 3 without step 2, or run step 3 again after step 2 to get updated results.
+
+---
+
+## What happens when I use "Clear Data" for a wallet?
+
+**Clear Data** permanently deletes all imported transactions for that wallet. This action is irreversible.
+
+### What is preserved?
+
+- The wallet connection (address, chain settings) is kept
+- Your dTax account and all other wallet data are unaffected
+
+### Will transactions be re-fetched on the next sync?
+
+Yes. Clearing data resets the sync cursor to zero. The next sync re-fetches the **full transaction history** from block 0, exactly as if you added the wallet for the first time.
+
+### Is there a local cache of raw blockchain data?
+
+No. dTax does not cache raw blockchain API responses. Every sync queries the blockchain API live. Clearing data and re-syncing always produces the same result as the original import.

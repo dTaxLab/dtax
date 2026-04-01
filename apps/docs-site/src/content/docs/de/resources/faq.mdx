@@ -46,3 +46,42 @@ Die EVM-Wallet-Synchronisierung fragt bis zu 5 Blockchain-Netzwerke (Ethereum, P
 ## Warum zeigt meine Steuerberechnung $0 für Wallet-Transaktionen?
 
 Wenn Ihre Wallet nur `TRANSFER_IN`- und `TRANSFER_OUT`-Transaktionen enthält, beträgt die Steuersumme $0. Überweisungen zwischen eigenen Wallets sind **keine steuerpflichtigen Ereignisse** – Kapitalgewinne oder -verluste entstehen erst beim Verkauf, Tausch oder Einsatz des Vermögenswerts.
+
+---
+
+## Warum zeigt mein Dashboard $0,00 nach dem Import von Transaktionen?
+
+Das Importieren von Transaktionen führt keine Steuerberechnung automatisch durch. Klicken Sie auf **Steuern berechnen** im Dashboard, um Ihre Gewinne und Verluste zu berechnen.
+
+### Muss die Preisanreicherung zuerst abgeschlossen sein?
+
+Nein. **Steuern berechnen** ist vollständig unabhängig von der Preisanreicherung und kann jederzeit ausgeführt werden. Transaktionen ohne historischen USD-Preis werden in der Berechnung als $0 behandelt. Sie können nach jeder Preisanreicherung neu berechnen, um die Genauigkeit zu verbessern.
+
+### Empfohlener Arbeitsablauf
+
+| Schritt | Aktion | Erforderlich? |
+|---------|--------|--------------|
+| 1 | Transaktionen importieren (Wallet-Sync oder CSV-Upload) | ✓ |
+| 2 | Historische Preise abrufen | Empfohlen |
+| 3 | Steuern berechnen | ✓ |
+
+Schritt 2 und Schritt 3 sind unabhängig voneinander – Sie können Schritt 3 ohne Schritt 2 ausführen oder Schritt 3 nach Schritt 2 erneut ausführen, um aktualisierte Ergebnisse zu erhalten.
+
+---
+
+## Was passiert, wenn ich „Daten löschen" für eine Wallet verwende?
+
+**Daten löschen** löscht dauerhaft alle importierten Transaktionen für diese Wallet. Diese Aktion ist nicht rückgängig zu machen.
+
+### Was bleibt erhalten?
+
+- Die Wallet-Verbindung (Adresse, Chain-Einstellungen) bleibt bestehen
+- Ihr dTax-Konto und alle anderen Wallet-Daten sind nicht betroffen
+
+### Werden Transaktionen beim nächsten Sync erneut abgerufen?
+
+Ja. Das Löschen von Daten setzt den Sync-Cursor auf null zurück. Der nächste Sync ruft die **vollständige Transaktionshistorie** ab Block 0 ab, genau wie beim ersten Hinzufügen der Wallet.
+
+### Speichert dTax rohe Blockchain-Daten zwischen?
+
+Nein. dTax speichert keine rohen Blockchain-API-Antworten zwischen. Jeder Sync fragt die Blockchain-API live ab. Das Löschen von Daten und erneutes Synchronisieren liefert immer das gleiche Ergebnis wie der ursprüngliche Import.

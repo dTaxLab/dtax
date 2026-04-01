@@ -46,3 +46,42 @@ La sincronización de billeteras EVM consulta hasta 5 redes blockchain (Ethereum
 ## ¿Por qué mi cálculo fiscal muestra $0 para las transacciones de billetera?
 
 Si tu billetera solo contiene transacciones `TRANSFER_IN` y `TRANSFER_OUT`, el total fiscal será $0. Las transferencias entre tus propias billeteras **no son eventos imponibles** — no se realiza ninguna ganancia o pérdida de capital hasta que vendes, intercambias o gastas el activo.
+
+---
+
+## ¿Por qué mi panel muestra $0,00 después de importar transacciones?
+
+Importar transacciones no ejecuta automáticamente un cálculo fiscal. Haz clic en **Calcular Impuestos** en el panel para calcular tus ganancias y pérdidas.
+
+### ¿Es necesario que la obtención de precios históricos finalice primero?
+
+No. **Calcular Impuestos** es completamente independiente de la obtención de precios históricos y puede ejecutarse en cualquier momento. Las transacciones sin precio USD histórico se tratan como $0 en el cálculo. Puedes recalcular las veces que necesites después de cada obtención de precios para mejorar la precisión.
+
+### Flujo de trabajo recomendado
+
+| Paso | Acción | ¿Requerido? |
+|------|--------|------------|
+| 1 | Importar transacciones (sincronización de billetera o carga CSV) | ✓ |
+| 2 | Obtener precios históricos | Recomendado |
+| 3 | Calcular Impuestos | ✓ |
+
+Los pasos 2 y 3 son independientes: puedes ejecutar el paso 3 sin el paso 2, o volver a ejecutar el paso 3 después del paso 2 para obtener resultados actualizados.
+
+---
+
+## ¿Qué ocurre cuando uso "Borrar datos" para una billetera?
+
+**Borrar datos** elimina de forma permanente todas las transacciones importadas de esa billetera. Esta acción es irreversible.
+
+### ¿Qué se conserva?
+
+- La conexión de la billetera (dirección, configuración de cadena) se mantiene
+- Tu cuenta de dTax y los datos de otras billeteras no se ven afectados
+
+### ¿Se volverán a obtener las transacciones en la próxima sincronización?
+
+Sí. Borrar los datos restablece el cursor de sincronización a cero. La próxima sincronización obtendrá el **historial completo de transacciones** desde el bloque 0, exactamente como si añadieras la billetera por primera vez.
+
+### ¿dTax almacena en caché los datos brutos de la blockchain?
+
+No. dTax no almacena en caché las respuestas brutas de la API de blockchain. Cada sincronización consulta la API de blockchain en tiempo real. Borrar los datos y volver a sincronizar siempre produce el mismo resultado que la importación original.
