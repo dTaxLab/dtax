@@ -88,6 +88,13 @@ Despliega dTax en tu servidor Linux en menos de 15 minutos con Docker Compose.
      └────────┘  └───────┘
 ```
 
+El **Sync Worker** se ejecuta dentro del proceso de la API y consulta PostgreSQL cada 5 segundos en busca de trabajos pendientes. Gestiona dos tipos de trabajos:
+
+- **`WALLET_SYNC`** — obtiene transacciones on-chain o de exchanges
+- **`PRICE_ENRICH`** — rellena los precios USD faltantes, luego calcula automáticamente los informes fiscales FIFO y envía un email de resumen
+
+No se necesita un contenedor worker independiente. Configura `RESEND_API_KEY` + `FROM_EMAIL` + `APP_URL` para activar las notificaciones de informe fiscal listo por email.
+
 ## TLS con Let's Encrypt
 
 <Steps>
@@ -168,7 +175,7 @@ gunzip -c backups/dtax_20260313_020000.sql.gz | \
 
 | Servicio | Variables de entorno | Propósito |
 | -------- | -------------------- | --------- |
-| Resend | `RESEND_API_KEY`, `FROM_EMAIL` | Verificación de email y restablecimiento de contraseña (sin esto no es posible restablecer contraseñas) |
+| Resend | `RESEND_API_KEY`, `FROM_EMAIL` | Verificación de email, restablecimiento de contraseña y notificaciones automáticas de informe fiscal listo — sin esto, el restablecimiento de contraseña, la verificación de email y los emails de informe fiscal tras el enriquecimiento se omiten silenciosamente |
 | Stripe | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_ID`, `STRIPE_CPA_PRICE_ID` | Facturación de suscripciones |
 | Anthropic | `ANTHROPIC_API_KEY` | Clasificación de transacciones con IA y chat |
 | Etherscan | `ETHERSCAN_API_KEY` | Indexación blockchain EVM |

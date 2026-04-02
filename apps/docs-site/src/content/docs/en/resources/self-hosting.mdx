@@ -87,11 +87,23 @@ Deploy dTax on your own Linux server in under 15 minutes using Docker Compose.
      ┌────┴───┐            ┌─────┴────┐
      │  API   │            │   Web    │
      │ :3001  │            │  :3000   │
-     └────┬───┘            └──────────┘
+     │        │
+     │ Sync   │  (embedded in API process)
+     │ Worker │  polls DB every 5s
+     │  ├── WALLET_SYNC jobs
+     │  └── PRICE_ENRICH jobs → auto tax calc → email
+     └────┬───┘
      ┌────┴───┐  ┌───────┐
      │Postgres│  │ Redis │
      └────────┘  └───────┘
 ```
+
+The **Sync Worker** runs inside the API process and polls PostgreSQL for pending jobs every 5 seconds. It handles two job types:
+
+- **`WALLET_SYNC`** — fetches on-chain or exchange transactions
+- **`PRICE_ENRICH`** — backfills missing USD prices, then automatically calculates FIFO tax reports and sends a summary email
+
+No separate worker container is needed. Configure `RESEND_API_KEY` + `FROM_EMAIL` + `APP_URL` to enable tax-ready email notifications.
 
 ## TLS with Let's Encrypt
 
@@ -208,7 +220,7 @@ gunzip -c backups/dtax_20260313_020000.sql.gz | \
 
 | Service   | Environment Variables | Purpose |
 | --------- | --------------------- | ------- |
-| Resend    | `RESEND_API_KEY`, `FROM_EMAIL` | Email verification & password reset — without this, users cannot reset passwords or verify email |
+| Resend    | `RESEND_API_KEY`, `FROM_EMAIL` | Email verification, password reset, and automatic tax-ready notifications — without this, password reset, email verification, and post-enrichment tax report emails are silently skipped |
 | Stripe    | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_ID`, `STRIPE_CPA_PRICE_ID` | Subscription billing |
 | Anthropic | `ANTHROPIC_API_KEY` | AI transaction classification & chat |
 | Etherscan | `ETHERSCAN_API_KEY` | EVM blockchain indexing (Ethereum, Polygon, BSC, Arbitrum, Optimism) |

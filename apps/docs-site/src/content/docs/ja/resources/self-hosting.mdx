@@ -88,6 +88,13 @@ Docker Compose を使って Linux サーバーに dTax を 15 分以内でデプ
      └────────┘  └───────┘
 ```
 
+**Sync Worker** は API プロセス内で動作し、5 秒ごとに PostgreSQL をポーリングして保留中のジョブを処理します。2 種類のジョブタイプを処理します：
+
+- **`WALLET_SYNC`** — オンチェーンまたは取引所のトランザクションを取得
+- **`PRICE_ENRICH`** — 不足している USD 価格を補完し、自動的に FIFO 税務レポートを計算してサマリーメールを送信
+
+別途 Worker コンテナは不要です。`RESEND_API_KEY` + `FROM_EMAIL` + `APP_URL` を設定することで、納税準備完了メール通知が有効になります。
+
 ## TLS 証明書（Let's Encrypt）
 
 <Steps>
@@ -171,7 +178,7 @@ gunzip -c backups/dtax_20260313_020000.sql.gz | \
 
 | サービス | 環境変数 | 用途 |
 | -------- | -------- | ---- |
-| Resend | `RESEND_API_KEY`、`FROM_EMAIL` | メール認証・パスワードリセット（未設定の場合パスワードリセット不可） |
+| Resend | `RESEND_API_KEY`、`FROM_EMAIL` | メール認証、パスワードリセット、および自動納税準備完了通知 — 未設定の場合、パスワードリセット・メール認証・価格補完後の税務レポートメールがサイレントにスキップされます |
 | Stripe | `STRIPE_SECRET_KEY`、`STRIPE_WEBHOOK_SECRET`、`STRIPE_PRO_PRICE_ID`、`STRIPE_CPA_PRICE_ID` | サブスクリプション課金 |
 | Anthropic | `ANTHROPIC_API_KEY` | AI トランザクション分類・チャット |
 | Etherscan | `ETHERSCAN_API_KEY` | EVM ブロックチェーンインデックス |

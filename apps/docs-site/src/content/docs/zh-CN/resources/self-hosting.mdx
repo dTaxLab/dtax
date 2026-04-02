@@ -93,6 +93,13 @@ import { Steps, Code, Tabs, TabItem, Aside } from '@astrojs/starlight/components
      └────────┘  └───────┘
 ```
 
+**Sync Worker** 在 API 进程内运行，每 5 秒轮询 PostgreSQL 处理待执行的任务。它处理两种任务类型：
+
+- **`WALLET_SYNC`** — 获取链上或交易所交易记录
+- **`PRICE_ENRICH`** — 回填缺失的 USD 价格，然后自动计算 FIFO 税务报告并发送汇总邮件
+
+无需独立的 Worker 容器。配置 `RESEND_API_KEY` + `FROM_EMAIL` + `APP_URL` 以启用报税就绪邮件通知。
+
 ## TLS 证书（Let's Encrypt）
 
 <Steps>
@@ -208,7 +215,7 @@ gunzip -c backups/dtax_20260313_020000.sql.gz | \
 
 | 服务 | 环境变量 | 用途 |
 | ---- | -------- | ---- |
-| Resend | `RESEND_API_KEY`、`FROM_EMAIL` | 邮件验证和密码重置（未配置则用户无法找回密码） |
+| Resend | `RESEND_API_KEY`、`FROM_EMAIL` | 邮件验证、密码重置和自动报税就绪通知 — 未配置则密码重置、邮件验证及价格回填完成后的税务报告邮件将被静默跳过 |
 | Stripe | `STRIPE_SECRET_KEY`、`STRIPE_WEBHOOK_SECRET`、`STRIPE_PRO_PRICE_ID`、`STRIPE_CPA_PRICE_ID` | 订阅付费功能 |
 | Anthropic | `ANTHROPIC_API_KEY` | AI 交易分类和智能对话 |
 | Etherscan | `ETHERSCAN_API_KEY` | EVM 链上交易索引（以太坊、Polygon、BSC、Arbitrum、Optimism） |

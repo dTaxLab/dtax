@@ -88,6 +88,13 @@ Deploye dTax in unter 15 Minuten auf deinem eigenen Linux-Server mit Docker Comp
      └────────┘  └───────┘
 ```
 
+Der **Sync Worker** läuft im API-Prozess und fragt PostgreSQL alle 5 Sekunden nach ausstehenden Jobs ab. Er verarbeitet zwei Job-Typen:
+
+- **`WALLET_SYNC`** — ruft On-Chain- oder Exchange-Transaktionen ab
+- **`PRICE_ENRICH`** — ergänzt fehlende USD-Preise, berechnet dann automatisch FIFO-Steuerberichte und sendet eine Zusammenfassungs-E-Mail
+
+Es wird kein separater Worker-Container benötigt. Konfiguriere `RESEND_API_KEY` + `FROM_EMAIL` + `APP_URL`, um Steuerbereit-E-Mail-Benachrichtigungen zu aktivieren.
+
 ## TLS mit Let's Encrypt
 
 <Steps>
@@ -168,7 +175,7 @@ gunzip -c backups/dtax_20260313_020000.sql.gz | \
 
 | Dienst | Umgebungsvariablen | Zweck |
 | ------ | ------------------ | ----- |
-| Resend | `RESEND_API_KEY`, `FROM_EMAIL` | E-Mail-Verifizierung & Passwort-Reset (ohne dies kein Passwort-Reset möglich) |
+| Resend | `RESEND_API_KEY`, `FROM_EMAIL` | E-Mail-Verifizierung, Passwort-Reset und automatische Steuerbereit-Benachrichtigungen — ohne dies werden Passwort-Reset, E-Mail-Verifizierung und Steuerberichts-E-Mails nach der Preisanreicherung stillschweigend übersprungen |
 | Stripe | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_ID`, `STRIPE_CPA_PRICE_ID` | Abonnementabrechnung |
 | Anthropic | `ANTHROPIC_API_KEY` | KI-Transaktionsklassifizierung & Chat |
 | Etherscan | `ETHERSCAN_API_KEY` | EVM-Blockchain-Indexierung |
