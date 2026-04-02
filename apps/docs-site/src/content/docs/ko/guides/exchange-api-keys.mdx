@@ -1,0 +1,257 @@
+---
+title: 거래소 API 키
+description: Binance, OKX, Bybit, KuCoin, Kraken, Coinbase, Gate.io에서 읽기 전용 API 키를 생성하여 dTax에서 사용하기 위한 단계별 가이드.
+draft: false
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+dTax는 **읽기 전용 API 키**를 통해 거래소에 연결됩니다. 이를 통해 dTax는 자금을 이동시키지 않고 거래 내역을 가져올 수 있습니다. 출금이나 거래 권한은 **절대** 부여하지 마세요.
+
+<Aside type="tip" title="읽기 전용 필수">
+**Read** 권한(View, Query, 또는 General이라고도 함)만 활성화하세요. Trade나 Withdraw는 절대 활성화하지 마세요 —— dTax에는 필요하지 않으며 활성화하면 보안 위험이 됩니다.
+</Aside>
+
+## dTax에서 키를 입력하는 위치
+
+1. **Transactions** → **Connect Exchange**로 이동
+2. 드롭다운에서 거래소 선택
+3. API Key와 Secret Key를 해당 필드에 붙여넣기
+4. **Connect** 클릭
+
+---
+
+## Binance
+
+<Steps>
+
+1. **API 관리 열기**
+
+   Binance에 로그인 → 오른쪽 상단 프로필 아이콘 클릭 → **API Management** 선택.
+
+2. **새 API 키 만들기**
+
+   **Create API** 클릭 → **System generated** 선택 → 라벨 입력(예: `dTax`) → **Next** 클릭.
+
+3. **보안 인증 완료**
+
+   이메일 / 인증 앱 확인 프롬프트를 완료하세요.
+
+4. **권한 설정 —— 읽기 전용**
+
+   **API restrictions**에서 **Enable Reading**만 체크하세요.
+   **Enable Spot & Margin Trading**, **Enable Withdrawals** 및 기타 모든 옵션의 체크를 해제하세요.
+
+   **Restrict access to trusted IPs only**는 체크하지 않은 상태로 두세요(추가 보안을 원하면 IP를 추가할 수 있습니다).
+
+5. **키 저장**
+
+   **API Key**와 **Secret Key**를 즉시 복사하여 저장하세요 —— Secret Key는 한 번만 표시됩니다.
+
+</Steps>
+
+<Aside type="caution">
+Binance 계정에서 선물 거래를 활성화한 경우, dTax는 연결 양식의 **Include futures / perpetual contracts** 토글을 통해 선물 내역을 동기화할 수 있습니다. 동일한 읽기 전용 키를 사용합니다 —— 추가 권한이 필요하지 않습니다.
+</Aside>
+
+---
+
+## OKX
+
+<Steps>
+
+1. **API 설정 열기**
+
+   OKX에 로그인 → 프로필 아이콘 클릭 → **API** 선택.
+
+2. **새 API 키 만들기**
+
+   **Create API key** 클릭 → 목적으로 **Link third-party platform**(권장) 또는 **Custom** 선택.
+
+3. **세부 정보 입력**
+
+   이름(예: `dTax`)과 원하는 **Passphrase**를 입력하세요. Passphrase는 dTax에서 필요하므로 저장해두세요.
+
+4. **권한 설정**
+
+   **Permissions**에서 **Read**만 활성화하세요. Trade나 Withdraw는 활성화하지 마세요.
+
+5. **저장**
+
+   2FA 인증을 완료하고 저장하세요. **API Key**, **Secret Key**, **Passphrase**를 복사하세요 —— dTax에서 세 가지 모두 입력해야 합니다.
+
+</Steps>
+
+---
+
+## Bybit
+
+<Steps>
+
+1. **API 관리 열기**
+
+   Bybit에 로그인 → 오른쪽 상단 프로필 아이콘 클릭 → **API** 선택.
+
+2. **새 키 만들기**
+
+   **Create New Key** 클릭 → **System-generated API Keys** 선택.
+
+3. **세부 정보 입력**
+
+   키 이름(예: `dTax`)을 입력하세요. **Key Permissions**에서 **Read-Only**를 선택하세요.
+
+4. **IP 바인딩(선택 사항)**
+
+   추가 보안이 필요하지 않으면 IP 바인딩을 비워두세요.
+
+5. **확인 및 저장**
+
+   2FA를 완료하세요. **API Key**와 **Secret Key**를 복사하세요.
+
+</Steps>
+
+---
+
+## KuCoin
+
+<Aside type="note" title="KuCoin은 Passphrase가 필요합니다">
+KuCoin API 키에는 세 가지 필드가 있습니다: API Key, Secret, **Passphrase**. Passphrase는 키 생성 시 직접 만듭니다 —— 복구할 수 없으므로 안전하게 보관하세요.
+</Aside>
+
+<Steps>
+
+1. **API 관리 열기**
+
+   KuCoin에 로그인 → 프로필 아이콘 클릭 → **API Management** 선택.
+
+2. **새 API 키 만들기**
+
+   **Create API** 클릭.
+
+3. **세부 정보 입력**
+
+   이름(예: `dTax`)과 원하는 **Passphrase**를 입력하세요.
+
+4. **권한 설정**
+
+   **Permissions**에서 **General**(읽기 액세스)만 체크하세요.
+   **Trade**와 **Transfer**는 체크하지 마세요.
+
+5. **인증 완료**
+
+   거래 비밀번호와 2FA 코드를 입력하세요. **API Key**, **Secret**, **Passphrase**를 저장하세요 —— dTax에서 세 가지 모두 입력해야 합니다.
+
+</Steps>
+
+---
+
+## Kraken
+
+<Steps>
+
+1. **API 설정 열기**
+
+   Kraken에 로그인 → 오른쪽 상단 프로필 아이콘 클릭 → **Security** → **API**로 이동.
+
+2. **새 키 생성**
+
+   **Generate new key** 클릭.
+
+3. **키 권한 설정**
+
+   다음 항목**만** 활성화하세요:
+
+   - ✅ Query funds
+   - ✅ Query open orders & trades
+   - ✅ Query closed orders & trades
+   - ✅ Query ledger entries
+   - ✅ Export data(선택 사항, CSV 내보내기 지원용)
+
+   특히 **Create & modify orders**와 **Withdraw funds**를 포함한 나머지는 모두 체크 해제하세요.
+
+4. **저장**
+
+   **Generate key** 클릭. **API Key**와 **Private Key**(Kraken에서는 "Secret" 대신 "Private Key"라고 부릅니다)를 복사하세요.
+
+</Steps>
+
+---
+
+## Coinbase
+
+<Aside type="note" title="Coinbase Advanced Trade">
+dTax는 Coinbase Advanced Trade(구 Coinbase Pro)에 연결됩니다. 거래 내역이 없는 기본 Coinbase 계정만 사용하는 경우 CSV 내보내기가 더 쉬울 수 있습니다 —— CSV 가져오기 가이드를 참고하세요.
+</Aside>
+
+<Steps>
+
+1. **API 설정 열기**
+
+   Coinbase에 로그인 → 프로필 아이콘 클릭 → **Settings** → **API** 탭.
+
+   또는 [coinbase.com/settings/api](https://coinbase.com/settings/api)에 직접 접속하세요.
+
+2. **새 API 키 만들기**
+
+   **+ New API Key** 클릭.
+
+3. **계정 및 권한 선택**
+
+   연결할 계정을 선택하세요. **Permissions**에서 **View**(읽기 전용)만 선택하세요.
+   **Trade**나 **Transfer**는 활성화하지 마세요.
+
+4. **저장**
+
+   2FA를 완료하세요. **API Key**와 **API Secret**을 다운로드하거나 복사하세요.
+
+</Steps>
+
+---
+
+## Gate.io
+
+<Steps>
+
+1. **API 관리 열기**
+
+   Gate.io에 로그인 → 오른쪽 상단 프로필 아이콘 클릭 → **API Keys**(My Profile 하단)를 선택.
+
+2. **새 API 키 만들기**
+
+   **Create API Key** 클릭.
+
+3. **세부 정보 입력**
+
+   이름(예: `dTax`)을 입력하세요. 자금 비밀번호를 입력하세요.
+
+4. **권한 설정**
+
+   **Permissions**에서 **Read**(지갑 읽기 및 거래 내역 읽기)만 활성화하세요.
+   Withdraw, Trade 또는 기타 쓰기 권한은 활성화하지 마세요.
+
+5. **인증 완료**
+
+   2FA를 완료하세요. **API Key**와 **Secret Key**를 복사하여 저장하세요.
+
+</Steps>
+
+---
+
+## 문제 해결
+
+**"Invalid API key" 오류**
+- 여분의 공백 없이 전체 키가 복사되었는지 다시 확인하세요.
+- 올바른 필드를 사용하고 있는지 확인하세요: API Key는 "API Key"에, Secret은 "Secret Key"에 입력하세요.
+- KuCoin/OKX의 경우 Passphrase도 올바른지 확인하세요.
+
+**"Insufficient permissions" 오류**
+- 키가 Read 권한 없이 생성되었을 수 있습니다. 키를 삭제하고 위의 단계에 따라 새로 만드세요.
+
+**"IP not whitelisted" 오류**
+- 키 생성 시 IP 제한을 활성화했습니다. IP 제한을 제거하거나 거래소의 API 관리 페이지에서 현재 IP 주소를 허용 목록에 추가하세요.
+
+**Binance: 키는 작동하지만 선물 거래가 표시되지 않음**
+- dTax에서 연결할 때 **Include futures / perpetual contracts** 토글을 활성화하세요.
+
+**키에 실수로 거래 권한이 부여된 경우**
+- 거래소의 API Management 페이지에서 즉시 키를 삭제하고 새로운 읽기 전용 키를 만드세요.

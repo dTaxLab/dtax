@@ -1,0 +1,346 @@
+---
+title: Ajouter des adresses de portefeuille
+description: Comment trouver et copier votre adresse de portefeuille pour les chaînes EVM, Solana et Bitcoin pour vous connecter à dTax.
+draft: false
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+dTax synchronise votre historique de transactions on-chain en utilisant votre **adresse de portefeuille publique**. Votre clé privée ou phrase de récupération n'est jamais nécessaire ni demandée.
+
+<Aside type="tip" title="Adresse publique uniquement">
+dTax n'a besoin que de votre adresse de portefeuille publique —— celle commençant par `0x`, `bc1`, `1`, `3` ou une chaîne Solana en base58. Ne partagez jamais votre clé privée ou phrase de récupération avec aucune application.
+</Aside>
+
+## Où saisir votre adresse dans dTax
+
+1. Accédez à **Settings** → **Wallets** → **Add Wallet**
+2. Sélectionnez la chaîne (Ethereum, Solana, Bitcoin, etc.)
+3. Collez votre adresse publique
+4. Cliquez sur **Sync**
+
+---
+
+## Chaînes EVM (Ethereum, Polygon, BSC, Arbitrum, Optimism, et plus)
+
+dTax prend en charge 16 chaînes compatibles EVM. La même adresse Ethereum (`0x...`) fonctionne sur toutes.
+
+<Tabs>
+<TabItem label="MetaMask">
+
+<Steps>
+
+1. **Ouvrir MetaMask**
+
+   Cliquez sur l'icône de l'extension MetaMask dans votre navigateur.
+
+2. **Copier votre adresse**
+
+   Votre adresse est affichée en haut du portefeuille, commençant par `0x`. Cliquez dessus pour la copier.
+
+   Exemple : `0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045`
+
+3. **Coller dans dTax**
+
+   Dans dTax → Settings → Wallets → Add Wallet → sélectionnez **Ethereum** (ou la chaîne spécifique) → collez l'adresse.
+
+</Steps>
+
+</TabItem>
+<TabItem label="Coinbase Wallet">
+
+<Steps>
+
+1. **Ouvrir l'application Coinbase Wallet**
+
+   Ouvrez l'application mobile Coinbase Wallet ou l'extension navigateur.
+
+2. **Trouver votre adresse**
+
+   Appuyez sur le bouton **Receive** ou sur le nom de votre portefeuille en haut.
+   Votre adresse Ethereum (`0x...`) s'affiche. Appuyez pour la copier.
+
+3. **Coller dans dTax**
+
+   Dans dTax → Settings → Wallets → Add Wallet → sélectionnez la chaîne → collez l'adresse.
+
+</Steps>
+
+</TabItem>
+<TabItem label="Ledger Live">
+
+<Steps>
+
+1. **Ouvrir Ledger Live**
+
+   Ouvrez l'application de bureau Ledger Live et connectez votre appareil Ledger.
+
+2. **Aller à Receive**
+
+   Cliquez sur **Receive** dans la barre latérale gauche → sélectionnez votre compte Ethereum.
+
+3. **Copier l'adresse**
+
+   Votre adresse est affichée à l'écran et sur votre appareil Ledger pour vérification.
+   Copiez l'adresse `0x...`.
+
+4. **Coller dans dTax**
+
+   Dans dTax → Settings → Wallets → Add Wallet → sélectionnez la chaîne → collez l'adresse.
+
+</Steps>
+
+</TabItem>
+<TabItem label="Trust Wallet">
+
+<Steps>
+
+1. **Ouvrir Trust Wallet**
+
+   Ouvrez l'application mobile Trust Wallet.
+
+2. **Trouver votre adresse ETH**
+
+   Appuyez sur le bouton **Receive** → sélectionnez **Ethereum** → votre adresse `0x...` s'affiche.
+
+3. **Copier et coller**
+
+   Appuyez sur **Copy** pour copier l'adresse.
+   Dans dTax → Settings → Wallets → Add Wallet → sélectionnez la chaîne → collez l'adresse.
+
+</Steps>
+
+</TabItem>
+</Tabs>
+
+<Aside type="note" title="Une adresse, plusieurs chaînes">
+Votre adresse Ethereum `0x` est la même sur Polygon, BSC, Arbitrum, Optimism, Avalanche et toutes les autres chaînes EVM. Vous pouvez ajouter la même adresse plusieurs fois —— une fois par chaîne —— et dTax synchronisera les transactions pour chaque chaîne séparément.
+</Aside>
+
+---
+
+## Solana
+
+<Tabs>
+<TabItem label="Phantom">
+
+<Steps>
+
+1. **Ouvrir Phantom**
+
+   Cliquez sur l'extension Phantom dans votre navigateur, ou ouvrez l'application mobile Phantom.
+
+2. **Copier votre adresse**
+
+   Votre adresse Solana est affichée en haut du portefeuille (une longue chaîne en base58, ex. `7EcDhSYGxXyscszYEp35KHN8vvw3svAuLKTzXwCFLtV`).
+   Cliquez pour la copier.
+
+3. **Coller dans dTax**
+
+   Dans dTax → Settings → Wallets → Add Wallet → sélectionnez **Solana** → collez l'adresse.
+
+</Steps>
+
+</TabItem>
+<TabItem label="Solflare">
+
+<Steps>
+
+1. **Ouvrir Solflare**
+
+   Cliquez sur l'extension Solflare ou ouvrez l'application.
+
+2. **Trouver votre adresse**
+
+   Votre adresse est en haut de l'écran principal. Cliquez sur l'icône de copie à côté.
+
+3. **Coller dans dTax**
+
+   Dans dTax → Settings → Wallets → Add Wallet → sélectionnez **Solana** → collez l'adresse.
+
+</Steps>
+
+</TabItem>
+<TabItem label="Ledger Live (Solana)">
+
+<Steps>
+
+1. **Ouvrir Ledger Live**
+
+   Ouvrez Ledger Live et connectez votre appareil.
+
+2. **Aller à Receive**
+
+   Cliquez sur **Receive** → sélectionnez votre compte Solana.
+
+3. **Copier l'adresse**
+
+   Copiez l'adresse Solana affichée à l'écran.
+
+4. **Coller dans dTax**
+
+   Dans dTax → Settings → Wallets → Add Wallet → sélectionnez **Solana** → collez l'adresse.
+
+</Steps>
+
+</TabItem>
+</Tabs>
+
+---
+
+## Bitcoin
+
+Bitcoin dispose de quatre formats d'adresse —— dTax les prend tous en charge.
+
+| Format | Commence par | Exemple |
+|--------|--------------|---------|
+| Legacy (P2PKH) | `1` | `1A1zP1eP5QGefi2DMPTfTL5SLmv7Divf...` |
+| Nested SegWit (P2SH) | `3` | `3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy` |
+| Native SegWit (Bech32) | `bc1q` | `bc1qar0srrr7xfkvy5l643lydnw9re59g...` |
+| Taproot (Bech32m) | `bc1p` | `bc1p5cyxnuxmeuwuvkwfem96l...` |
+
+<Tabs>
+<TabItem label="Bitcoin Core">
+
+<Steps>
+
+1. **Ouvrir Bitcoin Core**
+
+2. **Aller à Receive**
+
+   Cliquez sur l'onglet **Receive**.
+
+3. **Copier votre adresse**
+
+   Une adresse de réception est affichée. Cliquez sur **Copy Address**.
+
+4. **Coller dans dTax**
+
+   Dans dTax → Settings → Wallets → Add Wallet → sélectionnez **Bitcoin** → collez l'adresse.
+
+</Steps>
+
+</TabItem>
+<TabItem label="Electrum">
+
+<Steps>
+
+1. **Ouvrir Electrum**
+
+2. **Voir vos adresses**
+
+   Allez dans **View** → **Show Addresses** (activer si non visible).
+   Vos adresses de réception sont listées dans l'onglet **Receiving**.
+
+3. **Copier une adresse**
+
+   Clic droit sur n'importe quelle adresse → **Copy to clipboard**.
+
+4. **Coller dans dTax**
+
+   Dans dTax → Settings → Wallets → Add Wallet → sélectionnez **Bitcoin** → collez l'adresse.
+
+</Steps>
+
+<Aside type="note" title="Portefeuilles HD et xpub">
+Electrum génère une nouvelle adresse pour chaque transaction (portefeuille HD). dTax prend en charge la synchronisation de **toutes les adresses à partir d'une seule clé xpub/ypub/zpub** —— plutôt que d'ajouter chaque adresse une par une. Dans Electrum, allez dans **Wallet** → **Information** pour trouver votre clé publique maîtresse.
+</Aside>
+
+</TabItem>
+<TabItem label="Ledger Live (Bitcoin)">
+
+<Steps>
+
+1. **Ouvrir Ledger Live**
+
+   Connectez votre appareil Ledger et ouvrez Ledger Live.
+
+2. **Aller à Receive**
+
+   Cliquez sur **Receive** → sélectionnez votre compte Bitcoin.
+
+3. **Copier l'adresse**
+
+   Ledger affiche une nouvelle adresse de réception. Cliquez sur **Copy**.
+
+4. **Coller dans dTax**
+
+   Dans dTax → Settings → Wallets → Add Wallet → sélectionnez **Bitcoin** → collez l'adresse.
+
+</Steps>
+
+</TabItem>
+<TabItem label="Exodus">
+
+<Steps>
+
+1. **Ouvrir Exodus**
+
+2. **Trouver le portefeuille Bitcoin**
+
+   Sélectionnez **Bitcoin** dans votre liste de portefeuilles.
+
+3. **Cliquer sur Receive**
+
+   Cliquez sur le bouton **Receive**. Votre adresse Bitcoin s'affiche sous forme de QR code et de texte.
+   Cliquez sur **Copy** pour la copier.
+
+4. **Coller dans dTax**
+
+   Dans dTax → Settings → Wallets → Add Wallet → sélectionnez **Bitcoin** → collez l'adresse.
+
+</Steps>
+
+</TabItem>
+</Tabs>
+
+---
+
+## Portefeuille HD (xpub / ypub / zpub)
+
+Si vous utilisez un portefeuille matériel (Ledger, Trezor) ou Electrum avec Bitcoin, vous pouvez synchroniser **toutes les adresses dérivées à la fois** en utilisant votre clé publique étendue.
+
+| Format de clé | Type d'adresse |
+|---------------|----------------|
+| `xpub...` | Legacy (P2PKH) |
+| `ypub...` | Nested SegWit (P2SH) |
+| `zpub...` | Native SegWit (Bech32) |
+
+<Steps>
+
+1. **Trouver votre clé publique étendue**
+
+   - **Ledger Live** : allez dans votre compte Bitcoin → menu **...** → **Advanced** → **Extended public key (xpub)**
+   - **Trezor Suite** : allez dans votre compte Bitcoin → **...** → **Public key**
+   - **Electrum** : **Wallet** → **Information** → Master Public Key
+
+2. **Ajouter à dTax**
+
+   Dans dTax → Settings → Wallets → Add Wallet → sélectionnez **Bitcoin** → collez le xpub/ypub/zpub.
+
+   dTax dérivera automatiquement toutes les adresses enfants et synchronisera les transactions pour toutes.
+
+</Steps>
+
+<Aside type="caution" title="Le xpub révèle toutes vos adresses">
+Votre xpub n'est pas une clé privée —— il ne peut pas déplacer des fonds. Cependant, il révèle toutes vos adresses Bitcoin et soldes à quiconque le possède. Ne le partagez qu'avec des services en qui vous avez confiance.
+</Aside>
+
+---
+
+## Résolution des problèmes
+
+**« No transactions found » après la synchronisation**
+- Assurez-vous d'avoir collé la bonne adresse (vérifiez les premiers et derniers caractères).
+- Vérifiez que la bonne chaîne est sélectionnée —— une adresse ETH sur la mauvaise chaîne (ex. Arbitrum au lieu d'Ethereum) ne montrera aucun résultat.
+- Certains portefeuilles ont très peu de transactions —— c'est normal.
+
+**Des transactions sont manquantes ou incomplètes**
+- dTax synchronise depuis le premier bloc disponible. Pour les très anciens portefeuilles (avant 2018), certains indexeurs peuvent avoir un historique limité.
+- Essayez d'ajouter la même adresse à nouveau —— elle sera récupérée depuis l'API.
+
+**Nombre de transactions incorrect**
+- Si vous avez utilisé la même adresse sur plusieurs chaînes (courant pour EVM), ajoutez-la séparément pour chaque chaîne.
+
+**Bitcoin : seules certaines adresses montrent des transactions**
+- Si vous utilisez un portefeuille HD, ajoutez la clé xpub plutôt que des adresses individuelles —— cela couvre automatiquement toutes les adresses dérivées.

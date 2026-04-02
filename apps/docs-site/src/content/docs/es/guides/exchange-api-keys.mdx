@@ -1,0 +1,257 @@
+---
+title: Claves API de exchanges
+description: Guía paso a paso para generar claves API de solo lectura en Binance, OKX, Bybit, KuCoin, Kraken, Coinbase y Gate.io para usar con dTax.
+draft: false
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+dTax se conecta a su exchange mediante una **clave API de solo lectura**. Esto permite a dTax obtener su historial de operaciones sin poder mover fondos. **Nunca** debe otorgar permisos de retiro o trading.
+
+<Aside type="tip" title="Solo lectura es obligatorio">
+Active únicamente los permisos **Read** (a veces llamados View, Query o General). Nunca active Trade o Withdraw —— dTax no los necesita y activarlos supone un riesgo de seguridad.
+</Aside>
+
+## Dónde introducir su clave en dTax
+
+1. Vaya a **Transactions** → **Connect Exchange**
+2. Seleccione su exchange en el menú desplegable
+3. Pegue su API Key y Secret Key en los campos correspondientes
+4. Haga clic en **Connect**
+
+---
+
+## Binance
+
+<Steps>
+
+1. **Abrir la gestión de API**
+
+   Inicie sesión en Binance → haga clic en el icono de perfil (arriba a la derecha) → seleccione **API Management**.
+
+2. **Crear una nueva clave API**
+
+   Haga clic en **Create API** → elija **System generated** → introduzca una etiqueta (p. ej. `dTax`) → haga clic en **Next**.
+
+3. **Completar la verificación de seguridad**
+
+   Complete la verificación por correo electrónico / aplicación de autenticación.
+
+4. **Establecer permisos —— Solo lectura**
+
+   En **API restrictions**, asegúrese de que solo esté marcado **Enable Reading**.
+   Desmarque **Enable Spot & Margin Trading**, **Enable Withdrawals** y todas las demás opciones.
+
+   Deje **Restrict access to trusted IPs only** sin marcar (o agregue su IP si prefiere seguridad adicional).
+
+5. **Guardar sus claves**
+
+   Copie y guarde inmediatamente su **API Key** y **Secret Key** —— el Secret Key solo se muestra una vez.
+
+</Steps>
+
+<Aside type="caution">
+Si tiene activado el trading de futuros en su cuenta de Binance, dTax puede sincronizar el historial de futuros mediante el interruptor **Include futures / perpetual contracts** en el formulario de conexión. Se usa la misma clave de solo lectura —— no se necesitan permisos adicionales.
+</Aside>
+
+---
+
+## OKX
+
+<Steps>
+
+1. **Abrir configuración de API**
+
+   Inicie sesión en OKX → haga clic en el icono de perfil → seleccione **API**.
+
+2. **Crear una nueva clave API**
+
+   Haga clic en **Create API key** → elija el propósito **Link third-party platform** (recomendado) o **Custom**.
+
+3. **Rellenar los detalles**
+
+   Introduzca un nombre (p. ej. `dTax`) y una **Passphrase** de su elección. Guarde la passphrase —— la necesitará en dTax.
+
+4. **Establecer permisos**
+
+   En **Permissions**, active solo **Read**. No active Trade ni Withdraw.
+
+5. **Guardar**
+
+   Complete la verificación 2FA y guarde. Copie su **API Key**, **Secret Key** y **Passphrase** —— introduzca los tres en dTax.
+
+</Steps>
+
+---
+
+## Bybit
+
+<Steps>
+
+1. **Abrir gestión de API**
+
+   Inicie sesión en Bybit → haga clic en el icono de perfil (arriba a la derecha) → seleccione **API**.
+
+2. **Crear una nueva clave**
+
+   Haga clic en **Create New Key** → elija **System-generated API Keys**.
+
+3. **Rellenar los detalles**
+
+   Introduzca un nombre de clave (p. ej. `dTax`). En **Key Permissions**, seleccione **Read-Only**.
+
+4. **Vincular IP (opcional)**
+
+   Deje vacío el campo de vinculación de IP salvo que desee seguridad adicional.
+
+5. **Confirmar y guardar**
+
+   Complete la 2FA. Copie su **API Key** y **Secret Key**.
+
+</Steps>
+
+---
+
+## KuCoin
+
+<Aside type="note" title="KuCoin requiere una Passphrase">
+Las claves API de KuCoin tienen tres campos: API Key, Secret y **Passphrase**. Usted crea la passphrase al generar la clave —— guárdela de forma segura ya que no se puede recuperar.
+</Aside>
+
+<Steps>
+
+1. **Abrir gestión de API**
+
+   Inicie sesión en KuCoin → haga clic en el icono de perfil → seleccione **API Management**.
+
+2. **Crear una nueva clave API**
+
+   Haga clic en **Create API**.
+
+3. **Rellenar los detalles**
+
+   Introduzca un nombre (p. ej. `dTax`) y una **Passphrase** de su elección.
+
+4. **Establecer permisos**
+
+   En **Permissions**, marque únicamente **General** (acceso de lectura).
+   Deje **Trade** y **Transfer** sin marcar.
+
+5. **Completar la verificación**
+
+   Introduzca su contraseña de trading y el código 2FA. Guarde su **API Key**, **Secret** y **Passphrase** —— introduzca los tres en dTax.
+
+</Steps>
+
+---
+
+## Kraken
+
+<Steps>
+
+1. **Abrir configuración de API**
+
+   Inicie sesión en Kraken → haga clic en el icono de perfil (arriba a la derecha) → vaya a **Security** → **API**.
+
+2. **Generar una nueva clave**
+
+   Haga clic en **Generate new key**.
+
+3. **Establecer los permisos de la clave**
+
+   Active lo siguiente **y nada más**:
+
+   - ✅ Query funds
+   - ✅ Query open orders & trades
+   - ✅ Query closed orders & trades
+   - ✅ Query ledger entries
+   - ✅ Export data (opcional, para soporte de exportación CSV)
+
+   Deje todos los demás sin marcar, especialmente **Create & modify orders** y **Withdraw funds**.
+
+4. **Guardar**
+
+   Haga clic en **Generate key**. Copie su **API Key** y **Private Key** (Kraken lo llama "Private Key" en lugar de "Secret").
+
+</Steps>
+
+---
+
+## Coinbase
+
+<Aside type="note" title="Coinbase Advanced Trade">
+dTax se conecta a Coinbase Advanced Trade (antes Coinbase Pro). Si solo usa una cuenta básica de Coinbase sin historial de trading, una exportación CSV puede ser más sencilla —— consulte la guía de importación CSV.
+</Aside>
+
+<Steps>
+
+1. **Abrir configuración de API**
+
+   Inicie sesión en Coinbase → haga clic en el icono de perfil → **Settings** → pestaña **API**.
+
+   También puede ir directamente a [coinbase.com/settings/api](https://coinbase.com/settings/api).
+
+2. **Crear una nueva clave API**
+
+   Haga clic en **+ New API Key**.
+
+3. **Seleccionar cuentas y permisos**
+
+   Elija las cuentas a conectar. En **Permissions**, seleccione solo **View** (solo lectura).
+   No active **Trade** ni **Transfer**.
+
+4. **Guardar**
+
+   Complete la 2FA. Descargue o copie su **API Key** y **API Secret**.
+
+</Steps>
+
+---
+
+## Gate.io
+
+<Steps>
+
+1. **Abrir gestión de API**
+
+   Inicie sesión en Gate.io → haga clic en el icono de perfil (arriba a la derecha) → seleccione **API Keys** (en My Profile).
+
+2. **Crear una nueva clave API**
+
+   Haga clic en **Create API Key**.
+
+3. **Rellenar los detalles**
+
+   Introduzca un nombre (p. ej. `dTax`). Introduzca su contraseña de fondos.
+
+4. **Establecer permisos**
+
+   En **Permissions**, active solo **Read** (lectura de cartera e historial de operaciones).
+   No active Withdraw, Trade ni ningún permiso de escritura.
+
+5. **Completar la verificación**
+
+   Complete la 2FA. Copie y guarde su **API Key** y **Secret Key**.
+
+</Steps>
+
+---
+
+## Solución de problemas
+
+**Error "Invalid API key"**
+- Compruebe que haya copiado la clave completa sin espacios adicionales.
+- Asegúrese de usar el campo correcto: el API Key va en "API Key", el Secret va en "Secret Key".
+- Para KuCoin/OKX, verifique también que la Passphrase sea correcta.
+
+**Error "Insufficient permissions"**
+- Es posible que su clave se haya creado sin permisos Read. Elimine la clave y cree una nueva siguiendo los pasos anteriores.
+
+**Error "IP not whitelisted"**
+- Activó la restricción de IP al crear la clave. Elimine la restricción de IP o agregue su dirección IP actual a la lista de permitidos en la página de gestión de API del exchange.
+
+**Binance: la clave funciona pero no muestra transacciones de futuros**
+- Active el interruptor **Include futures / perpetual contracts** al conectar en dTax.
+
+**La clave recibió accidentalmente permisos de trading**
+- Elimine la clave inmediatamente en la página de gestión de API del exchange y cree una nueva clave de solo lectura.

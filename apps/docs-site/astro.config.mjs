@@ -37,6 +37,13 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Guides',
+          items: [
+            { label: 'Exchange API Keys', slug: 'guides/exchange-api-keys' },
+            { label: 'Adding Wallet Addresses', slug: 'guides/wallet-addresses' },
+          ],
+        },
+        {
           label: 'Tax Engine',
           items: [
             { label: 'Overview', slug: 'tax-engine/overview' },

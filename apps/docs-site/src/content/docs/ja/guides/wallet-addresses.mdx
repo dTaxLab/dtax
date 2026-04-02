@@ -1,0 +1,346 @@
+---
+title: ウォレットアドレスの追加
+description: dTax に接続するために EVM チェーン、Solana、Bitcoin のウォレットアドレスを見つけてコピーする方法。
+draft: false
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+dTax は**公開ウォレットアドレス**を使用してオンチェーン取引履歴を同期します。秘密鍵やシードフレーズは必要なく、尋ねることもありません。
+
+<Aside type="tip" title="公開アドレスのみ">
+dTax が必要とするのは公開ウォレットアドレスのみです —— `0x`、`bc1`、`1`、`3` で始まるもの、または Solana の base58 文字列です。秘密鍵やシードフレーズをいかなるアプリケーションにも共有しないでください。
+</Aside>
+
+## dTax でアドレスを入力する場所
+
+1. **Settings** → **Wallets** → **Add Wallet** に移動
+2. チェーンを選択（Ethereum、Solana、Bitcoin など）
+3. 公開アドレスを貼り付け
+4. **Sync** をクリック
+
+---
+
+## EVM チェーン（Ethereum、Polygon、BSC、Arbitrum、Optimism など）
+
+dTax は 16 の EVM 互換チェーンをサポートしています。同じ Ethereum アドレス（`0x...`）がすべてのチェーンで使用できます。
+
+<Tabs>
+<TabItem label="MetaMask">
+
+<Steps>
+
+1. **MetaMask を開く**
+
+   ブラウザの MetaMask 拡張アイコンをクリック。
+
+2. **アドレスをコピー**
+
+   ウォレット上部に `0x` で始まるアドレスが表示されます。クリックしてコピーします。
+
+   例：`0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045`
+
+3. **dTax に貼り付け**
+
+   dTax → Settings → Wallets → Add Wallet → **Ethereum**（または特定のチェーン）を選択 → アドレスを貼り付け。
+
+</Steps>
+
+</TabItem>
+<TabItem label="Coinbase Wallet">
+
+<Steps>
+
+1. **Coinbase Wallet アプリを開く**
+
+   Coinbase Wallet モバイルアプリまたはブラウザ拡張を開きます。
+
+2. **アドレスを確認**
+
+   **Receive** ボタンをタップするか、上部のウォレット名をタップします。
+   Ethereum アドレス（`0x...`）が表示されます。タップしてコピーします。
+
+3. **dTax に貼り付け**
+
+   dTax → Settings → Wallets → Add Wallet → チェーンを選択 → アドレスを貼り付け。
+
+</Steps>
+
+</TabItem>
+<TabItem label="Ledger Live">
+
+<Steps>
+
+1. **Ledger Live を開く**
+
+   Ledger Live デスクトップアプリを開き、Ledger デバイスを接続します。
+
+2. **受け取りに移動**
+
+   左サイドバーの **Receive** をクリック → Ethereum アカウントを選択。
+
+3. **アドレスをコピー**
+
+   アドレスが画面と Ledger デバイスに表示され確認できます。
+   `0x...` アドレスをコピーします。
+
+4. **dTax に貼り付け**
+
+   dTax → Settings → Wallets → Add Wallet → チェーンを選択 → アドレスを貼り付け。
+
+</Steps>
+
+</TabItem>
+<TabItem label="Trust Wallet">
+
+<Steps>
+
+1. **Trust Wallet を開く**
+
+   Trust Wallet モバイルアプリを開きます。
+
+2. **ETH アドレスを確認**
+
+   **Receive** ボタンをタップ → **Ethereum** を選択 → `0x...` アドレスが表示されます。
+
+3. **コピーして貼り付け**
+
+   **Copy** をタップしてアドレスをコピーします。
+   dTax → Settings → Wallets → Add Wallet → チェーンを選択 → アドレスを貼り付け。
+
+</Steps>
+
+</TabItem>
+</Tabs>
+
+<Aside type="note" title="1 つのアドレス、複数のチェーン">
+`0x` Ethereum アドレスは Polygon、BSC、Arbitrum、Optimism、Avalanche、その他すべての EVM チェーンで同一です。同じアドレスを複数回追加できます —— チェーンごとに 1 回ずつ —— dTax は各チェーンの取引を個別に同期します。
+</Aside>
+
+---
+
+## Solana
+
+<Tabs>
+<TabItem label="Phantom">
+
+<Steps>
+
+1. **Phantom を開く**
+
+   ブラウザの Phantom 拡張をクリックするか、Phantom モバイルアプリを開きます。
+
+2. **アドレスをコピー**
+
+   Solana アドレスはウォレット上部に表示されます（長い base58 文字列、例：`7EcDhSYGxXyscszYEp35KHN8vvw3svAuLKTzXwCFLtV`）。
+   クリックしてコピーします。
+
+3. **dTax に貼り付け**
+
+   dTax → Settings → Wallets → Add Wallet → **Solana** を選択 → アドレスを貼り付け。
+
+</Steps>
+
+</TabItem>
+<TabItem label="Solflare">
+
+<Steps>
+
+1. **Solflare を開く**
+
+   Solflare 拡張をクリックするかアプリを開きます。
+
+2. **アドレスを確認**
+
+   メイン画面上部にアドレスが表示されます。隣のコピーアイコンをクリックします。
+
+3. **dTax に貼り付け**
+
+   dTax → Settings → Wallets → Add Wallet → **Solana** を選択 → アドレスを貼り付け。
+
+</Steps>
+
+</TabItem>
+<TabItem label="Ledger Live (Solana)">
+
+<Steps>
+
+1. **Ledger Live を開く**
+
+   Ledger Live を開き、デバイスを接続します。
+
+2. **受け取りに移動**
+
+   **Receive** をクリック → Solana アカウントを選択。
+
+3. **アドレスをコピー**
+
+   画面に表示された Solana アドレスをコピーします。
+
+4. **dTax に貼り付け**
+
+   dTax → Settings → Wallets → Add Wallet → **Solana** を選択 → アドレスを貼り付け。
+
+</Steps>
+
+</TabItem>
+</Tabs>
+
+---
+
+## Bitcoin
+
+Bitcoin には 4 種類のアドレス形式があります —— dTax はすべてをサポートしています。
+
+| 形式 | 先頭文字 | 例 |
+|------|----------|-----|
+| Legacy (P2PKH) | `1` | `1A1zP1eP5QGefi2DMPTfTL5SLmv7Divf...` |
+| Nested SegWit (P2SH) | `3` | `3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy` |
+| Native SegWit (Bech32) | `bc1q` | `bc1qar0srrr7xfkvy5l643lydnw9re59g...` |
+| Taproot (Bech32m) | `bc1p` | `bc1p5cyxnuxmeuwuvkwfem96l...` |
+
+<Tabs>
+<TabItem label="Bitcoin Core">
+
+<Steps>
+
+1. **Bitcoin Core を開く**
+
+2. **受け取りに移動**
+
+   **Receive** タブをクリック。
+
+3. **アドレスをコピー**
+
+   受け取りアドレスが表示されます。**Copy Address** をクリック。
+
+4. **dTax に貼り付け**
+
+   dTax → Settings → Wallets → Add Wallet → **Bitcoin** を選択 → アドレスを貼り付け。
+
+</Steps>
+
+</TabItem>
+<TabItem label="Electrum">
+
+<Steps>
+
+1. **Electrum を開く**
+
+2. **アドレスを確認**
+
+   **View** → **Show Addresses** に移動（表示されていない場合は有効にする）。
+   受け取りアドレスが **Receiving** タブに一覧表示されます。
+
+3. **アドレスをコピー**
+
+   任意のアドレスを右クリック → **Copy to clipboard**。
+
+4. **dTax に貼り付け**
+
+   dTax → Settings → Wallets → Add Wallet → **Bitcoin** を選択 → アドレスを貼り付け。
+
+</Steps>
+
+<Aside type="note" title="HD ウォレットと xpub">
+Electrum は各取引に新しいアドレスを生成します（HD ウォレット）。dTax は単一の xpub/ypub/zpub キーを使用して**すべてのアドレスを一度に同期**できます —— 個別にアドレスを追加する必要はありません。Electrum で **Wallet** → **Information** に移動するとマスター公開鍵が見つかります。
+</Aside>
+
+</TabItem>
+<TabItem label="Ledger Live (Bitcoin)">
+
+<Steps>
+
+1. **Ledger Live を開く**
+
+   Ledger デバイスを接続し、Ledger Live を開きます。
+
+2. **受け取りに移動**
+
+   **Receive** をクリック → Bitcoin アカウントを選択。
+
+3. **アドレスをコピー**
+
+   Ledger が新しい受け取りアドレスを表示します。**Copy** をクリック。
+
+4. **dTax に貼り付け**
+
+   dTax → Settings → Wallets → Add Wallet → **Bitcoin** を選択 → アドレスを貼り付け。
+
+</Steps>
+
+</TabItem>
+<TabItem label="Exodus">
+
+<Steps>
+
+1. **Exodus を開く**
+
+2. **Bitcoin ウォレットを確認**
+
+   ウォレット一覧から **Bitcoin** を選択。
+
+3. **受け取りをクリック**
+
+   **Receive** ボタンをクリック。Bitcoin アドレスが QR コードとテキストの両方で表示されます。
+   **Copy** をクリックしてコピーします。
+
+4. **dTax に貼り付け**
+
+   dTax → Settings → Wallets → Add Wallet → **Bitcoin** を選択 → アドレスを貼り付け。
+
+</Steps>
+
+</TabItem>
+</Tabs>
+
+---
+
+## HD ウォレット（xpub / ypub / zpub）
+
+ハードウェアウォレット（Ledger、Trezor）または Electrum で Bitcoin を管理している場合、拡張公開鍵を使用して**すべての派生アドレスを一度に同期**できます。
+
+| キー形式 | アドレスタイプ |
+|----------|---------------|
+| `xpub...` | Legacy (P2PKH) |
+| `ypub...` | Nested SegWit (P2SH) |
+| `zpub...` | Native SegWit (Bech32) |
+
+<Steps>
+
+1. **拡張公開鍵を確認**
+
+   - **Ledger Live**：Bitcoin アカウントに移動 → **...** メニュー → **Advanced** → **Extended public key (xpub)**
+   - **Trezor Suite**：Bitcoin アカウントに移動 → **...** → **Public key**
+   - **Electrum**：**Wallet** → **Information** → Master Public Key
+
+2. **dTax に追加**
+
+   dTax → Settings → Wallets → Add Wallet → **Bitcoin** を選択 → xpub/ypub/zpub を貼り付け。
+
+   dTax はすべての子アドレスを自動的に導出し、すべてのアドレスの取引を同期します。
+
+</Steps>
+
+<Aside type="caution" title="xpub はすべてのアドレスを公開します">
+xpub は秘密鍵ではありません —— 資金を移動することはできません。ただし、xpub を持つ人はあなたのすべての Bitcoin アドレスと残高を確認できます。信頼できるサービスにのみ共有してください。
+</Aside>
+
+---
+
+## トラブルシューティング
+
+**同期後に「No transactions found」**
+- 正しいアドレスが貼り付けられているか確認してください（先頭と末尾の数文字を確認）。
+- 正しいチェーンが選択されているか確認してください —— 誤ったチェーンの ETH アドレス（例：Ethereum ではなく Arbitrum）では結果が表示されません。
+- 一部のウォレットは取引数が非常に少ない場合があります —— これは正常です。
+
+**取引が欠けているか不完全**
+- dTax は最初に利用可能なブロックから同期します。非常に古いウォレット（2018 年以前）では、一部のインデクサーの履歴が限られている場合があります。
+- 同じアドレスをもう一度追加してみてください —— API から再取得されます。
+
+**取引数が間違っている**
+- 複数のチェーンで同じアドレスを使用している場合（EVM では一般的）、各チェーンに個別に追加してください。
+
+**Bitcoin：一部のアドレスにのみ取引が表示される**
+- HD ウォレットを使用している場合は、個別のアドレスではなく xpub キーを追加してください —— これにより派生アドレスがすべて自動的にカバーされます。

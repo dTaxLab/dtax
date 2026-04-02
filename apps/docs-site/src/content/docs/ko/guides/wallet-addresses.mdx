@@ -1,0 +1,346 @@
+---
+title: 지갑 주소 추가
+description: dTax에 연결하기 위해 EVM 체인, Solana, Bitcoin의 지갑 주소를 찾고 복사하는 방법.
+draft: false
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+dTax는 **공개 지갑 주소**를 사용하여 온체인 거래 내역을 동기화합니다. 개인 키나 시드 구문은 필요하지 않으며 요청하지도 않습니다.
+
+<Aside type="tip" title="공개 주소만 필요">
+dTax에 필요한 것은 공개 지갑 주소뿐입니다 —— `0x`, `bc1`, `1`, `3`으로 시작하거나 Solana base58 문자열입니다. 개인 키나 시드 구문을 어떤 애플리케이션과도 공유하지 마세요.
+</Aside>
+
+## dTax에서 주소를 입력하는 위치
+
+1. **Settings** → **Wallets** → **Add Wallet**로 이동
+2. 체인 선택(Ethereum, Solana, Bitcoin 등)
+3. 공개 주소 붙여넣기
+4. **Sync** 클릭
+
+---
+
+## EVM 체인(Ethereum, Polygon, BSC, Arbitrum, Optimism 등)
+
+dTax는 16개의 EVM 호환 체인을 지원합니다. 동일한 Ethereum 주소(`0x...`)가 모든 체인에서 작동합니다.
+
+<Tabs>
+<TabItem label="MetaMask">
+
+<Steps>
+
+1. **MetaMask 열기**
+
+   브라우저에서 MetaMask 확장 아이콘을 클릭하세요.
+
+2. **주소 복사**
+
+   `0x`로 시작하는 주소가 지갑 상단에 표시됩니다. 클릭하여 복사하세요.
+
+   예시: `0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045`
+
+3. **dTax에 붙여넣기**
+
+   dTax → Settings → Wallets → Add Wallet → **Ethereum**(또는 특정 체인) 선택 → 주소 붙여넣기.
+
+</Steps>
+
+</TabItem>
+<TabItem label="Coinbase Wallet">
+
+<Steps>
+
+1. **Coinbase Wallet 앱 열기**
+
+   Coinbase Wallet 모바일 앱 또는 브라우저 확장을 여세요.
+
+2. **주소 확인**
+
+   **Receive** 버튼을 탭하거나 상단의 지갑 이름을 탭하세요.
+   Ethereum 주소(`0x...`)가 표시됩니다. 탭하여 복사하세요.
+
+3. **dTax에 붙여넣기**
+
+   dTax → Settings → Wallets → Add Wallet → 체인 선택 → 주소 붙여넣기.
+
+</Steps>
+
+</TabItem>
+<TabItem label="Ledger Live">
+
+<Steps>
+
+1. **Ledger Live 열기**
+
+   Ledger Live 데스크톱 앱을 열고 Ledger 기기를 연결하세요.
+
+2. **받기로 이동**
+
+   왼쪽 사이드바에서 **Receive** 클릭 → Ethereum 계정 선택.
+
+3. **주소 복사**
+
+   주소가 화면과 Ledger 기기에 표시되어 확인할 수 있습니다.
+   `0x...` 주소를 복사하세요.
+
+4. **dTax에 붙여넣기**
+
+   dTax → Settings → Wallets → Add Wallet → 체인 선택 → 주소 붙여넣기.
+
+</Steps>
+
+</TabItem>
+<TabItem label="Trust Wallet">
+
+<Steps>
+
+1. **Trust Wallet 열기**
+
+   Trust Wallet 모바일 앱을 여세요.
+
+2. **ETH 주소 확인**
+
+   **Receive** 버튼 탭 → **Ethereum** 선택 → `0x...` 주소가 표시됩니다.
+
+3. **복사 후 붙여넣기**
+
+   **Copy**를 탭하여 주소를 복사하세요.
+   dTax → Settings → Wallets → Add Wallet → 체인 선택 → 주소 붙여넣기.
+
+</Steps>
+
+</TabItem>
+</Tabs>
+
+<Aside type="note" title="하나의 주소, 여러 체인">
+`0x` Ethereum 주소는 Polygon, BSC, Arbitrum, Optimism, Avalanche 및 기타 모든 EVM 체인에서 동일합니다. 같은 주소를 여러 번 추가할 수 있습니다 —— 체인당 한 번씩 —— dTax는 각 체인의 거래를 별도로 동기화합니다.
+</Aside>
+
+---
+
+## Solana
+
+<Tabs>
+<TabItem label="Phantom">
+
+<Steps>
+
+1. **Phantom 열기**
+
+   브라우저에서 Phantom 확장을 클릭하거나 Phantom 모바일 앱을 여세요.
+
+2. **주소 복사**
+
+   Solana 주소가 지갑 상단에 표시됩니다(긴 base58 문자열, 예: `7EcDhSYGxXyscszYEp35KHN8vvw3svAuLKTzXwCFLtV`).
+   클릭하여 복사하세요.
+
+3. **dTax에 붙여넣기**
+
+   dTax → Settings → Wallets → Add Wallet → **Solana** 선택 → 주소 붙여넣기.
+
+</Steps>
+
+</TabItem>
+<TabItem label="Solflare">
+
+<Steps>
+
+1. **Solflare 열기**
+
+   Solflare 확장을 클릭하거나 앱을 여세요.
+
+2. **주소 확인**
+
+   메인 화면 상단에 주소가 표시됩니다. 옆의 복사 아이콘을 클릭하세요.
+
+3. **dTax에 붙여넣기**
+
+   dTax → Settings → Wallets → Add Wallet → **Solana** 선택 → 주소 붙여넣기.
+
+</Steps>
+
+</TabItem>
+<TabItem label="Ledger Live (Solana)">
+
+<Steps>
+
+1. **Ledger Live 열기**
+
+   Ledger Live를 열고 기기를 연결하세요.
+
+2. **받기로 이동**
+
+   **Receive** 클릭 → Solana 계정 선택.
+
+3. **주소 복사**
+
+   화면에 표시된 Solana 주소를 복사하세요.
+
+4. **dTax에 붙여넣기**
+
+   dTax → Settings → Wallets → Add Wallet → **Solana** 선택 → 주소 붙여넣기.
+
+</Steps>
+
+</TabItem>
+</Tabs>
+
+---
+
+## Bitcoin
+
+Bitcoin에는 네 가지 주소 형식이 있습니다 —— dTax는 모두 지원합니다.
+
+| 형식 | 시작 문자 | 예시 |
+|------|-----------|------|
+| Legacy (P2PKH) | `1` | `1A1zP1eP5QGefi2DMPTfTL5SLmv7Divf...` |
+| Nested SegWit (P2SH) | `3` | `3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy` |
+| Native SegWit (Bech32) | `bc1q` | `bc1qar0srrr7xfkvy5l643lydnw9re59g...` |
+| Taproot (Bech32m) | `bc1p` | `bc1p5cyxnuxmeuwuvkwfem96l...` |
+
+<Tabs>
+<TabItem label="Bitcoin Core">
+
+<Steps>
+
+1. **Bitcoin Core 열기**
+
+2. **받기로 이동**
+
+   **Receive** 탭 클릭.
+
+3. **주소 복사**
+
+   받기 주소가 표시됩니다. **Copy Address** 클릭.
+
+4. **dTax에 붙여넣기**
+
+   dTax → Settings → Wallets → Add Wallet → **Bitcoin** 선택 → 주소 붙여넣기.
+
+</Steps>
+
+</TabItem>
+<TabItem label="Electrum">
+
+<Steps>
+
+1. **Electrum 열기**
+
+2. **주소 보기**
+
+   **View** → **Show Addresses**로 이동(보이지 않으면 활성화).
+   받기 주소가 **Receiving** 탭에 나열됩니다.
+
+3. **주소 복사**
+
+   아무 주소나 오른쪽 클릭 → **Copy to clipboard**.
+
+4. **dTax에 붙여넣기**
+
+   dTax → Settings → Wallets → Add Wallet → **Bitcoin** 선택 → 주소 붙여넣기.
+
+</Steps>
+
+<Aside type="note" title="HD 지갑과 xpub">
+Electrum은 각 거래에 새 주소를 생성합니다(HD 지갑). dTax는 단일 xpub/ypub/zpub 키를 사용하여 **모든 주소를 한 번에 동기화**할 수 있습니다 —— 각 주소를 개별적으로 추가할 필요가 없습니다. Electrum에서 **Wallet** → **Information**으로 이동하면 마스터 공개 키를 확인할 수 있습니다.
+</Aside>
+
+</TabItem>
+<TabItem label="Ledger Live (Bitcoin)">
+
+<Steps>
+
+1. **Ledger Live 열기**
+
+   Ledger 기기를 연결하고 Ledger Live를 여세요.
+
+2. **받기로 이동**
+
+   **Receive** 클릭 → Bitcoin 계정 선택.
+
+3. **주소 복사**
+
+   Ledger가 새로운 받기 주소를 표시합니다. **Copy** 클릭.
+
+4. **dTax에 붙여넣기**
+
+   dTax → Settings → Wallets → Add Wallet → **Bitcoin** 선택 → 주소 붙여넣기.
+
+</Steps>
+
+</TabItem>
+<TabItem label="Exodus">
+
+<Steps>
+
+1. **Exodus 열기**
+
+2. **Bitcoin 지갑 찾기**
+
+   지갑 목록에서 **Bitcoin** 선택.
+
+3. **받기 클릭**
+
+   **Receive** 버튼 클릭. Bitcoin 주소가 QR 코드와 텍스트 모두로 표시됩니다.
+   **Copy**를 클릭하여 복사하세요.
+
+4. **dTax에 붙여넣기**
+
+   dTax → Settings → Wallets → Add Wallet → **Bitcoin** 선택 → 주소 붙여넣기.
+
+</Steps>
+
+</TabItem>
+</Tabs>
+
+---
+
+## HD 지갑(xpub / ypub / zpub)
+
+하드웨어 지갑(Ledger, Trezor) 또는 Electrum으로 Bitcoin을 관리하는 경우 확장 공개 키를 사용하여 **모든 파생 주소를 한 번에 동기화**할 수 있습니다.
+
+| 키 형식 | 주소 유형 |
+|---------|-----------|
+| `xpub...` | Legacy (P2PKH) |
+| `ypub...` | Nested SegWit (P2SH) |
+| `zpub...` | Native SegWit (Bech32) |
+
+<Steps>
+
+1. **확장 공개 키 확인**
+
+   - **Ledger Live**: Bitcoin 계정으로 이동 → **...** 메뉴 → **Advanced** → **Extended public key (xpub)**
+   - **Trezor Suite**: Bitcoin 계정으로 이동 → **...** → **Public key**
+   - **Electrum**: **Wallet** → **Information** → Master Public Key
+
+2. **dTax에 추가**
+
+   dTax → Settings → Wallets → Add Wallet → **Bitcoin** 선택 → xpub/ypub/zpub 붙여넣기.
+
+   dTax는 모든 하위 주소를 자동으로 파생하고 모든 주소의 거래를 동기화합니다.
+
+</Steps>
+
+<Aside type="caution" title="xpub은 모든 주소를 노출합니다">
+xpub은 개인 키가 아닙니다 —— 자금을 이동할 수 없습니다. 그러나 xpub을 가진 사람은 모든 Bitcoin 주소와 잔액을 확인할 수 있습니다. 신뢰하는 서비스에만 공유하세요.
+</Aside>
+
+---
+
+## 문제 해결
+
+**동기화 후 "No transactions found"**
+- 올바른 주소가 붙여넣기 되었는지 확인하세요(처음과 마지막 몇 글자를 확인).
+- 올바른 체인이 선택되었는지 확인하세요 —— 잘못된 체인의 ETH 주소(예: Ethereum 대신 Arbitrum)는 결과가 표시되지 않습니다.
+- 일부 지갑은 거래 수가 매우 적을 수 있습니다 —— 정상입니다.
+
+**거래가 누락되거나 불완전함**
+- dTax는 가장 초기에 사용 가능한 블록부터 동기화합니다. 매우 오래된 지갑(2018년 이전)의 경우 일부 인덱서의 기록이 제한될 수 있습니다.
+- 같은 주소를 다시 추가해 보세요 —— API에서 다시 가져옵니다.
+
+**잘못된 거래 수**
+- 여러 체인에서 동일한 주소를 사용한 경우(EVM에서 흔함), 각 체인에 별도로 추가하세요.
+
+**Bitcoin: 일부 주소에만 거래가 표시됨**
+- HD 지갑을 사용하는 경우 개별 주소 대신 xpub 키를 추가하세요 —— 모든 파생 주소가 자동으로 포함됩니다.

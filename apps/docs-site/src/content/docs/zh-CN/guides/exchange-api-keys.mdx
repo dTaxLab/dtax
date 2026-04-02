@@ -1,0 +1,257 @@
+---
+title: 交易所 API 密钥
+description: 在 Binance、OKX、Bybit、KuCoin、Kraken、Coinbase 和 Gate.io 上生成只读 API 密钥并用于 dTax 的分步指南。
+draft: false
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+dTax 通过**只读 API 密钥**连接您的交易所。这使 dTax 可以获取您的交易历史，而无法转移资金。您**绝不**应授予提现或交易权限。
+
+<Aside type="tip" title="必须使用只读权限">
+仅启用 **Read**（有时称为 View、Query 或 General）权限。切勿启用 Trade 或 Withdraw —— dTax 不需要这些权限，启用它们存在安全风险。
+</Aside>
+
+## 在 dTax 中输入密钥的位置
+
+1. 前往 **Transactions** → **Connect Exchange**
+2. 从下拉菜单中选择您的交易所
+3. 将 API Key 和 Secret Key 粘贴到对应字段中
+4. 点击 **Connect**
+
+---
+
+## Binance
+
+<Steps>
+
+1. **打开 API 管理**
+
+   登录 Binance → 点击右上角头像 → 选择 **API Management**。
+
+2. **创建新的 API 密钥**
+
+   点击 **Create API** → 选择 **System generated** → 输入标签（例如 `dTax`）→ 点击 **Next**。
+
+3. **完成安全验证**
+
+   完成邮箱 / 验证器验证提示。
+
+4. **设置权限 —— 仅读**
+
+   在 **API restrictions** 下，确保仅勾选 **Enable Reading**。
+   取消勾选 **Enable Spot & Margin Trading**、**Enable Withdrawals** 以及所有其他选项。
+
+   将 **Restrict access to trusted IPs only** 保持未勾选状态（或根据需要添加您的 IP 以增强安全性）。
+
+5. **保存密钥**
+
+   立即复制并保存您的 **API Key** 和 **Secret Key** —— Secret Key 只会显示一次。
+
+</Steps>
+
+<Aside type="caution">
+如果您在 Binance 账户上启用了合约交易，dTax 可以通过连接表单中的 **Include futures / perpetual contracts** 开关同步合约历史。使用同一个只读密钥即可 —— 无需额外权限。
+</Aside>
+
+---
+
+## OKX
+
+<Steps>
+
+1. **打开 API 设置**
+
+   登录 OKX → 点击头像 → 选择 **API**。
+
+2. **创建新的 API 密钥**
+
+   点击 **Create API key** → 选择用途 **Link third-party platform**（推荐）或 **Custom**。
+
+3. **填写详细信息**
+
+   输入名称（例如 `dTax`）和您自定义的 **Passphrase**。请保存该 Passphrase，在 dTax 中会用到。
+
+4. **设置权限**
+
+   在 **Permissions** 下，仅启用 **Read**。不要启用 Trade 或 Withdraw。
+
+5. **保存**
+
+   完成 2FA 验证并保存。复制您的 **API Key**、**Secret Key** 和 **Passphrase** —— 在 dTax 中需要输入这三项。
+
+</Steps>
+
+---
+
+## Bybit
+
+<Steps>
+
+1. **打开 API 管理**
+
+   登录 Bybit → 点击右上角头像 → 选择 **API**。
+
+2. **创建新密钥**
+
+   点击 **Create New Key** → 选择 **System-generated API Keys**。
+
+3. **填写详细信息**
+
+   输入密钥名称（例如 `dTax`）。在 **Key Permissions** 下，选择 **Read-Only**。
+
+4. **绑定 IP（可选）**
+
+   除非需要额外安全保障，否则留空 IP 绑定。
+
+5. **确认并保存**
+
+   完成 2FA。复制您的 **API Key** 和 **Secret Key**。
+
+</Steps>
+
+---
+
+## KuCoin
+
+<Aside type="note" title="KuCoin 需要 Passphrase">
+KuCoin API 密钥有三个字段：API Key、Secret 和 **Passphrase**。Passphrase 在生成密钥时由您自行创建 —— 请妥善保存，因为无法找回。
+</Aside>
+
+<Steps>
+
+1. **打开 API 管理**
+
+   登录 KuCoin → 点击头像 → 选择 **API Management**。
+
+2. **创建新的 API 密钥**
+
+   点击 **Create API**。
+
+3. **填写详细信息**
+
+   输入名称（例如 `dTax`）和您自定义的 **Passphrase**。
+
+4. **设置权限**
+
+   在 **Permissions** 下，仅勾选 **General**（读取权限）。
+   保持 **Trade** 和 **Transfer** 未勾选。
+
+5. **完成验证**
+
+   输入交易密码和 2FA 验证码。保存您的 **API Key**、**Secret** 和 **Passphrase** —— 在 dTax 中需要输入这三项。
+
+</Steps>
+
+---
+
+## Kraken
+
+<Steps>
+
+1. **打开 API 设置**
+
+   登录 Kraken → 点击右上角头像 → 前往 **Security** → **API**。
+
+2. **生成新密钥**
+
+   点击 **Generate new key**。
+
+3. **设置密钥权限**
+
+   仅启用以下权限，**其他均不启用**：
+
+   - ✅ Query funds
+   - ✅ Query open orders & trades
+   - ✅ Query closed orders & trades
+   - ✅ Query ledger entries
+   - ✅ Export data（可选，用于 CSV 导出支持）
+
+   其余均不勾选，特别是 **Create & modify orders** 和 **Withdraw funds**。
+
+4. **保存**
+
+   点击 **Generate key**。复制您的 **API Key** 和 **Private Key**（Kraken 将其称为"Private Key"而非"Secret"）。
+
+</Steps>
+
+---
+
+## Coinbase
+
+<Aside type="note" title="Coinbase Advanced Trade">
+dTax 连接的是 Coinbase Advanced Trade（前身为 Coinbase Pro）。如果您只使用没有交易历史的基础 Coinbase 账户，CSV 导出可能更方便 —— 请参阅 CSV 导入指南。
+</Aside>
+
+<Steps>
+
+1. **打开 API 设置**
+
+   登录 Coinbase → 点击头像 → **Settings** → **API** 标签页。
+
+   或者直接前往 [coinbase.com/settings/api](https://coinbase.com/settings/api)。
+
+2. **创建新的 API 密钥**
+
+   点击 **+ New API Key**。
+
+3. **选择账户和权限**
+
+   选择要连接的账户。在 **Permissions** 下，仅选择 **View**（只读）。
+   不要启用 **Trade** 或 **Transfer**。
+
+4. **保存**
+
+   完成 2FA。下载或复制您的 **API Key** 和 **API Secret**。
+
+</Steps>
+
+---
+
+## Gate.io
+
+<Steps>
+
+1. **打开 API 管理**
+
+   登录 Gate.io → 点击右上角头像 → 选择 **API Keys**（在 My Profile 下）。
+
+2. **创建新的 API 密钥**
+
+   点击 **Create API Key**。
+
+3. **填写详细信息**
+
+   输入名称（例如 `dTax`）。输入您的资金密码。
+
+4. **设置权限**
+
+   在 **Permissions** 下，仅启用 **Read**（钱包读取和交易历史读取）。
+   不要启用 Withdraw、Trade 或任何写入权限。
+
+5. **完成验证**
+
+   完成 2FA。复制并保存您的 **API Key** 和 **Secret Key**。
+
+</Steps>
+
+---
+
+## 故障排除
+
+**"Invalid API key" 错误**
+- 仔细检查复制的密钥是否完整，没有多余空格。
+- 确保使用了正确的字段：API Key 填入"API Key"，Secret 填入"Secret Key"。
+- 对于 KuCoin/OKX，还需验证 Passphrase 是否正确。
+
+**"Insufficient permissions" 错误**
+- 您的密钥可能在创建时未启用 Read 权限。请删除该密钥并按照上述步骤重新创建。
+
+**"IP not whitelisted" 错误**
+- 您在创建密钥时启用了 IP 限制。请在交易所的 API 管理页面删除 IP 限制，或将当前 IP 地址添加到白名单中。
+
+**Binance：密钥有效但没有合约交易记录**
+- 在 dTax 中连接时，启用 **Include futures / perpetual contracts** 开关。
+
+**密钥被误赋予了交易权限**
+- 立即在交易所的 API Management 页面删除该密钥，并重新创建一个只读密钥。
