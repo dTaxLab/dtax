@@ -10,10 +10,28 @@ export const MARGIN = 50;
 /** US Letter page width in points. */
 export const PAGE_WIDTH = 612;
 
+/** US Letter page height in points. */
+export const PAGE_HEIGHT = 792;
+
 /** Printable content width (page minus both margins). */
 export const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN;
 
-/** Maximum line items per Form 8949 page. */
+/** Bottom boundary for content (above footer). */
+export const PAGE_BOTTOM = PAGE_HEIGHT - MARGIN - 20;
+
+/** Height of each data row in points. */
+export const LINE_HEIGHT = 14;
+
+/** Height of the global page header (title + subtitle + year/box info). */
+export const GLOBAL_HEADER_HEIGHT = 50;
+
+/** Height of a box section label + column headers + separator. */
+export const BOX_SECTION_HEIGHT = 38;
+
+/** Height of the summary totals block. */
+export const SUMMARY_HEIGHT = 30;
+
+/** @deprecated Use flow-based layout instead of fixed lines per page. */
 export const LINES_PER_PAGE = 14;
 
 /**

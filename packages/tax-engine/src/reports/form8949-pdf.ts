@@ -2,7 +2,8 @@
  * IRS Form 8949 PDF Generator
  *
  * Generates a structured PDF report matching the layout of IRS Form 8949.
- * Each page contains up to 14 line items, with Box designation and summary totals.
+ * Uses flow-based layout: multiple Box sections can share a page, lines are
+ * packed to maximize space utilization and eliminate near-empty pages.
  *
  * @license AGPL-3.0
  */
@@ -10,15 +11,32 @@
 import PDFDocument from "pdfkit";
 import type { Form8949Report, Form8949Line } from "./form8949";
 import type { ScheduleDReport } from "./schedule-d";
-import { MARGIN, LINES_PER_PAGE } from "./pdf/pdf-utils";
-import { renderForm8949Page } from "./pdf/render-form8949";
+import {
+  MARGIN,
+  PAGE_BOTTOM,
+  LINE_HEIGHT,
+  GLOBAL_HEADER_HEIGHT,
+  BOX_SECTION_HEIGHT,
+  SUMMARY_HEIGHT,
+} from "./pdf/pdf-utils";
+import {
+  renderGlobalHeader,
+  renderBoxSectionHeader,
+  renderDataLine,
+  renderBoxSummary,
+} from "./pdf/render-form8949";
 import { renderScheduleDPage } from "./pdf/render-schedule-d";
+import { renderFooter } from "./pdf/pdf-utils";
 
 /**
  * Generate Form 8949 PDF as a Buffer.
  *
+ * Lines from all Box sections are laid out in a continuous flow. A new page is
+ * only added when the remaining vertical space is insufficient for the next
+ * element, so pages fill up completely before breaking.
+ *
  * @param report - Form 8949 report data from generateForm8949()
- * @param options - Optional Schedule D data to append
+ * @param options - Optional taxpayer info and Schedule D data
  * @returns Promise resolving to a PDF Buffer
  */
 export function generateForm8949Pdf(
@@ -37,43 +55,85 @@ export function generateForm8949Pdf(
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    // Group lines by box
+    // Group lines by box, preserving box order (A → F)
     const linesByBox = new Map<string, Form8949Line[]>();
     for (const line of report.lines) {
-      const box = line.box;
-      const arr = linesByBox.get(box) || [];
+      const arr = linesByBox.get(line.box) || [];
       arr.push(line);
-      linesByBox.set(box, arr);
+      linesByBox.set(line.box, arr);
     }
 
-    let isFirstPage = true;
+    let y = MARGIN;
+
+    /**
+     * Ensure at least `needed` vertical points remain before the next element.
+     * If not, finalize the current page (footer) and add a new one.
+     */
+    function ensureSpace(needed: number): void {
+      if (y + needed > PAGE_BOTTOM) {
+        renderFooter(doc);
+        doc.addPage();
+        y = MARGIN;
+        // Re-render the global header on continuation pages
+        y = renderGlobalHeader(
+          doc,
+          y,
+          report.taxYear,
+          options?.taxpayerName,
+          options?.taxpayerSSN,
+        );
+      }
+    }
+
+    // Global header on first page
+    y = renderGlobalHeader(
+      doc,
+      y,
+      report.taxYear,
+      options?.taxpayerName,
+      options?.taxpayerSSN,
+    );
 
     for (const [box, lines] of linesByBox) {
       const summary = report.boxSummaries.find((s) => s.box === box);
-      const totalPages = Math.ceil(lines.length / LINES_PER_PAGE);
 
-      for (let page = 0; page < totalPages; page++) {
-        if (!isFirstPage) doc.addPage();
-        isFirstPage = false;
+      // Box section header needs room for itself + at least 1 data line
+      ensureSpace(BOX_SECTION_HEIGHT + LINE_HEIGHT);
 
-        const pageLines = lines.slice(
-          page * LINES_PER_PAGE,
-          (page + 1) * LINES_PER_PAGE,
-        );
-        const isLastPage = page === totalPages - 1;
+      // Add visual gap between boxes (not at page top)
+      if (y > MARGIN + GLOBAL_HEADER_HEIGHT + 2) y += 8;
 
-        renderForm8949Page(doc, {
-          box,
-          taxYear: report.taxYear,
-          lines: pageLines,
-          summary: isLastPage ? summary : undefined,
-          taxpayerName: options?.taxpayerName,
-          taxpayerSSN: options?.taxpayerSSN,
-          pageNum: page + 1,
-          totalPages,
-        });
+      let isContinuation = false;
+      y = renderBoxSectionHeader(doc, y, box);
+
+      for (const line of lines) {
+        // If no space for this line, start a new page with continuation header
+        if (y + LINE_HEIGHT > PAGE_BOTTOM) {
+          renderFooter(doc);
+          doc.addPage();
+          y = MARGIN;
+          y = renderGlobalHeader(
+            doc,
+            y,
+            report.taxYear,
+            options?.taxpayerName,
+            options?.taxpayerSSN,
+          );
+          isContinuation = true;
+          y = renderBoxSectionHeader(doc, y, box, isContinuation);
+        }
+        y = renderDataLine(doc, y, line);
+      }
+
+      // Summary totals
+      if (summary) {
+        ensureSpace(SUMMARY_HEIGHT);
+        y = renderBoxSummary(doc, y, summary);
       }
     }
+
+    // Footer on last Form 8949 page
+    renderFooter(doc);
 
     // Append Schedule D page if provided
     if (options?.scheduleD) {

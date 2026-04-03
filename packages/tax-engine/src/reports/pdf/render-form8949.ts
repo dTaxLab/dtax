@@ -1,5 +1,7 @@
 /**
- * Renders a single Form 8949 page within a PDFKit document.
+ * Renders Form 8949 content into a PDFKit document using a flow-based layout.
+ * Individual render functions take a `y` coordinate and return the updated `y`
+ * after drawing, allowing the caller to pack multiple boxes onto one page.
  *
  * @license AGPL-3.0
  */
@@ -13,31 +15,31 @@ import {
   renderFooter,
 } from "./pdf-utils";
 
-/** Options for rendering one page of Form 8949. */
-export interface PageOptions {
-  box: string;
-  taxYear: number;
-  lines: Form8949Line[];
-  summary?: Form8949BoxSummary;
-  taxpayerName?: string;
-  taxpayerSSN?: string;
-  pageNum: number;
-  totalPages: number;
-}
+/** Column layout shared across all row types. */
+const COLS = [
+  { label: "(a) Description", x: MARGIN, w: 120 },
+  { label: "(b) Acquired", x: MARGIN + 122, w: 72 },
+  { label: "(c) Sold", x: MARGIN + 196, w: 72 },
+  { label: "(d) Proceeds", x: MARGIN + 270, w: 75 },
+  { label: "(e) Cost Basis", x: MARGIN + 347, w: 75 },
+  { label: "(f)", x: MARGIN + CONTENT_WIDTH - 75 - 50 - 28, w: 26 },
+  { label: "(g) Adj.", x: MARGIN + CONTENT_WIDTH - 75 - 50, w: 48 },
+  { label: "(h) Gain/Loss", x: MARGIN + CONTENT_WIDTH - 75, w: 75 },
+] as const;
 
 /**
- * Render a single Form 8949 page with header, line items, and optional summary.
+ * Render the global page header (Form 8949 title, subtitle, tax year).
+ * Called at the top of every page.
  *
- * @param doc - The PDFKit document instance
- * @param opts - Page layout and data options
+ * @returns Updated y position after drawing.
  */
-export function renderForm8949Page(
+export function renderGlobalHeader(
   doc: PDFKit.PDFDocument,
-  opts: PageOptions,
-): void {
-  let y = MARGIN;
-
-  // Header
+  y: number,
+  taxYear: number,
+  taxpayerName?: string,
+  taxpayerSSN?: string,
+): number {
   doc
     .fontSize(14)
     .font("Helvetica-Bold")
@@ -53,55 +55,52 @@ export function renderForm8949Page(
     });
   y += 14;
 
-  doc
-    .fontSize(8)
-    .font("Helvetica")
-    .text(
-      `Tax Year ${opts.taxYear}  |  Box ${opts.box}  |  Page ${opts.pageNum} of ${opts.totalPages}`,
-      MARGIN,
-      y,
-      { align: "center", width: CONTENT_WIDTH },
-    );
-  y += 16;
+  doc.fontSize(8).font("Helvetica").text(`Tax Year ${taxYear}`, MARGIN, y, {
+    align: "center",
+    width: CONTENT_WIDTH,
+  });
+  y += 14;
 
-  // Taxpayer info
-  if (opts.taxpayerName || opts.taxpayerSSN) {
+  if (taxpayerName || taxpayerSSN) {
     doc.fontSize(9).font("Helvetica");
-    if (opts.taxpayerName) doc.text(`Name: ${opts.taxpayerName}`, MARGIN, y);
-    if (opts.taxpayerSSN) doc.text(`SSN: ${opts.taxpayerSSN}`, MARGIN + 300, y);
+    if (taxpayerName) doc.text(`Name: ${taxpayerName}`, MARGIN, y);
+    if (taxpayerSSN) doc.text(`SSN: ${taxpayerSSN}`, MARGIN + 300, y);
     y += 14;
   }
 
-  // Box description
+  return y;
+}
+
+/**
+ * Render the box section header (box label + column headers + separator line).
+ * Called whenever a new box section starts, or at the top of a continuation page.
+ *
+ * @returns Updated y position after drawing.
+ */
+export function renderBoxSectionHeader(
+  doc: PDFKit.PDFDocument,
+  y: number,
+  box: string,
+  continued = false,
+): number {
+  const suffix = continued ? " (continued)" : "";
   doc
     .fontSize(9)
     .font("Helvetica-Bold")
-    .text(`Box ${opts.box}: ${BOX_DESCRIPTIONS[opts.box] || ""}`, MARGIN, y);
-  y += 18;
+    .text(`Box ${box}: ${BOX_DESCRIPTIONS[box] || ""}${suffix}`, MARGIN, y);
+  y += 14;
 
   // Column headers
-  const cols = [
-    { label: "(a) Description", x: MARGIN, w: 120 },
-    { label: "(b) Acquired", x: MARGIN + 122, w: 72 },
-    { label: "(c) Sold", x: MARGIN + 196, w: 72 },
-    { label: "(d) Proceeds", x: MARGIN + 270, w: 75 },
-    { label: "(e) Cost Basis", x: MARGIN + 347, w: 75 },
-    { label: "(f)", x: MARGIN + CONTENT_WIDTH - 75 - 50 - 28, w: 26 },
-    { label: "(g) Adj.", x: MARGIN + CONTENT_WIDTH - 75 - 50, w: 48 },
-    { label: "(h) Gain/Loss", x: MARGIN + CONTENT_WIDTH - 75, w: 75 },
-  ];
-
   doc.fontSize(7).font("Helvetica-Bold");
-  const headerY = y;
-  for (const col of cols) {
-    doc.text(col.label, col.x, headerY, {
+  for (const col of COLS) {
+    doc.text(col.label, col.x, y, {
       width: col.w,
       align: col.x > MARGIN + 200 ? "right" : "left",
     });
   }
-  y = headerY + 12;
+  y += 12;
 
-  // Separator
+  // Separator line
   doc
     .moveTo(MARGIN, y)
     .lineTo(MARGIN + CONTENT_WIDTH, y)
@@ -109,70 +108,129 @@ export function renderForm8949Page(
     .stroke();
   y += 4;
 
-  // Line items
+  return y;
+}
+
+/**
+ * Render a single data line.
+ *
+ * @returns Updated y position after drawing.
+ */
+export function renderDataLine(
+  doc: PDFKit.PDFDocument,
+  y: number,
+  line: Form8949Line,
+): number {
   doc.fontSize(8).font("Helvetica");
-  for (const line of opts.lines) {
-    doc.text(line.description, cols[0].x, y, { width: cols[0].w });
-    doc.text(line.dateAcquired, cols[1].x, y, { width: cols[1].w });
-    doc.text(line.dateSold, cols[2].x, y, { width: cols[2].w });
-    doc.text(fmt(line.proceeds), cols[3].x, y, {
-      width: cols[3].w,
-      align: "right",
-    });
-    doc.text(fmt(line.costBasis), cols[4].x, y, {
-      width: cols[4].w,
-      align: "right",
-    });
-    doc.text(line.adjustmentCode || "", cols[5].x, y, {
-      width: cols[5].w,
-      align: "right",
-    });
-    doc.text(
-      line.adjustmentAmount ? fmt(line.adjustmentAmount) : "",
-      cols[6].x,
+  doc.text(line.description, COLS[0].x, y, { width: COLS[0].w });
+  doc.text(line.dateAcquired, COLS[1].x, y, { width: COLS[1].w });
+  doc.text(line.dateSold, COLS[2].x, y, { width: COLS[2].w });
+  doc.text(fmt(line.proceeds), COLS[3].x, y, {
+    width: COLS[3].w,
+    align: "right",
+  });
+  doc.text(fmt(line.costBasis), COLS[4].x, y, {
+    width: COLS[4].w,
+    align: "right",
+  });
+  doc.text(line.adjustmentCode || "", COLS[5].x, y, {
+    width: COLS[5].w,
+    align: "right",
+  });
+  doc.text(
+    line.adjustmentAmount ? fmt(line.adjustmentAmount) : "",
+    COLS[6].x,
+    y,
+    { width: COLS[6].w, align: "right" },
+  );
+  doc.text(fmt(line.gainLoss), COLS[7].x, y, {
+    width: COLS[7].w,
+    align: "right",
+  });
+  return y + 14;
+}
+
+/**
+ * Render the summary totals block for a box.
+ *
+ * @returns Updated y position after drawing.
+ */
+export function renderBoxSummary(
+  doc: PDFKit.PDFDocument,
+  y: number,
+  summary: Form8949BoxSummary,
+): number {
+  y += 4;
+  doc
+    .moveTo(MARGIN, y)
+    .lineTo(MARGIN + CONTENT_WIDTH, y)
+    .lineWidth(0.5)
+    .stroke();
+  y += 6;
+
+  doc
+    .fontSize(8)
+    .font("Helvetica-Bold")
+    .text(
+      `Totals — Box ${summary.box} (${summary.lineCount} items)`,
+      COLS[0].x,
       y,
-      { width: cols[6].w, align: "right" },
+      {
+        width: COLS[0].w + COLS[1].w + COLS[2].w,
+      },
     );
-    doc.text(fmt(line.gainLoss), cols[7].x, y, {
-      width: cols[7].w,
-      align: "right",
-    });
-    y += 14;
-  }
+  doc.text(fmt(summary.totalProceeds), COLS[3].x, y, {
+    width: COLS[3].w,
+    align: "right",
+  });
+  doc.text(fmt(summary.totalCostBasis), COLS[4].x, y, {
+    width: COLS[4].w,
+    align: "right",
+  });
+  doc.text(fmt(summary.totalAdjustments), COLS[6].x, y, {
+    width: COLS[6].w,
+    align: "right",
+  });
+  doc.text(fmt(summary.totalGainLoss), COLS[7].x, y, {
+    width: COLS[7].w,
+    align: "right",
+  });
 
-  // Summary totals on last page of each box
+  return y + 20;
+}
+
+// ── Legacy full-page renderer (kept for backward compat) ─────────────────────
+
+/** Options for rendering one full page of Form 8949. */
+export interface PageOptions {
+  box: string;
+  taxYear: number;
+  lines: Form8949Line[];
+  summary?: Form8949BoxSummary;
+  taxpayerName?: string;
+  taxpayerSSN?: string;
+  pageNum: number;
+  totalPages: number;
+}
+
+/** @deprecated Use flow-based individual functions instead. */
+export function renderForm8949Page(
+  doc: PDFKit.PDFDocument,
+  opts: PageOptions,
+): void {
+  let y = renderGlobalHeader(
+    doc,
+    MARGIN,
+    opts.taxYear,
+    opts.taxpayerName,
+    opts.taxpayerSSN,
+  );
+  y = renderBoxSectionHeader(doc, y, opts.box);
+  for (const line of opts.lines) {
+    y = renderDataLine(doc, y, line);
+  }
   if (opts.summary) {
-    y += 4;
-    doc
-      .moveTo(MARGIN, y)
-      .lineTo(MARGIN + CONTENT_WIDTH, y)
-      .lineWidth(0.5)
-      .stroke();
-    y += 6;
-    doc
-      .fontSize(8)
-      .font("Helvetica-Bold")
-      .text(`Totals (${opts.summary.lineCount} items)`, cols[0].x, y, {
-        width: cols[0].w + cols[1].w + cols[2].w,
-      });
-    doc.text(fmt(opts.summary.totalProceeds), cols[3].x, y, {
-      width: cols[3].w,
-      align: "right",
-    });
-    doc.text(fmt(opts.summary.totalCostBasis), cols[4].x, y, {
-      width: cols[4].w,
-      align: "right",
-    });
-    doc.text(fmt(opts.summary.totalAdjustments), cols[6].x, y, {
-      width: cols[6].w,
-      align: "right",
-    });
-    doc.text(fmt(opts.summary.totalGainLoss), cols[7].x, y, {
-      width: cols[7].w,
-      align: "right",
-    });
+    renderBoxSummary(doc, y, opts.summary);
   }
-
-  // Footer
   renderFooter(doc);
 }
