@@ -1,21 +1,26 @@
 ---
 title: Cost Basis Methods
-description: FIFO, LIFO, HIFO, Specific ID, Germany FIFO, PMPA, Total Average, UK Share Pooling
+description: FIFO, LIFO, HIFO, Specific ID, Germany FIFO, PMPA, Total Average, UK Share Pooling, AU CGT Discount, CA ACB, KR Virtual Asset, IN VDA, ES CGT
 draft: false
 ---
 
 ## Supported methods
 
-| Method | ID | IRS Compliant | Notes |
-|--------|----|---------------|-------|
-| First In, First Out | `FIFO` | ✅ Default | Oldest lots sold first |
-| Last In, First Out | `LIFO` | ⚠️ Specific ID | Must elect Specific ID |
-| Highest In, First Out | `HIFO` | ⚠️ Specific ID | Must elect Specific ID |
-| Specific ID | `SPECIFIC_ID` | ✅ | Manual lot selection |
-| Germany FIFO | `GERMANY_FIFO` | 🇩🇪 | §23 EStG, 1-year holding |
-| PMPA | `PMPA` | 🇨🇦 🇦🇺 | Adjusted Cost Base |
+| Method | ID | Country | Notes |
+|--------|----|---------|-------|
+| First In, First Out | `FIFO` | 🌍 | Oldest lots sold first (IRS default) |
+| Last In, First Out | `LIFO` | 🌍 | Must elect Specific ID (IRS) |
+| Highest In, First Out | `HIFO` | 🌍 | Must elect Specific ID (IRS) |
+| Specific ID | `SPECIFIC_ID` | 🌍 | Manual lot selection |
+| Germany FIFO | `GERMANY_FIFO` | 🇩🇪 | §23 EStG, 1-year holding exemption |
+| PMPA | `PMPA` | 🇫🇷 | Plus-value mobilière, weighted average |
 | Total Average | `TOTAL_AVERAGE` | 🌍 | Average cost basis |
 | UK Share Pooling | `UK_SHARE_POOLING` | 🇬🇧 | Section 104 pool + 30-day rule |
+| AU CGT Discount | `AU_CGT_DISCOUNT` | 🇦🇺 | FIFO + 50% discount on long-term gains (ATO s.115) |
+| CA ACB | `CA_ACB` | 🇨🇦 | Weighted average Adjusted Cost Base (CRA IT-387R2) |
+| KR Virtual Asset | `KR_VIRTUAL_ASSET` | 🇰🇷 | FIFO; 22% flat rate + KRW 2.5M exemption at report layer |
+| IN VDA | `IN_VDA` | 🇮🇳 | FIFO; losses not deductible (s.115BBH) |
+| ES CGT | `ES_CGT` | 🇪🇸 | FIFO; tiered 19–27% rates at report layer |
 
 ## IRS note
 
@@ -32,7 +37,7 @@ const result = computeGains(transactions, {
   taxYear: 2024,
 });
 
-// Compare all 7 comparable methods (excludes SPECIFIC_ID)
+// Compare all comparable methods (excludes SPECIFIC_ID)
 const comparison = compareAllMethods(transactions, 2024);
 comparison.forEach(({ method, totalGain, recommendation }) => {
   console.log(`${method}: $${totalGain} ${recommendation ? '← recommended' : ''}`);

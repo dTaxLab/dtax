@@ -16,6 +16,11 @@ import { calculateGermanyFIFO } from "./methods/germany-fifo";
 import { calculatePMPA } from "./methods/pmpa";
 import { calculateTotalAverage } from "./methods/total-average";
 import { calculateUKSharePooling } from "./methods/uk-share-pooling";
+import { calculateAustraliaCGT } from "./methods/australia-cgt";
+import { calculateCanadaACB } from "./methods/canada-acb";
+import { calculateKoreaVirtualAsset } from "./methods/korea-virtual-asset";
+import { calculateIndiaVDA } from "./methods/india-vda";
+import { calculateSpainCGT } from "./methods/spain-cgt";
 import type {
   TaxLot,
   TaxableEvent,
@@ -87,6 +92,16 @@ export class CostBasisCalculator {
         return calculateTotalAverage(this.lots, event, strictSilo);
       case "UK_SHARE_POOLING":
         return calculateUKSharePooling(this.lots, event, strictSilo);
+      case "AU_CGT_DISCOUNT":
+        return calculateAustraliaCGT(this.lots, event, strictSilo);
+      case "CA_ACB":
+        return calculateCanadaACB(this.lots, event, strictSilo);
+      case "KR_VIRTUAL_ASSET":
+        return calculateKoreaVirtualAsset(this.lots, event, strictSilo);
+      case "IN_VDA":
+        return calculateIndiaVDA(this.lots, event, strictSilo);
+      case "ES_CGT":
+        return calculateSpainCGT(this.lots, event, strictSilo);
       case "SPECIFIC_ID":
         throw new Error(
           "SPECIFIC_ID requires lot selections — use calculateSpecificId()",

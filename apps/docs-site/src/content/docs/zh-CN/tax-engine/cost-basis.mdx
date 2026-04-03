@@ -1,21 +1,26 @@
 ---
 title: 计税方法
-description: FIFO、LIFO、HIFO、Specific ID、Germany FIFO、PMPA、Total Average、UK Share Pooling
+description: FIFO、LIFO、HIFO、Specific ID、Germany FIFO、PMPA、Total Average、UK Share Pooling、AU CGT Discount、CA ACB、KR Virtual Asset、IN VDA、ES CGT
 draft: false
 ---
 
 ## 支持的方法
 
-| 方法 | ID | IRS 合规 | 说明 |
-|--------|----|---------------|-------|
-| 先进先出 | `FIFO` | ✅ 默认 | 最早购入的份额优先出售 |
-| 后进先出 | `LIFO` | ⚠️ Specific ID | 必须选择 Specific ID |
-| 最高价先出 | `HIFO` | ⚠️ Specific ID | 必须选择 Specific ID |
-| 指定批次 | `SPECIFIC_ID` | ✅ | 手动选择批次 |
-| 德国 FIFO | `GERMANY_FIFO` | 🇩🇪 | §23 EStG，1 年持有期 |
-| PMPA | `PMPA` | 🇨🇦 🇦🇺 | 调整后成本基础 |
+| 方法 | ID | 国家 | 说明 |
+|--------|----|------|-------|
+| 先进先出 | `FIFO` | 🌍 | 最早购入的份额优先出售（IRS 默认）|
+| 后进先出 | `LIFO` | 🌍 | 需以 Specific ID 形式申报（IRS）|
+| 最高价先出 | `HIFO` | 🌍 | 需以 Specific ID 形式申报（IRS）|
+| 指定批次 | `SPECIFIC_ID` | 🌍 | 手动选择批次 |
+| 德国 FIFO | `GERMANY_FIFO` | 🇩🇪 | §23 EStG，持有 1 年免税 |
+| PMPA | `PMPA` | 🇫🇷 | 法国资本利得，加权平均 |
 | 总平均成本 | `TOTAL_AVERAGE` | 🌍 | 平均成本基础 |
 | 英国份额池化 | `UK_SHARE_POOLING` | 🇬🇧 | Section 104 资金池 + 30 天规则 |
+| 澳大利亚 CGT 折扣 | `AU_CGT_DISCOUNT` | 🇦🇺 | FIFO + 长期盈利享 50% 折扣（ATO s.115）|
+| 加拿大 ACB | `CA_ACB` | 🇨🇦 | 加权平均调整成本基础（CRA IT-387R2）|
+| 韩国虚拟资产 | `KR_VIRTUAL_ASSET` | 🇰🇷 | FIFO；22% 统一税率 + 250 万韩元免征额（报告层）|
+| 印度 VDA | `IN_VDA` | 🇮🇳 | FIFO；亏损不可抵扣（s.115BBH）|
+| 西班牙 CGT | `ES_CGT` | 🇪🇸 | FIFO；19–27% 累进税率（报告层）|
 
 ## IRS 说明
 
@@ -32,7 +37,7 @@ const result = computeGains(transactions, {
   taxYear: 2024,
 });
 
-// Compare all 7 comparable methods (excludes SPECIFIC_ID)
+// Compare all comparable methods (excludes SPECIFIC_ID)
 const comparison = compareAllMethods(transactions, 2024);
 comparison.forEach(({ method, totalGain, recommendation }) => {
   console.log(`${method}: $${totalGain} ${recommendation ? '← recommended' : ''}`);

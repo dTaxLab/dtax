@@ -1,21 +1,26 @@
 ---
 title: 원가 계산 방법
-description: FIFO, LIFO, HIFO, Specific ID, Germany FIFO, PMPA, Total Average, UK Share Pooling
+description: FIFO, LIFO, HIFO, Specific ID, Germany FIFO, PMPA, Total Average, UK Share Pooling, AU CGT Discount, CA ACB, KR Virtual Asset, IN VDA, ES CGT
 draft: false
 ---
 
 ## 지원 방법
 
-| 방법 | ID | IRS 준수 | 비고 |
-|--------|----|---------------|-------|
-| First In, First Out | `FIFO` | ✅ 기본값 | 가장 오래된 로트부터 매도 |
-| Last In, First Out | `LIFO` | ⚠️ Specific ID | Specific ID로 선택 필요 |
-| Highest In, First Out | `HIFO` | ⚠️ Specific ID | Specific ID로 선택 필요 |
-| Specific ID | `SPECIFIC_ID` | ✅ | 수동 로트 선택 |
-| Germany FIFO | `GERMANY_FIFO` | 🇩🇪 | §23 EStG, 1년 보유 |
-| PMPA | `PMPA` | 🇨🇦 🇦🇺 | Adjusted Cost Base |
+| 방법 | ID | 국가 | 비고 |
+|--------|----|------|-------|
+| First In, First Out | `FIFO` | 🌍 | 가장 오래된 로트부터 매도 (IRS 기본값) |
+| Last In, First Out | `LIFO` | 🌍 | Specific ID 필요 (IRS) |
+| Highest In, First Out | `HIFO` | 🌍 | Specific ID 필요 (IRS) |
+| Specific ID | `SPECIFIC_ID` | 🌍 | 수동 로트 선택 |
+| Germany FIFO | `GERMANY_FIFO` | 🇩🇪 | §23 EStG, 1년 보유 시 면세 |
+| PMPA | `PMPA` | 🇫🇷 | 가중평균 (프랑스) |
 | Total Average | `TOTAL_AVERAGE` | 🌍 | 평균 원가 기준 |
 | UK Share Pooling | `UK_SHARE_POOLING` | 🇬🇧 | Section 104 풀 + 30일 규칙 |
+| AU CGT Discount | `AU_CGT_DISCOUNT` | 🇦🇺 | FIFO + 장기 이익 50% 할인 (ATO s.115) |
+| CA ACB | `CA_ACB` | 🇨🇦 | 가중평균 조정원가 (CRA IT-387R2) |
+| KR Virtual Asset | `KR_VIRTUAL_ASSET` | 🇰🇷 | FIFO; 22% 단일세율 + 250만 원 공제 (보고 레이어) |
+| IN VDA | `IN_VDA` | 🇮🇳 | FIFO; 손실 공제 불가 (s.115BBH) |
+| ES CGT | `ES_CGT` | 🇪🇸 | FIFO; 누진세율 19–27% (보고 레이어) |
 
 ## IRS 참고 사항
 
