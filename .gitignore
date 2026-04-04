@@ -63,4 +63,4 @@ apps/data/
 *.pyc
 
 # Deployment state (server-side only, not tracked in repo)
-.deployed-version
+.deployed-*
