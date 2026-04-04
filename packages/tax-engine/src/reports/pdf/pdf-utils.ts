@@ -4,6 +4,8 @@
  * @license AGPL-3.0
  */
 
+import PDFDocument from "pdfkit";
+
 /** Left/right/top margin in points. */
 export const MARGIN = 50;
 

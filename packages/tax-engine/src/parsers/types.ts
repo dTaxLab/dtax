@@ -32,7 +32,10 @@ export type CsvFormat =
   | "cryptact"
   | "bitstamp"
   | "upbit"
-  | "robinhood";
+  | "robinhood"
+  | "wazirx"
+  | "coindcx"
+  | "zebpay";
 
 /** A parsed transaction row from CSV */
 export interface ParsedTransaction {

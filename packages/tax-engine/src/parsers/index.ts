@@ -47,6 +47,9 @@ import { parseCryptactCsv, isCryptactCsv } from "./cryptact";
 import { parseBitstampCsv, isBitstampCsv } from "./bitstamp";
 import { parseUpbitCsv, isUpbitCsv } from "./upbit";
 import { parseRobinhoodCsv, isRobinhoodCsv } from "./robinhood";
+import { parseWazirXCsv, isWazirXCsv } from "./wazirx";
+import { parseCoinDCXCsv, isCoinDCXCsv } from "./coindcx";
+import { parseZebPayCsv, isZebPayCsv } from "./zebpay";
 import type { CsvParseResult, CsvFormat, GenericColumnMap } from "./types";
 
 /**
@@ -70,6 +73,9 @@ export function detectCsvFormat(csv: string): CsvFormat {
   if (isBitstampCsv(csv)) return "bitstamp";
   if (isUpbitCsv(csv)) return "upbit";
   if (isRobinhoodCsv(csv)) return "robinhood";
+  if (isWazirXCsv(csv)) return "wazirx";
+  if (isCoinDCXCsv(csv)) return "coindcx";
+  if (isZebPayCsv(csv)) return "zebpay";
   if (isKuCoinCsv(csv)) return "kucoin";
   if (isMexcCsv(csv)) return "mexc";
   if (isGateCsv(csv)) return "gate";
@@ -157,6 +163,12 @@ export function parseCsv(
       return parseUpbitCsv(csv);
     case "robinhood":
       return parseRobinhoodCsv(csv);
+    case "wazirx":
+      return parseWazirXCsv(csv);
+    case "coindcx":
+      return parseCoinDCXCsv(csv);
+    case "zebpay":
+      return parseZebPayCsv(csv);
     case "generic":
     default:
       return parseGenericCsv(csv, options?.columnMap);
@@ -204,6 +216,9 @@ export { parseCryptactCsv, isCryptactCsv } from "./cryptact";
 export { parseBitstampCsv, isBitstampCsv } from "./bitstamp";
 export { parseUpbitCsv, isUpbitCsv } from "./upbit";
 export { parseRobinhoodCsv, isRobinhoodCsv } from "./robinhood";
+export { parseWazirXCsv, isWazirXCsv } from "./wazirx";
+export { parseCoinDCXCsv, isCoinDCXCsv } from "./coindcx";
+export { parseZebPayCsv, isZebPayCsv } from "./zebpay";
 export { parseCsvRows, parseCsvToObjects } from "./csv-core";
 export type {
   CsvFormat,
