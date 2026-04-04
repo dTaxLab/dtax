@@ -19,7 +19,23 @@ import type {
   ReconciliationItem,
   ReconciliationReport,
   MatchStatus,
+  RiskLevel,
 } from "./types";
+
+function computeRiskLevel(status: MatchStatus): RiskLevel {
+  switch (status) {
+    case "missing_in_dtax":
+    case "both_mismatch":
+      return "HIGH";
+    case "proceeds_mismatch":
+    case "basis_mismatch":
+      return "MEDIUM";
+    case "missing_in_1099da":
+      return "LOW";
+    default:
+      return "INFO";
+  }
+}
 
 const PROCEEDS_TOLERANCE = 0.01; // $0.01 exact match threshold
 const FUZZY_DATE_MS = 2 * 24 * 60 * 60 * 1000; // ±2 days
@@ -166,6 +182,7 @@ export function reconcile(
         const status = determineStatus(broker, dtax);
         const item: ReconciliationItem = {
           status,
+          riskLevel: computeRiskLevel(status),
           brokerEntry: broker,
           dtaxEntry: dtax,
           proceedsDiff: broker.grossProceeds - dtax.proceeds,
@@ -220,6 +237,7 @@ export function reconcile(
       const status = determineStatus(broker, dtax);
       const item: ReconciliationItem = {
         status,
+        riskLevel: computeRiskLevel(status),
         brokerEntry: broker,
         dtaxEntry: dtax,
         proceedsDiff: broker.grossProceeds - dtax.proceeds,
@@ -252,6 +270,7 @@ export function reconcile(
 
     const item: ReconciliationItem = {
       status,
+      riskLevel: computeRiskLevel(status),
       brokerEntry: broker,
       dtaxEntry: null,
       proceedsDiff: broker.grossProceeds,
@@ -270,6 +289,7 @@ export function reconcile(
 
     const item: ReconciliationItem = {
       status: "missing_in_1099da",
+      riskLevel: computeRiskLevel("missing_in_1099da"),
       brokerEntry: null,
       dtaxEntry: dtax,
       proceedsDiff: -dtax.proceeds,

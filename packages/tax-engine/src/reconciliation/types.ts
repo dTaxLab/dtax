@@ -61,9 +61,14 @@ export type MatchStatus =
   | "missing_in_1099da" // In DTax but not on 1099-DA
   | "internal_transfer_misclassified"; // Exchange reported as sale, DTax classified as internal transfer
 
+/** Audit priority level for a reconciliation item */
+export type RiskLevel = "HIGH" | "MEDIUM" | "LOW" | "INFO";
+
 /** A single reconciliation result */
 export interface ReconciliationItem {
   status: MatchStatus;
+  /** Audit priority — HIGH: IRS will impose tax; MEDIUM: amount differs; LOW: unreported; INFO: no action needed */
+  riskLevel: RiskLevel;
   /** 1099-DA entry (null if missing_in_1099da) */
   brokerEntry: Form1099DAEntry | null;
   /** DTax disposition (null if missing_in_dtax) */
