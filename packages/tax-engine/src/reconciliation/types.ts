@@ -102,6 +102,17 @@ export interface ReconciliationReport {
     coveredCount: number;
     /** Count of noncovered securities (user self-reports basis) */
     noncoveredCount: number;
+    /**
+     * Noncovered entries where broker reported no cost basis (Box 1e blank).
+     * IRS defaults these to $0 cost basis, making the full proceeds taxable.
+     */
+    basisMissingCount: number;
+    /**
+     * Worst-case estimated additional tax if IRS applies $0 basis to all
+     * basisMissing entries (proceeds × top 37% short-term rate).
+     * Use to communicate urgency of providing dTax cost basis documentation.
+     */
+    estimatedTaxOverpayment: number;
   };
   items: ReconciliationItem[];
 }

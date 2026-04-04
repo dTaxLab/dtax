@@ -281,6 +281,22 @@ export function reconcile(
     items.push(item);
   }
 
+  // Noncovered entries with no reported cost basis — IRS will default to $0 basis
+  const basisMissingItems = items.filter(
+    (i) =>
+      i.coverageStatus === "noncovered" &&
+      i.brokerEntry !== null &&
+      (i.brokerEntry.costBasis == null || i.brokerEntry.costBasis === 0),
+  );
+  // Worst-case: IRS taxes full proceeds at top marginal short-term rate (37%)
+  const estimatedTaxOverpayment =
+    Math.round(
+      basisMissingItems.reduce(
+        (sum, i) => sum + (i.brokerEntry?.grossProceeds ?? 0),
+        0,
+      ) * 37,
+    ) / 100;
+
   // Build summary
   const summary = {
     totalBrokerEntries: brokerEntries.length,
@@ -303,6 +319,8 @@ export function reconcile(
     coveredCount: items.filter((i) => i.coverageStatus === "covered").length,
     noncoveredCount: items.filter((i) => i.coverageStatus === "noncovered")
       .length,
+    basisMissingCount: basisMissingItems.length,
+    estimatedTaxOverpayment,
   };
 
   return {
