@@ -61,3 +61,6 @@ data/reports/
 apps/data/
 .maintenance
 *.pyc
+
+# Deployment state (server-side only, not tracked in repo)
+.deployed-version
