@@ -123,6 +123,7 @@ export async function generateAuditDefensePdf(
       size: "LETTER",
       margins: { top: MARGIN, bottom: MARGIN, left: MARGIN, right: MARGIN },
       autoFirstPage: true,
+      bufferPages: true,
     });
     const chunks: Buffer[] = [];
     doc.on("data", (c: Buffer) => chunks.push(c));
@@ -280,13 +281,14 @@ export async function generateAuditDefensePdf(
       }
     }
 
-    // Footer on every page
-    const pageCount = (doc as any).bufferedPageRange?.()?.count ?? 1;
-    for (let i = 0; i < pageCount; i++) {
+    // Footer on every page (post-render sweep — bufferPages:true allows switchToPage)
+    const range = doc.bufferedPageRange();
+    for (let i = range.start; i < range.start + range.count; i++) {
       doc.switchToPage(i);
       renderFooter(doc);
     }
 
+    doc.flushPages();
     doc.end();
   });
 }

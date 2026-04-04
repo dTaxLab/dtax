@@ -48,7 +48,7 @@ export function generateForm8949Pdf(
   },
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: "letter", margin: MARGIN });
+    const doc = new PDFDocument({ size: "letter", margin: MARGIN, bufferPages: true });
     const chunks: Buffer[] = [];
 
     doc.on("data", (chunk: Buffer) => chunks.push(chunk));
@@ -67,11 +67,10 @@ export function generateForm8949Pdf(
 
     /**
      * Ensure at least `needed` vertical points remain before the next element.
-     * If not, finalize the current page (footer) and add a new one.
+     * If not, add a new page (footer is added in a post-render sweep).
      */
     function ensureSpace(needed: number): void {
       if (y + needed > PAGE_BOTTOM) {
-        renderFooter(doc);
         doc.addPage();
         y = MARGIN;
         // Re-render the global header on continuation pages
@@ -109,7 +108,6 @@ export function generateForm8949Pdf(
       for (const line of lines) {
         // If no space for this line, start a new page with continuation header
         if (y + LINE_HEIGHT > PAGE_BOTTOM) {
-          renderFooter(doc);
           doc.addPage();
           y = MARGIN;
           y = renderGlobalHeader(
@@ -132,15 +130,20 @@ export function generateForm8949Pdf(
       }
     }
 
-    // Footer on last Form 8949 page
-    renderFooter(doc);
-
     // Append Schedule D page if provided
     if (options?.scheduleD) {
       doc.addPage();
       renderScheduleDPage(doc, options.scheduleD, options.taxpayerName);
     }
 
+    // Add footer to every page (post-render sweep — bufferPages:true allows switchToPage)
+    const range = doc.bufferedPageRange();
+    for (let i = range.start; i < range.start + range.count; i++) {
+      doc.switchToPage(i);
+      renderFooter(doc);
+    }
+
+    doc.flushPages();
     doc.end();
   });
 }
