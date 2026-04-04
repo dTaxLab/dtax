@@ -92,6 +92,8 @@ export { generateForm8949, form8949ToCsv } from "./reports/form8949";
 export { generateForm8949Pdf } from "./reports/form8949-pdf";
 export { generateReconcilePdf } from "./reports/reconcile-pdf";
 export type { ReconcilePdfOptions } from "./reports/reconcile-pdf";
+export { generateAuditDefensePdf } from "./reports/audit-pdf";
+export type { AuditReportData, AuditTxRow, AuditAccount } from "./reports/audit-pdf";
 export { form8949ToTxf } from "./reports/form8949-txf";
 export { generateScheduleD } from "./reports/schedule-d";
 export type { ScheduleDLine, ScheduleDReport } from "./reports/schedule-d";
