@@ -54,6 +54,8 @@ export interface TaxLot {
   sourceId: string;
   /** Human-readable source type */
   source?: string;
+  /** Whether this lot was acquired as an NFT (ERC-721/1155 mint or purchase). Wash-sale rules do not apply but noted for user awareness. */
+  isNft?: boolean;
 }
 
 /**
