@@ -9,7 +9,7 @@
 
 import PDFDocument from "pdfkit";
 import type { ReconciliationReport } from "../reconciliation/types";
-import { MARGIN, PAGE_WIDTH, CONTENT_WIDTH, PAGE_BOTTOM, LINE_HEIGHT } from "./pdf/pdf-utils";
+import { MARGIN, PAGE_WIDTH, CONTENT_WIDTH, LINE_HEIGHT, fmtUsd, ensureSpace } from "./pdf/pdf-utils";
 
 // ─── Layout constants ───────────────────────────
 
@@ -32,18 +32,9 @@ const RISK_COLORS: Record<string, string> = {
 
 // ─── Helpers ─────────────────────────────────────
 
-function fmtUsd(n: number | null | undefined): string {
-  if (n == null) return "—";
-  return n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
-}
-
 function fmtDate(iso: string | Date | undefined): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
-}
-
-function ensureSpace(doc: InstanceType<typeof PDFDocument>, needed: number): void {
-  if (doc.y + needed > PAGE_BOTTOM) doc.addPage();
 }
 
 // ─── PDF Generator ───────────────────────────────

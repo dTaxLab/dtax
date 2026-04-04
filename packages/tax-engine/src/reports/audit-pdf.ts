@@ -16,9 +16,10 @@ import PDFDocument from "pdfkit";
 import {
   MARGIN,
   CONTENT_WIDTH,
-  PAGE_BOTTOM,
   LINE_HEIGHT,
   renderFooter,
+  fmtUsd,
+  ensureSpace,
 } from "./pdf/pdf-utils";
 
 // ─── Public types ────────────────────────────
@@ -73,11 +74,6 @@ const COL_TX = {
 
 // ─── Helpers ─────────────────────────────────
 
-function fmtUsd(n: number | null | undefined): string {
-  if (n == null) return "—";
-  return n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
-}
-
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { year: "2-digit", month: "numeric", day: "numeric" });
 }
@@ -92,12 +88,6 @@ function fmtAmount(n: number): string {
 function trunc(s: string | null, len = 10): string {
   if (!s) return "—";
   return s.length > len ? s.slice(0, len) + "…" : s;
-}
-
-function ensureSpace(doc: InstanceType<typeof PDFDocument>, needed: number): void {
-  if (doc.y + needed > PAGE_BOTTOM) {
-    doc.addPage();
-  }
 }
 
 function sectionHeader(doc: InstanceType<typeof PDFDocument>, title: string): void {

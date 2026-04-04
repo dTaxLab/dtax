@@ -60,6 +60,21 @@ export function fmt(n: number): string {
 }
 
 /**
+ * Format a value as USD currency, returning "—" for null/undefined.
+ */
+export function fmtUsd(n: number | null | undefined): string {
+  if (n == null) return "—";
+  return n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
+}
+
+/**
+ * Add a new page if the remaining vertical space is less than `needed` points.
+ */
+export function ensureSpace(doc: InstanceType<typeof PDFDocument>, needed: number): void {
+  if (doc.y + needed > PAGE_BOTTOM) doc.addPage();
+}
+
+/**
  * Render the standard DTax footer at the bottom of a PDF page.
  *
  * @param doc - The PDFKit document instance
