@@ -295,4 +295,53 @@ describe("Reconciliation Engine", () => {
     const dtaxIds = report.items.map((i) => i.dtaxEntry?.eventId);
     expect(new Set(dtaxIds).size).toBe(2);
   });
+
+  it("should assign riskLevel INFO for matched items", () => {
+    const report = reconcile([makeBrokerEntry()], [makeDtaxEntry()], {
+      taxYear: 2025,
+      brokerName: "Coinbase",
+    });
+    expect(report.items[0].riskLevel).toBe("INFO");
+  });
+
+  it("should assign riskLevel MEDIUM for proceeds_mismatch and basis_mismatch", () => {
+    const proceedsMismatch = reconcile(
+      [makeBrokerEntry({ grossProceeds: 51000 })],
+      [makeDtaxEntry({ proceeds: 50000 })],
+      { taxYear: 2025, brokerName: "Coinbase" },
+    );
+    expect(proceedsMismatch.items[0].riskLevel).toBe("MEDIUM");
+
+    const basisMismatch = reconcile(
+      [makeBrokerEntry({ costBasis: 28000 })],
+      [makeDtaxEntry({ costBasis: 30000 })],
+      { taxYear: 2025, brokerName: "Coinbase" },
+    );
+    expect(basisMismatch.items[0].riskLevel).toBe("MEDIUM");
+  });
+
+  it("should assign riskLevel HIGH for missing_in_dtax and both_mismatch", () => {
+    const missingInDtax = reconcile(
+      [makeBrokerEntry()],
+      [],
+      { taxYear: 2025, brokerName: "Coinbase" },
+    );
+    expect(missingInDtax.items[0].riskLevel).toBe("HIGH");
+
+    const bothMismatch = reconcile(
+      [makeBrokerEntry({ grossProceeds: 55000, costBasis: 25000 })],
+      [makeDtaxEntry({ proceeds: 50000, costBasis: 30000 })],
+      { taxYear: 2025, brokerName: "Coinbase" },
+    );
+    expect(bothMismatch.items[0].riskLevel).toBe("HIGH");
+  });
+
+  it("should assign riskLevel LOW for missing_in_1099da", () => {
+    const report = reconcile(
+      [],
+      [makeDtaxEntry()],
+      { taxYear: 2025, brokerName: "Coinbase" },
+    );
+    expect(report.items[0].riskLevel).toBe("LOW");
+  });
 });
