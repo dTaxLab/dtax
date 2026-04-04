@@ -38,6 +38,11 @@ export interface AssetPosition {
   earliestAcquired: Date;
   /** Latest acquisition date across lots */
   latestAcquired: Date;
+  /**
+   * Holding period classification based on lot acquisition dates.
+   * SHORT_TERM: all lots held ≤1 year; LONG_TERM: all held >1 year; MIXED: both.
+   */
+  holdingPeriod: "SHORT_TERM" | "LONG_TERM" | "MIXED";
   /** Individual lots */
   lots: LotHolding[];
 }

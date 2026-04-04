@@ -91,6 +91,33 @@ describe("Portfolio Holdings Analyzer", () => {
     expect(stLot?.isLongTerm).toBe(false);
   });
 
+  it("should set position holdingPeriod to MIXED when lots span both terms", () => {
+    const lots = [
+      makeLot({ id: "lt", acquiredAt: new Date("2024-06-01") }), // > 1 year → long-term
+      makeLot({ id: "st", acquiredAt: new Date("2026-01-15") }), // < 1 year → short-term
+    ];
+    const result = analyzeHoldings(lots, undefined, REF_DATE);
+    expect(result.positions[0].holdingPeriod).toBe("MIXED");
+  });
+
+  it("should set position holdingPeriod to LONG_TERM when all lots are long-term", () => {
+    const lots = [
+      makeLot({ id: "lt1", acquiredAt: new Date("2024-01-01") }),
+      makeLot({ id: "lt2", acquiredAt: new Date("2023-06-01") }),
+    ];
+    const result = analyzeHoldings(lots, undefined, REF_DATE);
+    expect(result.positions[0].holdingPeriod).toBe("LONG_TERM");
+  });
+
+  it("should set position holdingPeriod to SHORT_TERM when all lots are short-term", () => {
+    const lots = [
+      makeLot({ id: "st1", acquiredAt: new Date("2026-01-01") }),
+      makeLot({ id: "st2", acquiredAt: new Date("2025-12-01") }),
+    ];
+    const result = analyzeHoldings(lots, undefined, REF_DATE);
+    expect(result.positions[0].holdingPeriod).toBe("SHORT_TERM");
+  });
+
   it("should group multiple assets correctly", () => {
     const lots = [
       makeLot({ id: "btc-1", asset: "BTC", amount: 1.0, costBasisUsd: 30000 }),

@@ -74,6 +74,16 @@ export function analyzeHoldings(
     const totalCostBasis = holdings.reduce((s, h) => s + h.costBasisUsd, 0);
     const price = currentPrices?.get(asset);
 
+    let hasShort = false;
+    let hasLong = false;
+    for (const h of holdings) {
+      if (h.isLongTerm) hasLong = true;
+      else hasShort = true;
+      if (hasShort && hasLong) break;
+    }
+    const holdingPeriod =
+      hasShort && hasLong ? "MIXED" : hasLong ? "LONG_TERM" : "SHORT_TERM";
+
     const position: AssetPosition = {
       asset,
       totalAmount,
@@ -86,6 +96,7 @@ export function analyzeHoldings(
       latestAcquired: new Date(
         Math.max(...holdings.map((h) => h.acquiredAt.getTime())),
       ),
+      holdingPeriod,
       lots: holdings,
     };
 
