@@ -112,6 +112,9 @@ services:
         condition: service_healthy
     environment:
       SENTRY_DSN: ${SENTRY_DSN:-}
+      # Exposed at runtime so the deploy script can verify the running version
+      # via `docker exec dtax-web-1 printenv NEXT_PUBLIC_BUILD_ID`.
+      NEXT_PUBLIC_BUILD_ID: ${GIT_HASH:-unknown}
     volumes:
       - ./apps/web/content/blog:/app/content/blog:ro
     deploy:
