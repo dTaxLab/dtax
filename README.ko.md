@@ -17,7 +17,7 @@
 
 ---
 
-**23개 거래소 파서** | **8가지 원가 기준 방법 — FIFO / LIFO / HIFO / UK Share Pooling / +4가지** | **Form 8949 + Schedule D** | **워시세일 감지** | **가상 매도 시뮬레이터**
+**29개 거래소 파서** | **8가지 원가 기준 방법 — FIFO / LIFO / HIFO / UK Share Pooling / +4가지** | **Form 8949 + Schedule D** | **워시세일 감지** | **가상 매도 시뮬레이터**
 
 ## 설치
 
@@ -64,7 +64,7 @@ dtax calculate trades.csv --method FIFO --form8949 report.csv
 dtax calculate trades.csv --schedule-d --include-wash-sales
 ```
 
-## 지원 거래소 (23개 파서)
+## 지원 거래소 (29개 파서)
 
 모든 파서가 CSV 형식을 자동 감지합니다. 별도의 설정이 필요 없습니다.
 
@@ -72,7 +72,8 @@ dtax calculate trades.csv --schedule-d --include-wash-sales
 | ------------ | ----------------------------------------------------------------------------------- |
 | 주요         | Coinbase, Binance, Binance US, Kraken, Gemini                                       |
 | 글로벌       | KuCoin, OKX, Bybit, Gate.io, Bitget, MEXC, HTX (Huobi)                              |
-| 기타         | Crypto.com, Bitfinex, Poloniex                                                      |
+| 기타         | Crypto.com, Bitfinex, Poloniex, Bitstamp, Upbit, Robinhood                          |
+| 인도         | WazirX, CoinDCX, ZebPay                                                             |
 | 온체인       | Etherscan (ETH + ERC-20 + BSC/Polygon/Avalanche/Fantom), Solscan (SOL + SPL + DeFi) |
 | 마이그레이션 | Koinly, CoinTracker, Cryptact (경쟁사에서 가져오기)                                 |
 | 대체         | Generic CSV (직접 열 매핑)                                                          |
@@ -85,7 +86,7 @@ dtax calculate trades.csv --schedule-d --include-wash-sales
 - **워시세일 감지** -- 30일 기간, 부분 비허용, Form 8949 코드 W
 - **가상 매도 시뮬레이터** -- 매도 전 세금 영향 미리보기 (`simulateSale()`)
 - **방식 비교** -- FIFO/LIFO/HIFO 중 최적 방식 찾기 (`compareAllMethods()`)
-- **DeFi + NFT 지원** -- LP 예치/출금, 스테이킹, 랩핑, 브릿지, 12개 DeFi 거래 유형
+- **DeFi + NFT 지원** -- LP 예치/출금, 스테이킹, 랩핑, 브릿지, 12개 DeFi + NFT 거래 유형
 - **1099-DA 대사** -- 브로커 보고 데이터와 3단계 매칭
 - **포트폴리오 분석** -- 보유 자산 합산, 미실현 손익, 세금 손실 수확 기회
 - **지갑별 분리 회계** -- 지갑별 엄격한 원가 기준 분리
@@ -97,7 +98,7 @@ dtax calculate trades.csv --schedule-d --include-wash-sales
 | --------------------- | :--------: | :-----: | :------: |
 | 언어                  | TypeScript | Python  |  Python  |
 | npm 설치 가능         |    Yes     |   No    |    No    |
-| 거래소 파서           |     23     |   15    |    8     |
+| 거래소 파서           |     29     |   15    |    8     |
 | 원가 기준 방식        |     8      |    3    |    3     |
 | Form 8949 PDF         |    Yes     |   No    |    No    |
 | TurboTax TXF 내보내기 |    Yes     |   No    |    No    |
@@ -152,7 +153,7 @@ import { parseCsv, detectCsvFormat } from "@dtax/tax-engine";
 # 필수 조건: Node.js >= 20, pnpm >= 9
 git clone https://github.com/dTaxLab/dtax.git && cd dtax
 pnpm install
-pnpm test        # 모든 패키지에 걸쳐 980개 이상의 테스트
+pnpm test        # 모든 패키지에 걸쳐 1,046개 이상의 테스트
 pnpm build       # 모든 패키지 빌드
 ```
 

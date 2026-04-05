@@ -17,7 +17,7 @@
 
 ---
 
-**23 個交易所解析器** | **8 種成本基礎方法** — FIFO / LIFO / HIFO / UK Share Pooling / 等 4 種 | **Form 8949 + Schedule D** | **洗售偵測** | **模擬試算**
+**29 個交易所解析器** | **8 種成本基礎方法** — FIFO / LIFO / HIFO / UK Share Pooling / 等 4 種 | **Form 8949 + Schedule D** | **洗售偵測** | **模擬試算**
 
 ## 安裝
 
@@ -64,7 +64,7 @@ dtax calculate trades.csv --method FIFO --form8949 report.csv
 dtax calculate trades.csv --schedule-d --include-wash-sales
 ```
 
-## 支援的交易所（23 個解析器）
+## 支援的交易所（29 個解析器）
 
 所有解析器皆自動偵測 CSV 格式，無需任何設定。
 
@@ -72,7 +72,8 @@ dtax calculate trades.csv --schedule-d --include-wash-sales
 | -------- | ----------------------------------------------------------------------------------- |
 | 主流     | Coinbase, Binance, Binance US, Kraken, Gemini                                       |
 | 全球     | KuCoin, OKX, Bybit, Gate.io, Bitget, MEXC, HTX (Huobi)                              |
-| 其他     | Crypto.com, Bitfinex, Poloniex                                                      |
+| 其他     | Crypto.com, Bitfinex, Poloniex, Bitstamp, Upbit, Robinhood                          |
+| 印度     | WazirX, CoinDCX, ZebPay                                                             |
 | 鏈上     | Etherscan (ETH + ERC-20 + BSC/Polygon/Avalanche/Fantom), Solscan (SOL + SPL + DeFi) |
 | 遷移匯入 | Koinly, CoinTracker, Cryptact（從競品匯入）                                         |
 | 備用     | Generic CSV（自訂欄位對應）                                                         |
@@ -85,7 +86,7 @@ dtax calculate trades.csv --schedule-d --include-wash-sales
 - **洗售偵測** -- 30 天窗口期、部分不允許扣除、Form 8949 code W
 - **模擬試算** -- 出售前預覽稅務影響（`simulateSale()`）
 - **方法比較** -- 在 FIFO/LIFO/HIFO 中找出最佳方法（`compareAllMethods()`）
-- **DeFi + NFT 支援** -- LP 存取、質押、封裝、跨鏈橋接，12 種 DeFi 交易類型
+- **DeFi + NFT 支援** -- LP 存取、質押、封裝、跨鏈橋接，12 種 DeFi + NFT 交易類型
 - **1099-DA 對帳** -- 3 階段與券商申報資料比對
 - **投資組合分析** -- 持倉彙總、未實現損益、稅損收割機會
 - **錢包隔離記帳** -- 嚴格的逐錢包成本基礎隔離
@@ -97,7 +98,7 @@ dtax calculate trades.csv --schedule-d --include-wash-sales
 | ----------------- | :--------: | :------: | :----: |
 | 語言              | TypeScript |  Python  | Python |
 | 可透過 npm 安裝   |     是     |    否    |   否   |
-| 交易所解析器      |     23     |    15    |   8    |
+| 交易所解析器      |     29     |    15    |   8    |
 | 成本基礎方法      |     8      |    3     |   3    |
 | Form 8949 PDF     |     是     |    否    |   否   |
 | TurboTax TXF 匯出 |     是     |    否    |   否   |
@@ -152,7 +153,7 @@ import { parseCsv, detectCsvFormat } from "@dtax/tax-engine";
 # 前置需求：Node.js >= 20, pnpm >= 9
 git clone https://github.com/dTaxLab/dtax.git && cd dtax
 pnpm install
-pnpm test        # 所有套件共 980+ 項測試
+pnpm test        # 所有套件共 1,046+ 項測試
 pnpm build       # 建置所有套件
 ```
 

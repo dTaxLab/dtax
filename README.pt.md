@@ -17,7 +17,7 @@
 
 ---
 
-**23 parsers de exchanges** | **8 métodos de base de custo — FIFO / LIFO / HIFO / UK Share Pooling / +4 mais** | **Form 8949 + Schedule D** | **Detecção de wash sale** | **Simulador what-if**
+**29 parsers de exchanges** | **8 métodos de base de custo — FIFO / LIFO / HIFO / UK Share Pooling / +4 mais** | **Form 8949 + Schedule D** | **Detecção de wash sale** | **Simulador what-if**
 
 ## Instalação
 
@@ -64,7 +64,7 @@ dtax calculate trades.csv --method FIFO --form8949 report.csv
 dtax calculate trades.csv --schedule-d --include-wash-sales
 ```
 
-## Exchanges Suportadas (23 Parsers)
+## Exchanges Suportadas (29 Parsers)
 
 Todos os parsers detectam automaticamente o formato do CSV. Nenhuma configuração necessária.
 
@@ -72,7 +72,8 @@ Todos os parsers detectam automaticamente o formato do CSV. Nenhuma configuraç�
 | ---------- | ----------------------------------------------------------------------------------- |
 | Principais | Coinbase, Binance, Binance US, Kraken, Gemini                                       |
 | Globais    | KuCoin, OKX, Bybit, Gate.io, Bitget, MEXC, HTX (Huobi)                              |
-| Outras     | Crypto.com, Bitfinex, Poloniex                                                      |
+| Outras     | Crypto.com, Bitfinex, Poloniex, Bitstamp, Upbit, Robinhood                          |
+| Índia      | WazirX, CoinDCX, ZebPay                                                             |
 | On-chain   | Etherscan (ETH + ERC-20 + BSC/Polygon/Avalanche/Fantom), Solscan (SOL + SPL + DeFi) |
 | Migração   | Koinly, CoinTracker, Cryptact (importação de concorrentes)                          |
 | Genérico   | Generic CSV (mapeie suas próprias colunas)                                          |
@@ -85,7 +86,7 @@ Todos os parsers detectam automaticamente o formato do CSV. Nenhuma configuraç�
 - **Detecção de wash sale** -- Janela de 30 dias, desqualificação parcial, código W no Form 8949
 - **Simulador what-if** -- Visualize o impacto fiscal antes de vender (`simulateSale()`)
 - **Comparação de métodos** -- Encontre o método ideal entre FIFO/LIFO/HIFO (`compareAllMethods()`)
-- **Suporte a DeFi + NFT** -- Depósitos/retiradas de LP, staking, wraps, bridges, 12 tipos de transação DeFi
+- **Suporte a DeFi + NFT** -- Depósitos/retiradas de LP, staking, wraps, bridges, 12 tipos de transação DeFi + NFT
 - **Reconciliação 1099-DA** -- Correspondência em 3 fases com dados reportados por corretoras
 - **Análise de portfólio** -- Agregação de posições, P&L não realizado, oportunidades de tax-loss harvesting
 - **Contabilidade isolada por carteira** -- Isolamento estrito do custo base por carteira
@@ -97,7 +98,7 @@ Todos os parsers detectam automaticamente o formato do CSV. Nenhuma configuraç�
 | --------------------------- | :--------: | :-----: | :--------: |
 | Linguagem                   | TypeScript | Python  |   Python   |
 | Instalável via npm          |    Sim     |   Não   |    Não     |
-| Parsers de exchanges        |     23     |   15    |     8      |
+| Parsers de exchanges        |     29     |   15    |     8      |
 | Métodos de custo base       |     8      |    3    |     3      |
 | Form 8949 PDF               |    Sim     |   Não   |    Não     |
 | Exportação TXF TurboTax     |    Sim     |   Não   |    Não     |
@@ -152,7 +153,7 @@ Contribuições são bem-vindas. Consulte [CONTRIBUTING.md](CONTRIBUTING.md) par
 # Prerequisites: Node.js >= 20, pnpm >= 9
 git clone https://github.com/dTaxLab/dtax.git && cd dtax
 pnpm install
-pnpm test        # 980+ tests across all packages
+pnpm test        # 1,046+ tests across all packages
 pnpm build       # build all packages
 ```
 

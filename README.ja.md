@@ -17,7 +17,7 @@
 
 ---
 
-**23 種の取引所パーサー** | **8つのコスト基準方式 — FIFO / LIFO / HIFO / UK Share Pooling / 他4種** | **Form 8949 + Schedule D** | **ウォッシュセール検出** | **What-if シミュレーター**
+**29 種の取引所パーサー** | **8つのコスト基準方式 — FIFO / LIFO / HIFO / UK Share Pooling / 他4種** | **Form 8949 + Schedule D** | **ウォッシュセール検出** | **What-if シミュレーター**
 
 ## インストール
 
@@ -64,7 +64,7 @@ dtax calculate trades.csv --method FIFO --form8949 report.csv
 dtax calculate trades.csv --schedule-d --include-wash-sales
 ```
 
-## 対応取引所（23 パーサー）
+## 対応取引所（29 パーサー）
 
 すべてのパーサーは CSV フォーマットを自動検出します。設定は不要です。
 
@@ -72,7 +72,8 @@ dtax calculate trades.csv --schedule-d --include-wash-sales
 | -------------- | ----------------------------------------------------------------------------------- |
 | 主要           | Coinbase, Binance, Binance US, Kraken, Gemini                                       |
 | グローバル     | KuCoin, OKX, Bybit, Gate.io, Bitget, MEXC, HTX (Huobi)                              |
-| その他         | Crypto.com, Bitfinex, Poloniex                                                      |
+| その他         | Crypto.com, Bitfinex, Poloniex, Bitstamp, Upbit, Robinhood                          |
+| インド     | WazirX, CoinDCX, ZebPay                                                             |
 | オンチェーン   | Etherscan (ETH + ERC-20 + BSC/Polygon/Avalanche/Fantom), Solscan (SOL + SPL + DeFi) |
 | 移行           | Koinly, CoinTracker, Cryptact（競合サービスからのインポート）                       |
 | フォールバック | Generic CSV（独自のカラムをマッピング）                                             |
@@ -85,7 +86,7 @@ dtax calculate trades.csv --schedule-d --include-wash-sales
 - **ウォッシュセール検出** -- 30 日間ウィンドウ、部分的否認、Form 8949 コード W
 - **What-if シミュレーター** -- 売却前に税金への影響をプレビュー（`simulateSale()`）
 - **方式比較** -- FIFO/LIFO/HIFO 全方式で最適な方式を検索（`compareAllMethods()`）
-- **DeFi + NFT 対応** -- LP 入出金、ステーキング、ラップ、ブリッジ、12 種類の DeFi トランザクションタイプ
+- **DeFi + NFT 対応** -- LP 入出金、ステーキング、ラップ、ブリッジ、12 種類の DeFi + NFT トランザクションタイプ
 - **1099-DA 照合** -- ブローカー報告データとの 3 フェーズマッチング
 - **ポートフォリオ分析** -- 保有資産集計、未実現損益、タックスロスハーベスティング機会
 - **ウォレット分離会計** -- ウォレットごとの厳密な取得原価分離
@@ -97,7 +98,7 @@ dtax calculate trades.csv --schedule-d --include-wash-sales
 | ------------------------------- | :--------: | :-----: | :------: |
 | 言語                            | TypeScript | Python  |  Python  |
 | npm インストール可能            |    Yes     |   No    |    No    |
-| 取引所パーサー                  |     23     |   15    |    8     |
+| 取引所パーサー                  |     29     |   15    |    8     |
 | 取得原価計算方式                |     8      |    3    |    3     |
 | Form 8949 PDF                   |    Yes     |   No    |    No    |
 | TurboTax TXF エクスポート       |    Yes     |   No    |    No    |
@@ -152,7 +153,7 @@ import { parseCsv, detectCsvFormat } from "@dtax/tax-engine";
 # 前提条件: Node.js >= 20, pnpm >= 9
 git clone https://github.com/dTaxLab/dtax.git && cd dtax
 pnpm install
-pnpm test        # 全パッケージで 980 以上のテスト
+pnpm test        # 全パッケージで 1,046 以上のテスト
 pnpm build       # 全パッケージをビルド
 ```
 
