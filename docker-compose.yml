@@ -72,6 +72,8 @@ services:
       WEB_URL: ${APP_URL:-https://getdtax.com}
       # Turnstile CAPTCHA
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+      # Unsubscribe link signing
+      UNSUB_SECRET: ${UNSUB_SECRET:?UNSUB_SECRET is required}
       # Analytics / error tracking
       SENTRY_DSN: ${SENTRY_DSN:-}
     volumes:
