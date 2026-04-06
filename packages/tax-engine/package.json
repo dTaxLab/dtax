@@ -1,6 +1,6 @@
 {
   "name": "@dtax/tax-engine",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Complete crypto tax calculation engine — 23 exchange parsers, FIFO/LIFO/HIFO/Specific ID, Form 8949 (CSV/PDF/TXF), Schedule D, wash sale detection, DeFi/NFT support, 1099-DA reconciliation",
   "license": "AGPL-3.0",
   "homepage": "https://getdtax.com",
