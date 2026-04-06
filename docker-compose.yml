@@ -45,6 +45,7 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
       # Email (required for password reset)
       RESEND_API_KEY: ${RESEND_API_KEY:-}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-}
       FROM_EMAIL: ${FROM_EMAIL:-noreply@getdtax.com}
       # Payments
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
