@@ -45,10 +45,15 @@ export function generateForm8949Pdf(
     taxpayerName?: string;
     taxpayerSSN?: string;
     scheduleD?: ScheduleDReport;
+    preparedBy?: string;
   },
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: "letter", margin: MARGIN, bufferPages: true });
+    const doc = new PDFDocument({
+      size: "letter",
+      margin: MARGIN,
+      bufferPages: true,
+    });
     const chunks: Buffer[] = [];
 
     doc.on("data", (chunk: Buffer) => chunks.push(chunk));
@@ -80,6 +85,7 @@ export function generateForm8949Pdf(
           report.taxYear,
           options?.taxpayerName,
           options?.taxpayerSSN,
+          options?.preparedBy,
         );
       }
     }
@@ -91,6 +97,7 @@ export function generateForm8949Pdf(
       report.taxYear,
       options?.taxpayerName,
       options?.taxpayerSSN,
+      options?.preparedBy,
     );
 
     for (const [box, lines] of linesByBox) {

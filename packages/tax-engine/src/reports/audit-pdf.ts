@@ -25,7 +25,7 @@ import {
 // ─── Public types ────────────────────────────
 
 export interface AuditTxRow {
-  date: string;          // ISO date
+  date: string; // ISO date
   type: string;
   asset: string;
   amount: number;
@@ -38,13 +38,14 @@ export interface AuditTxRow {
 
 export interface AuditAccount {
   name: string;
-  type: string;          // "EXCHANGE_API" | "CSV" | "BLOCKCHAIN"
+  type: string; // "EXCHANGE_API" | "CSV" | "BLOCKCHAIN"
   chain?: string | null;
 }
 
 export interface AuditReportData {
   taxYear: number;
   taxpayerName?: string;
+  preparedBy?: string;
   method: string;
   summary: {
     totalTransactions: number;
@@ -61,21 +62,25 @@ export interface AuditReportData {
 // ─── Layout constants ────────────────────────
 
 const COL_TX = {
-  date:     MARGIN,
-  type:     MARGIN + 60,
-  asset:    MARGIN + 110,
-  amount:   MARGIN + 155,
-  value:    MARGIN + 225,
+  date: MARGIN,
+  type: MARGIN + 60,
+  asset: MARGIN + 110,
+  amount: MARGIN + 155,
+  value: MARGIN + 225,
   gainLoss: MARGIN + 295,
-  source:   MARGIN + 365,
-  chain:    MARGIN + 430,
-  hash:     MARGIN + 470,
+  source: MARGIN + 365,
+  chain: MARGIN + 430,
+  hash: MARGIN + 470,
 };
 
 // ─── Helpers ─────────────────────────────────
 
 function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", { year: "2-digit", month: "numeric", day: "numeric" });
+  return new Date(iso).toLocaleDateString("en-US", {
+    year: "2-digit",
+    month: "numeric",
+    day: "numeric",
+  });
 }
 
 function fmtAmount(n: number): string {
@@ -90,9 +95,16 @@ function trunc(s: string | null, len = 10): string {
   return s.length > len ? s.slice(0, len) + "…" : s;
 }
 
-function sectionHeader(doc: InstanceType<typeof PDFDocument>, title: string): void {
+function sectionHeader(
+  doc: InstanceType<typeof PDFDocument>,
+  title: string,
+): void {
   ensureSpace(doc, 24);
-  doc.fontSize(11).font("Helvetica-Bold").fillColor("#111827").text(title, MARGIN, doc.y);
+  doc
+    .fontSize(11)
+    .font("Helvetica-Bold")
+    .fillColor("#111827")
+    .text(title, MARGIN, doc.y);
   doc
     .moveTo(MARGIN, doc.y + 2)
     .lineTo(MARGIN + CONTENT_WIDTH, doc.y + 2)
@@ -108,7 +120,10 @@ function tableHeader(
 ): void {
   doc.fontSize(7).font("Helvetica-Bold").fillColor("#6b7280");
   for (const col of cols) {
-    doc.text(col.label, col.x, doc.y, { width: colWidth, align: col.align ?? "left" });
+    doc.text(col.label, col.x, doc.y, {
+      width: colWidth,
+      align: col.align ?? "left",
+    });
   }
   doc.fillColor("#000").moveDown(0.3);
 }
@@ -130,35 +145,76 @@ export async function generateAuditDefensePdf(
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    const { taxYear, taxpayerName, method, summary, transactions, accounts } = data;
+    const {
+      taxYear,
+      taxpayerName,
+      preparedBy,
+      method,
+      summary,
+      transactions,
+      accounts,
+    } = data;
 
     // ══════════════════════════════════════════════════
     // 1. COVER PAGE
     // ══════════════════════════════════════════════════
 
-    doc.fontSize(20).font("Helvetica-Bold").fillColor("#111827")
-      .text("Crypto Tax Audit Defense Report", MARGIN, 90, { width: CONTENT_WIDTH, align: "center" });
+    doc
+      .fontSize(20)
+      .font("Helvetica-Bold")
+      .fillColor("#111827")
+      .text("Crypto Tax Audit Defense Report", MARGIN, 90, {
+        width: CONTENT_WIDTH,
+        align: "center",
+      });
 
-    doc.fontSize(12).font("Helvetica").fillColor("#6b7280").moveDown(0.4)
+    doc
+      .fontSize(12)
+      .font("Helvetica")
+      .fillColor("#6b7280")
+      .moveDown(0.4)
       .text(`Tax Year ${taxYear}`, { align: "center" });
 
     if (taxpayerName) {
-      doc.fontSize(11).moveDown(0.3).text(`Prepared for: ${taxpayerName}`, { align: "center" });
+      doc
+        .fontSize(11)
+        .moveDown(0.3)
+        .text(`Prepared for: ${taxpayerName}`, { align: "center" });
     }
 
-    doc.fontSize(9).moveDown(0.3)
-      .text(`Generated: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`, { align: "center" })
+    if (preparedBy) {
+      doc
+        .fontSize(10)
+        .fillColor("#374151")
+        .moveDown(0.3)
+        .text(`Prepared by: ${preparedBy}`, { align: "center" });
+    }
+
+    doc
+      .fontSize(9)
+      .fillColor("#6b7280")
+      .moveDown(0.3)
+      .text(
+        `Generated: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`,
+        { align: "center" },
+      )
       .text(`Cost Basis Method: ${method}`, { align: "center" });
 
     // Disclaimer box
     doc.fillColor("#000").moveDown(2);
     const disclaimerY = doc.y;
-    doc.rect(MARGIN, disclaimerY, CONTENT_WIDTH, 52).strokeColor("#d1d5db").stroke();
-    doc.fontSize(7.5).font("Helvetica").fillColor("#374151")
+    doc
+      .rect(MARGIN, disclaimerY, CONTENT_WIDTH, 52)
+      .strokeColor("#d1d5db")
+      .stroke();
+    doc
+      .fontSize(7.5)
+      .font("Helvetica")
+      .fillColor("#374151")
       .text(
         "This report is generated by dTax (getdtax.com) and is provided for informational and audit-support purposes only. " +
-        "It does not constitute legal, tax, or financial advice. Verify all figures with a qualified tax professional " +
-        "before filing. Transaction hashes and on-chain data are sourced from connected wallets and exchanges.",
+          "It does not constitute legal, tax, or financial advice. Verify all figures with a qualified tax professional " +
+          "before filing. Transaction hashes and on-chain data are sourced from connected wallets and exchanges.",
         MARGIN + 8,
         disclaimerY + 8,
         { width: CONTENT_WIDTH - 16 },
@@ -173,23 +229,28 @@ export async function generateAuditDefensePdf(
     sectionHeader(doc, "Executive Summary");
 
     const summaryRows: [string, string][] = [
-      ["Tax Year",               String(taxYear)],
-      ["Cost Basis Method",      method],
-      ["Total Transactions",     summary.totalTransactions.toLocaleString()],
-      ["Acquisitions (Buy)",     summary.buyCount.toLocaleString()],
-      ["Disposals (Sell)",       summary.sellCount.toLocaleString()],
-      ["Short-Term Gain/Loss",   fmtUsd(summary.shortTermGain)],
-      ["Long-Term Gain/Loss",    fmtUsd(summary.longTermGain)],
-      ["Net Realized",           fmtUsd(summary.shortTermGain + summary.longTermGain)],
-      ["Ordinary Income",        fmtUsd(summary.totalIncome)],
-      ["Connected Accounts",     String(accounts.length)],
+      ["Tax Year", String(taxYear)],
+      ["Cost Basis Method", method],
+      ["Total Transactions", summary.totalTransactions.toLocaleString()],
+      ["Acquisitions (Buy)", summary.buyCount.toLocaleString()],
+      ["Disposals (Sell)", summary.sellCount.toLocaleString()],
+      ["Short-Term Gain/Loss", fmtUsd(summary.shortTermGain)],
+      ["Long-Term Gain/Loss", fmtUsd(summary.longTermGain)],
+      ["Net Realized", fmtUsd(summary.shortTermGain + summary.longTermGain)],
+      ["Ordinary Income", fmtUsd(summary.totalIncome)],
+      ["Connected Accounts", String(accounts.length)],
     ];
 
     doc.fontSize(9).font("Helvetica");
     for (const [label, value] of summaryRows) {
       ensureSpace(doc, LINE_HEIGHT);
-      doc.fillColor("#374151").text(label + ":", MARGIN, doc.y, { continued: true, width: 180 });
-      doc.fillColor("#111827").font("Helvetica-Bold").text(value, { align: "left" });
+      doc
+        .fillColor("#374151")
+        .text(label + ":", MARGIN, doc.y, { continued: true, width: 180 });
+      doc
+        .fillColor("#111827")
+        .font("Helvetica-Bold")
+        .text(value, { align: "left" });
       doc.font("Helvetica").moveDown(0.1);
     }
     doc.moveDown(0.8);
@@ -199,24 +260,41 @@ export async function generateAuditDefensePdf(
     // ══════════════════════════════════════════════════
 
     sectionHeader(doc, "Connected Accounts & Data Sources");
-    doc.fontSize(8).font("Helvetica").fillColor("#6b7280")
-      .text("All accounts and wallets whose transactions are included in this report.", MARGIN, doc.y);
+    doc
+      .fontSize(8)
+      .font("Helvetica")
+      .fillColor("#6b7280")
+      .text(
+        "All accounts and wallets whose transactions are included in this report.",
+        MARGIN,
+        doc.y,
+      );
     doc.moveDown(0.4);
 
     // Header
     doc.fontSize(7).font("Helvetica-Bold").fillColor("#6b7280");
-    doc.text("Account Name",  MARGIN,       doc.y, { width: 200 });
-    doc.text("Type",          MARGIN + 200, doc.y - LINE_HEIGHT, { width: 100 });
-    doc.text("Chain",         MARGIN + 310, doc.y - LINE_HEIGHT, { width: 100 });
+    doc.text("Account Name", MARGIN, doc.y, { width: 200 });
+    doc.text("Type", MARGIN + 200, doc.y - LINE_HEIGHT, { width: 100 });
+    doc.text("Chain", MARGIN + 310, doc.y - LINE_HEIGHT, { width: 100 });
     doc.fillColor("#000").moveDown(0.2);
 
     for (const acct of accounts) {
       ensureSpace(doc, LINE_HEIGHT);
-      const typeLabel = acct.type === "EXCHANGE_API" ? "CEX API" : acct.type === "BLOCKCHAIN" ? "Wallet" : "CSV";
-      doc.fontSize(8).font("Helvetica").fillColor("#111827")
+      const typeLabel =
+        acct.type === "EXCHANGE_API"
+          ? "CEX API"
+          : acct.type === "BLOCKCHAIN"
+            ? "Wallet"
+            : "CSV";
+      doc
+        .fontSize(8)
+        .font("Helvetica")
+        .fillColor("#111827")
         .text(acct.name, MARGIN, doc.y, { width: 195 });
-      doc.text(typeLabel,         MARGIN + 200, doc.y - LINE_HEIGHT, { width: 100 });
-      doc.text(acct.chain ?? "—", MARGIN + 310, doc.y - LINE_HEIGHT, { width: 100 });
+      doc.text(typeLabel, MARGIN + 200, doc.y - LINE_HEIGHT, { width: 100 });
+      doc.text(acct.chain ?? "—", MARGIN + 310, doc.y - LINE_HEIGHT, {
+        width: 100,
+      });
       doc.moveDown(0.1);
     }
     doc.moveDown(0.8);
@@ -226,58 +304,91 @@ export async function generateAuditDefensePdf(
     // ══════════════════════════════════════════════════
 
     doc.addPage();
-    sectionHeader(doc, `Transaction Register — ${taxYear} (${transactions.length} records)`);
+    sectionHeader(
+      doc,
+      `Transaction Register — ${taxYear} (${transactions.length} records)`,
+    );
 
-    doc.fontSize(7.5).font("Helvetica").fillColor("#6b7280")
+    doc
+      .fontSize(7.5)
+      .font("Helvetica")
+      .fillColor("#6b7280")
       .text(
         "Complete chronological record of all transactions for the tax year. " +
-        '"Hash" shows on-chain transaction ID (first 10 chars) for blockchain transactions.',
-        MARGIN, doc.y, { width: CONTENT_WIDTH },
+          '"Hash" shows on-chain transaction ID (first 10 chars) for blockchain transactions.',
+        MARGIN,
+        doc.y,
+        { width: CONTENT_WIDTH },
       );
     doc.moveDown(0.5);
 
     // Column headers
     const txCols = [
-      { x: COL_TX.date,     label: "Date",     align: "left"  as const },
-      { x: COL_TX.type,     label: "Type",     align: "left"  as const },
-      { x: COL_TX.asset,    label: "Asset",    align: "left"  as const },
-      { x: COL_TX.amount,   label: "Amount",   align: "right" as const },
-      { x: COL_TX.value,    label: "Value USD", align: "right" as const },
+      { x: COL_TX.date, label: "Date", align: "left" as const },
+      { x: COL_TX.type, label: "Type", align: "left" as const },
+      { x: COL_TX.asset, label: "Asset", align: "left" as const },
+      { x: COL_TX.amount, label: "Amount", align: "right" as const },
+      { x: COL_TX.value, label: "Value USD", align: "right" as const },
       { x: COL_TX.gainLoss, label: "Gain/Loss", align: "right" as const },
-      { x: COL_TX.source,   label: "Source",   align: "left"  as const },
-      { x: COL_TX.hash,     label: "Hash",     align: "left"  as const },
+      { x: COL_TX.source, label: "Source", align: "left" as const },
+      { x: COL_TX.hash, label: "Hash", align: "left" as const },
     ];
     tableHeader(doc, txCols, 58);
 
     // Separator
-    doc.moveTo(MARGIN, doc.y).lineTo(MARGIN + CONTENT_WIDTH, doc.y).strokeColor("#e5e7eb").stroke();
+    doc
+      .moveTo(MARGIN, doc.y)
+      .lineTo(MARGIN + CONTENT_WIDTH, doc.y)
+      .strokeColor("#e5e7eb")
+      .stroke();
     doc.moveDown(0.2);
 
     for (const tx of transactions) {
       ensureSpace(doc, LINE_HEIGHT + 2);
       const y = doc.y;
-      const gainColor = tx.gainLoss == null ? "#374151"
-        : tx.gainLoss >= 0 ? "#15803d" : "#dc2626";
+      const gainColor =
+        tx.gainLoss == null
+          ? "#374151"
+          : tx.gainLoss >= 0
+            ? "#15803d"
+            : "#dc2626";
 
       doc.fontSize(7).font("Helvetica").fillColor("#374151");
-      doc.text(fmtDate(tx.date),          COL_TX.date,     y, { width: 55 });
-      doc.text(tx.type,                   COL_TX.type,     y, { width: 46 });
-      doc.text(tx.asset,                  COL_TX.asset,    y, { width: 40 });
-      doc.text(fmtAmount(tx.amount),      COL_TX.amount,   y, { width: 65, align: "right" });
-      doc.text(fmtUsd(tx.valueUsd),       COL_TX.value,    y, { width: 65, align: "right" });
+      doc.text(fmtDate(tx.date), COL_TX.date, y, { width: 55 });
+      doc.text(tx.type, COL_TX.type, y, { width: 46 });
+      doc.text(tx.asset, COL_TX.asset, y, { width: 40 });
+      doc.text(fmtAmount(tx.amount), COL_TX.amount, y, {
+        width: 65,
+        align: "right",
+      });
+      doc.text(fmtUsd(tx.valueUsd), COL_TX.value, y, {
+        width: 65,
+        align: "right",
+      });
 
-      doc.fillColor(gainColor)
-        .text(tx.gainLoss != null ? fmtUsd(tx.gainLoss) : "—", COL_TX.gainLoss, y, { width: 65, align: "right" });
+      doc
+        .fillColor(gainColor)
+        .text(
+          tx.gainLoss != null ? fmtUsd(tx.gainLoss) : "—",
+          COL_TX.gainLoss,
+          y,
+          { width: 65, align: "right" },
+        );
 
-      doc.fillColor("#374151")
-        .text(trunc(tx.sourceName, 14),   COL_TX.source,   y, { width: 58 })
-        .text(trunc(tx.externalId, 10),   COL_TX.hash,     y, { width: 60 });
+      doc
+        .fillColor("#374151")
+        .text(trunc(tx.sourceName, 14), COL_TX.source, y, { width: 58 })
+        .text(trunc(tx.externalId, 10), COL_TX.hash, y, { width: 60 });
 
       doc.moveDown(0.15);
 
       // Subtle row separator every 5 rows
       if (transactions.indexOf(tx) % 5 === 4) {
-        doc.moveTo(MARGIN, doc.y).lineTo(MARGIN + CONTENT_WIDTH, doc.y).strokeColor("#f3f4f6").stroke();
+        doc
+          .moveTo(MARGIN, doc.y)
+          .lineTo(MARGIN + CONTENT_WIDTH, doc.y)
+          .strokeColor("#f3f4f6")
+          .stroke();
       }
     }
 

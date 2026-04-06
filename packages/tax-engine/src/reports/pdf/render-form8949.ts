@@ -39,6 +39,7 @@ export function renderGlobalHeader(
   taxYear: number,
   taxpayerName?: string,
   taxpayerSSN?: string,
+  preparedBy?: string,
 ): number {
   doc
     .fontSize(14)
@@ -66,6 +67,16 @@ export function renderGlobalHeader(
     if (taxpayerName) doc.text(`Name: ${taxpayerName}`, MARGIN, y);
     if (taxpayerSSN) doc.text(`SSN: ${taxpayerSSN}`, MARGIN + 300, y);
     y += 14;
+  }
+
+  if (preparedBy) {
+    doc
+      .fontSize(8)
+      .font("Helvetica")
+      .fillColor("#6b7280")
+      .text(`Prepared by: ${preparedBy}`, MARGIN, y);
+    doc.fillColor("#000000");
+    y += 12;
   }
 
   return y;
