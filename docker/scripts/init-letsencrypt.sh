@@ -5,7 +5,7 @@
 #   domain — 域名，默认 getdtax.com
 #
 # 前置条件：
-#   1. DNS 已将域名解析到本机 IP
+#   1. DNS 已将域名解析到本机 IP（含 www 子域名）
 #   2. 80 端口已开放（防火墙 + 安全组）
 #   3. docker compose pull 已执行（镜像已拉取）
 
@@ -36,7 +36,7 @@ docker run -d --name dtax-nginx-init \
   nginx:alpine sh -c 'cat > /etc/nginx/conf.d/default.conf <<NGINX
 server {
     listen 80;
-    server_name '"$DOMAIN"';
+    server_name '"$DOMAIN"' www.'"$DOMAIN"';
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
     }
@@ -86,6 +86,7 @@ docker run --rm \
     -w /var/www/certbot \
     --email "$EMAIL" \
     -d "$DOMAIN" \
+    -d "www.$DOMAIN" \
     --rsa-key-size 4096 \
     --agree-tos \
     --no-eff-email \
@@ -105,5 +106,5 @@ echo ">>> [5/5] 清理临时 nginx ..."
 docker rm -f dtax-nginx-init 2>/dev/null
 
 echo ""
-echo ">>> 完成！SSL 证书已配置: $DOMAIN"
+echo ">>> 完成！SSL 证书已配置: $DOMAIN 和 www.$DOMAIN"
 echo ">>> 现在可以运行: docker compose up -d"
