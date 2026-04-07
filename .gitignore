@@ -64,3 +64,7 @@ apps/data/
 
 # Deployment state (server-side only, not tracked in repo)
 .deployed-*
+
+# API integration test — generated OpenAPI client (regenerated before each test run)
+apps/api/src/__tests__/generated/
+apps/api/openapi-test-spec.json
