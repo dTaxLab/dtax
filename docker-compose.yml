@@ -179,7 +179,7 @@ services:
         limits:
           memory: 128m
     healthcheck:
-      test: ["CMD-SHELL", "certbot certificates 2>&1 | grep -q 'Found the following' || true"]
+      test: ["CMD-SHELL", "certbot certificates 2>&1 | grep -q 'Found the following'"]
       interval: 12h
       timeout: 30s
       retries: 1
