@@ -229,7 +229,7 @@ describe("calculateGermanyFIFO", () => {
   });
 
   // ── Test 7: Fee handling with exempt gains ────────
-  it("should deduct fees even when gains are partially exempt", () => {
+  it("should not deduct fees when all lots are fully exempt", () => {
     const lots = [
       createLot({
         id: "lot-1",
@@ -250,8 +250,8 @@ describe("calculateGermanyFIFO", () => {
 
     const result = calculateGermanyFIFO(lots, event);
 
-    // Gain from lot is exempt (0), minus fee = -100
-    expect(result.gainLoss).toBe(-100);
+    // Entire lot is exempt; taxable fraction = 0, so taxable fee = 0, gainLoss = 0
+    expect(result.gainLoss).toBe(0);
   });
 
   it("should deduct fees from taxable gains normally", () => {

@@ -122,14 +122,10 @@ export function detectWashSales(
 
     if (replacements.length === 0) continue;
 
-    // Match with the closest replacement (by date)
-    const replacement = replacements.reduce((closest, r) => {
-      const closestDiff = Math.abs(
-        closest.acquiredAt.getTime() - event.date.getTime(),
-      );
-      const rDiff = Math.abs(r.acquiredAt.getTime() - event.date.getTime());
-      return rDiff < closestDiff ? r : closest;
-    });
+    // Match earliest replacement lot (FIFO per IRC §1091)
+    const replacement = replacements.reduce((earliest, r) =>
+      r.acquiredAt < earliest.acquiredAt ? r : earliest,
+    );
 
     // Calculate disallowed loss using Decimal math (TAX-3: avoid native JS division)
     const totalLoss = Math.abs(lossResult.gainLoss);

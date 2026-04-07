@@ -59,6 +59,7 @@ export function calculateGermanyFIFO(
   let remainingAmount = event.amount;
   let taxableCostBasis = 0;
   let taxableProceeds = 0;
+  let taxableAmount = 0;
   const matchedLots: MatchedLot[] = [];
   let earliestLotDate: Date | null = null;
 
@@ -87,6 +88,7 @@ export function calculateGermanyFIFO(
     // Only count toward taxable gain if held <= 12 months
     if (!isExempt(lot.acquiredAt, event.date)) {
       taxableCostBasis = dadd(taxableCostBasis, consumedCostBasis);
+      taxableAmount = dadd(taxableAmount, consumeAmount);
       // Proportional proceeds for this lot portion
       const portionProceeds = dmul(
         ddiv(consumeAmount, event.amount),
@@ -108,7 +110,11 @@ export function calculateGermanyFIFO(
   }
 
   const feeUsd = event.feeUsd ?? 0;
-  const gainLoss = dsub(dsub(taxableProceeds, taxableCostBasis), feeUsd);
+  const taxableFraction = isEffectivelyZero(event.amount)
+    ? 0
+    : ddiv(taxableAmount, event.amount);
+  const taxableFee = dmul(feeUsd, taxableFraction);
+  const gainLoss = dsub(dsub(taxableProceeds, taxableCostBasis), taxableFee);
   const holdingPeriod = earliestLotDate
     ? getHoldingPeriod(earliestLotDate, event.date)
     : "SHORT_TERM";

@@ -18,8 +18,17 @@ import type {
 import { detectWashSales } from "./wash-sale";
 import type { AcquisitionRecord } from "./wash-sale";
 
-/** One year in milliseconds (accounts for leap years) */
-const ONE_YEAR_MS = 365.25 * 24 * 60 * 60 * 1000;
+/**
+ * Returns true when the disposal date is strictly more than one calendar year
+ * after acquisition (IRC §1222; Rev. Rul. 66-7).
+ * Uses calendar year via setFullYear rather than 365.25 * MS_PER_DAY to avoid
+ * leap-year rounding errors at the long-term boundary.
+ */
+function isLongTermHolding(acquiredAt: Date, saleDate: Date): boolean {
+  const oneYearMark = new Date(acquiredAt);
+  oneYearMark.setFullYear(oneYearMark.getFullYear() + 1);
+  return saleDate > oneYearMark;
+}
 
 /** Input parameters for a simulated sale. */
 export interface SimulationInput {
@@ -142,9 +151,12 @@ export function simulateSale(
   const simulatedLots: SimulatedLot[] = result.matchedLots.map((ml) => {
     const originalLot = clonedLots.find((l) => l.id === ml.lotId);
     const acquiredAt = originalLot?.acquiredAt ?? saleDate;
-    const holdingMs = saleDate.getTime() - acquiredAt.getTime();
-    const holdingPeriod: "SHORT_TERM" | "LONG_TERM" =
-      holdingMs >= ONE_YEAR_MS ? "LONG_TERM" : "SHORT_TERM";
+    const holdingPeriod: "SHORT_TERM" | "LONG_TERM" = isLongTermHolding(
+      acquiredAt,
+      saleDate,
+    )
+      ? "LONG_TERM"
+      : "SHORT_TERM";
 
     // Per-lot gain/loss: proportional proceeds minus cost basis
     const lotProceeds =
