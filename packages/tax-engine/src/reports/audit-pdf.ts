@@ -18,6 +18,7 @@ import {
   CONTENT_WIDTH,
   LINE_HEIGHT,
   renderFooter,
+  renderFirmLogo,
   fmtUsd,
   ensureSpace,
 } from "./pdf/pdf-utils";
@@ -46,6 +47,7 @@ export interface AuditReportData {
   taxYear: number;
   taxpayerName?: string;
   preparedBy?: string;
+  firmLogoBuffer?: Buffer;
   method: string;
   summary: {
     totalTransactions: number;
@@ -158,6 +160,11 @@ export async function generateAuditDefensePdf(
     // ══════════════════════════════════════════════════
     // 1. COVER PAGE
     // ══════════════════════════════════════════════════
+
+    // CPA firm logo (top-left, first page only)
+    if (data.firmLogoBuffer) {
+      renderFirmLogo(doc, MARGIN, data.firmLogoBuffer);
+    }
 
     doc
       .fontSize(20)
@@ -396,7 +403,7 @@ export async function generateAuditDefensePdf(
     const range = doc.bufferedPageRange();
     for (let i = range.start; i < range.start + range.count; i++) {
       doc.switchToPage(i);
-      renderFooter(doc);
+      renderFooter(doc, data.preparedBy);
     }
 
     doc.flushPages();

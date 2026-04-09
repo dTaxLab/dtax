@@ -26,7 +26,7 @@ import {
   renderBoxSummary,
 } from "./pdf/render-form8949";
 import { renderScheduleDPage } from "./pdf/render-schedule-d";
-import { renderFooter } from "./pdf/pdf-utils";
+import { renderFooter, renderFirmLogo } from "./pdf/pdf-utils";
 
 /**
  * Generate Form 8949 PDF as a Buffer.
@@ -36,7 +36,7 @@ import { renderFooter } from "./pdf/pdf-utils";
  * element, so pages fill up completely before breaking.
  *
  * @param report - Form 8949 report data from generateForm8949()
- * @param options - Optional taxpayer info and Schedule D data
+ * @param options - Optional taxpayer info, Schedule D data, and CPA branding
  * @returns Promise resolving to a PDF Buffer
  */
 export function generateForm8949Pdf(
@@ -46,6 +46,7 @@ export function generateForm8949Pdf(
     taxpayerSSN?: string;
     scheduleD?: ScheduleDReport;
     preparedBy?: string;
+    firmLogoBuffer?: Buffer;
   },
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -88,6 +89,11 @@ export function generateForm8949Pdf(
           options?.preparedBy,
         );
       }
+    }
+
+    // Firm logo on first page (CPA branding)
+    if (options?.firmLogoBuffer) {
+      y = renderFirmLogo(doc, y, options.firmLogoBuffer);
     }
 
     // Global header on first page
@@ -147,7 +153,7 @@ export function generateForm8949Pdf(
     const range = doc.bufferedPageRange();
     for (let i = range.start; i < range.start + range.count; i++) {
       doc.switchToPage(i);
-      renderFooter(doc);
+      renderFooter(doc, options?.preparedBy);
     }
 
     doc.flushPages();
