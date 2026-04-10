@@ -125,7 +125,7 @@ services:
       # via `docker exec dtax-web-1 printenv NEXT_PUBLIC_BUILD_ID`.
       NEXT_PUBLIC_BUILD_ID: ${GIT_HASH:-unknown}
     volumes:
-      - ./apps/web/content/blog:/app/content/blog:ro
+      - ./apps/web/content/blog:/app/apps/web/content/blog:ro
     deploy:
       resources:
         limits:
