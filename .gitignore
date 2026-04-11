@@ -68,3 +68,8 @@ apps/data/
 # API integration test — generated OpenAPI client (regenerated before each test run)
 apps/api/src/__tests__/generated/
 apps/api/openapi-test-spec.json
+
+# Backup directories from tooling snapshots (not for tracking)
+.agents/dtax-backup-*/
+.changeset/dtax-backup-*/
+.serena/dtax-backup-*/
