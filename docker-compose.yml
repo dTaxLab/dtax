@@ -157,7 +157,7 @@ services:
       - certbot-data:/var/www/certbot:ro
       - letsencrypt:/etc/letsencrypt:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost/api/health 2>&1 | grep -q ok || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- --no-check-certificate https://localhost/api/health 2>&1 | grep -q ok || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
