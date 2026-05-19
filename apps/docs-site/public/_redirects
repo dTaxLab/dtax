@@ -1,1 +1,6 @@
-/ /en/ 302
+# Cloudflare Pages redirects · dtax.dev
+# Sprint(2026-05-19): Starlight i18n migrate `en` prefix → `root` locale
+# 真 truly truly truly root URL 真 truly truly default English content
+# 旧 /en/* SEO carry-over 301 → /:splat
+
+/en/* /:splat 301
