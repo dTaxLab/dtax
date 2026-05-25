@@ -78,11 +78,11 @@
     "pdfkit": "^0.18.0"
   },
   "devDependencies": {
-    "@types/pdfkit": "^0.17.5",
+    "@types/pdfkit": "^0.17.6",
     "eslint": "^9",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.57.2",
+    "typescript-eslint": "^8.59.4",
     "vitest": "^2.1.9"
   }
 }
