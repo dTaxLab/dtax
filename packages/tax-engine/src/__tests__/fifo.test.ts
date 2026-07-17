@@ -297,8 +297,37 @@ describe("calculateFIFO", () => {
     expect(result.matchedLots).toHaveLength(1);
     expect(result.matchedLots[0].amountConsumed).toBe(0.5);
     expect(consoleSpy).toHaveBeenCalled();
+    // The unmatched 0.5 BTC's proceeds were still counted in gainLoss at $0
+    // cost basis — unmatchedAmount surfaces this so callers can warn the
+    // user instead of presenting the number with false confidence.
+    expect(result.unmatchedAmount).toBe(0.5);
 
     consoleSpy.mockRestore();
+  });
+
+  it("should report unmatchedAmount as 0 when lots fully cover the disposal", () => {
+    const lots = [
+      createLot({
+        id: "lot-1",
+        asset: "BTC",
+        sourceId: "binance-1",
+        amount: 1.0,
+        costBasisUsd: 30000,
+        acquiredAt: new Date("2024-01-01"),
+      }),
+    ];
+
+    const event = createEvent({
+      asset: "BTC",
+      sourceId: "binance-1",
+      amount: 1.0,
+      proceedsUsd: 40000,
+      date: new Date("2025-06-01"),
+    });
+
+    const result = calculateFIFO(lots, event);
+
+    expect(result.unmatchedAmount).toBe(0);
   });
 
   // ── Test 9: Fee deduction ────────────────────────

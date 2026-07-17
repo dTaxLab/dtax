@@ -257,4 +257,29 @@ describe("calculateTotalAverage", () => {
     // FIFO: lot-1 consumed first → long-term
     expect(result.holdingPeriod).toBe("LONG_TERM");
   });
+
+  it("should surface unmatchedAmount when disposing more than owned", () => {
+    const lots = [
+      createLot({
+        id: "lot-1",
+        asset: "BTC",
+        amount: 0.5,
+        costBasisUsd: 15000,
+        acquiredAt: new Date("2024-01-01"),
+      }),
+    ];
+
+    const event = createEvent({
+      asset: "BTC",
+      amount: 1.0,
+      proceedsUsd: 50000,
+      date: new Date("2025-06-01"),
+    });
+
+    const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const result = calculateTotalAverage(lots, event);
+    consoleSpy.mockRestore();
+
+    expect(result.unmatchedAmount).toBe(0.5);
+  });
 });

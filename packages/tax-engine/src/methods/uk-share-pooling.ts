@@ -98,7 +98,11 @@ export function calculateUKSharePooling(
     }
   }
 
-  if (!isEffectivelyZero(remainingAmount) && remainingAmount > 0) {
+  const unmatchedAmount =
+    !isEffectivelyZero(remainingAmount) && remainingAmount > 0
+      ? remainingAmount
+      : 0;
+  if (unmatchedAmount > 0) {
     console.warn(
       `[DTax UK Share Pooling] Insufficient lots for ${event.asset}: ` +
         `needed ${event.amount}, matched ${dsub(event.amount, remainingAmount)}`,
@@ -124,5 +128,6 @@ export function calculateUKSharePooling(
     gainLoss,
     holdingPeriod,
     method: "UK_SHARE_POOLING",
+    unmatchedAmount,
   };
 }

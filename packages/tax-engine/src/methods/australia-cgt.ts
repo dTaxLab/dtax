@@ -67,7 +67,10 @@ export function calculateAustraliaCGT(
     const consumeAmount = Math.min(lot.amount, remainingAmount);
     const fraction = ddiv(consumeAmount, event.amount);
 
-    const consumedCostBasis = dmul(ddiv(lot.costBasisUsd, lot.amount), consumeAmount);
+    const consumedCostBasis = dmul(
+      ddiv(lot.costBasisUsd, lot.amount),
+      consumeAmount,
+    );
     const lotProceeds = dmul(fraction, event.proceedsUsd);
     const lotFee = dmul(fraction, feeUsd);
     const fullyConsumed = isEffectivelyZero(dsub(lot.amount, consumeAmount));
@@ -86,7 +89,10 @@ export function calculateAustraliaCGT(
     let lotGainLoss = dsub(dsub(lotProceeds, consumedCostBasis), lotFee);
 
     // 50% discount: long-term gains only; losses are fully deductible (ATO s.115)
-    if (getHoldingPeriod(lot.acquiredAt, event.date) === "LONG_TERM" && lotGainLoss > 0) {
+    if (
+      getHoldingPeriod(lot.acquiredAt, event.date) === "LONG_TERM" &&
+      lotGainLoss > 0
+    ) {
       lotGainLoss = dmul(lotGainLoss, 0.5);
     }
 
@@ -97,7 +103,11 @@ export function calculateAustraliaCGT(
     }
   }
 
-  if (!isEffectivelyZero(remainingAmount) && remainingAmount > 0) {
+  const unmatchedAmount =
+    !isEffectivelyZero(remainingAmount) && remainingAmount > 0
+      ? remainingAmount
+      : 0;
+  if (unmatchedAmount > 0) {
     console.warn(
       `[DTax AU_CGT_DISCOUNT] Insufficient lots for ${event.asset}: ` +
         `needed ${event.amount}, matched ${dsub(event.amount, remainingAmount)}`,
@@ -112,5 +122,6 @@ export function calculateAustraliaCGT(
       ? getHoldingPeriod(earliestLotDate, event.date)
       : "SHORT_TERM",
     method: "AU_CGT_DISCOUNT",
+    unmatchedAmount,
   };
 }

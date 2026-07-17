@@ -100,7 +100,10 @@ export function calculateCanadaACB(
       ? ddiv(lot.costBasisUsd, lot.amount)
       : 0;
     lot.amount = dsub(lot.amount, consumeAmount);
-    lot.costBasisUsd = dsub(lot.costBasisUsd, dmul(lotCostPerUnit, consumeAmount));
+    lot.costBasisUsd = dsub(
+      lot.costBasisUsd,
+      dmul(lotCostPerUnit, consumeAmount),
+    );
     remainingAmount = dsub(remainingAmount, consumeAmount);
 
     if (!earliestLotDate) {
@@ -108,7 +111,11 @@ export function calculateCanadaACB(
     }
   }
 
-  if (!isEffectivelyZero(remainingAmount) && remainingAmount > 0) {
+  const unmatchedAmount =
+    !isEffectivelyZero(remainingAmount) && remainingAmount > 0
+      ? remainingAmount
+      : 0;
+  if (unmatchedAmount > 0) {
     console.warn(
       `[DTax CA_ACB] Insufficient lots for ${event.asset}: ` +
         `needed ${event.amount}, matched ${dsub(event.amount, remainingAmount)}`,
@@ -117,7 +124,10 @@ export function calculateCanadaACB(
 
   const amountSold = dsub(event.amount, remainingAmount);
   const totalConsumedCostBasis = dmul(acbPerUnit, amountSold);
-  const gainLoss = dsub(dsub(event.proceedsUsd, totalConsumedCostBasis), feeUsd);
+  const gainLoss = dsub(
+    dsub(event.proceedsUsd, totalConsumedCostBasis),
+    feeUsd,
+  );
 
   // Superficial loss warning (MVP: detection only, no ACB auto-adjustment)
   // A loss within 30 days of a same-asset rebuy may be denied under ITA s.54.
@@ -137,5 +147,6 @@ export function calculateCanadaACB(
       ? getHoldingPeriod(earliestLotDate, event.date)
       : "SHORT_TERM",
     method: "CA_ACB",
+    unmatchedAmount,
   };
 }

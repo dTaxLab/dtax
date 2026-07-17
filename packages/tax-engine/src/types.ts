@@ -92,6 +92,15 @@ export interface CalculationResult {
   holdingPeriod: HoldingPeriod;
   /** Cost basis method used */
   method: CostBasisMethod;
+  /**
+   * Portion of event.amount that had no matching acquisition lot, in asset
+   * units (0 if fully matched). When > 0, the unmatched portion's proceeds
+   * were included in gainLoss at $0 cost basis — the true gain/loss for
+   * this disposal is unknown until the missing acquisition history is
+   * imported. Surfaced to the user rather than silently assumed correct;
+   * see the "incomplete cost basis" warning in the tax summary.
+   */
+  unmatchedAmount?: number;
 }
 
 /**

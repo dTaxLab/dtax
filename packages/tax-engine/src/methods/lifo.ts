@@ -74,7 +74,11 @@ export function calculateLIFO(
     }
   }
 
-  if (!isEffectivelyZero(remainingAmount) && remainingAmount > 0) {
+  const unmatchedAmount =
+    !isEffectivelyZero(remainingAmount) && remainingAmount > 0
+      ? remainingAmount
+      : 0;
+  if (unmatchedAmount > 0) {
     console.warn(
       `[DTax LIFO] Insufficient lots for ${event.asset}: ` +
         `needed ${event.amount}, matched ${dsub(event.amount, remainingAmount)}`,
@@ -93,5 +97,6 @@ export function calculateLIFO(
     gainLoss,
     holdingPeriod,
     method: "LIFO",
+    unmatchedAmount,
   };
 }

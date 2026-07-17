@@ -95,7 +95,11 @@ export function calculateTotalAverage(
     }
   }
 
-  if (!isEffectivelyZero(remainingAmount) && remainingAmount > 0) {
+  const unmatchedAmount =
+    !isEffectivelyZero(remainingAmount) && remainingAmount > 0
+      ? remainingAmount
+      : 0;
+  if (unmatchedAmount > 0) {
     console.warn(
       `[DTax TOTAL_AVERAGE] Insufficient lots for ${event.asset}: ` +
         `needed ${event.amount}, matched ${dsub(event.amount, remainingAmount)}`,
@@ -121,5 +125,6 @@ export function calculateTotalAverage(
     gainLoss,
     holdingPeriod,
     method: "TOTAL_AVERAGE",
+    unmatchedAmount,
   };
 }
