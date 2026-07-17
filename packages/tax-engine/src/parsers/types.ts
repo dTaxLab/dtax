@@ -12,6 +12,7 @@ export type CsvFormat =
   | "binance"
   | "binance_us"
   | "kraken"
+  | "kraken_trades"
   | "etherscan"
   | "etherscan_erc20"
   | "gemini"

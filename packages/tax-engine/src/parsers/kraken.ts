@@ -1,11 +1,15 @@
 /**
- * Kraken CSV Format Parser
+ * Kraken CSV Format Parsers
  *
- * Handles Kraken's Ledger History export format:
- * txid, refid, time, type, subtype, aclass, asset, amount, fee, balance
+ * Kraken exports two structurally distinct reports that both start with a
+ * "txid" column, which this module tells apart:
  *
- * Kraken transaction types:
- *   deposit, withdrawal, trade, staking, transfer, margin trade
+ * 1. Ledger History ("分类账"): txid, refid, time, type, subtype, aclass,
+ *    asset, amount, fee, balance — deposits/withdrawals/staking/earn/trades
+ *    as paired debit+credit rows. Handled by parseKrakenCsv.
+ * 2. Trades ("交易"): txid, ordertxid, pair, time, type(buy/sell), price,
+ *    cost, fee, vol — one row per order fill, the actual spot buy/sell
+ *    history. Handled by parseKrakenTradesCsv.
  *
  * Kraken asset naming: XXBT = BTC, XETH = ETH, ZUSD = USD, XXRP = XRP, etc.
  *
@@ -40,6 +44,48 @@ function normalizeKrakenAsset(raw: string): string {
     ZAUD: "AUD",
   };
   return map[upper] || upper.replace(/^[XZ]/, "");
+}
+
+/**
+ * Split a Kraken Trades "pair" column (e.g. "BTC/USD") into base + quote
+ * assets, normalizing each side through normalizeKrakenAsset so legacy
+ * codes (XXBT, ZUSD, ...) resolve the same way as the Ledger parser.
+ * Falls back to matching a known quote suffix for pairs with no "/"
+ * (older Kraken exports sometimes concatenate, e.g. "XXBTZUSD").
+ */
+function splitKrakenPair(pair: string): { base: string; quote: string } | null {
+  const trimmed = pair.trim();
+  if (trimmed.includes("/")) {
+    const [base, quote] = trimmed.split("/");
+    if (!base || !quote) return null;
+    return {
+      base: normalizeKrakenAsset(base),
+      quote: normalizeKrakenAsset(quote),
+    };
+  }
+
+  const upper = trimmed.toUpperCase();
+  const knownQuotes = [
+    "ZUSD",
+    "ZEUR",
+    "ZGBP",
+    "ZJPY",
+    "ZCAD",
+    "ZAUD",
+    "USDT",
+    "USDC",
+    "USD",
+    "EUR",
+  ];
+  for (const quote of knownQuotes) {
+    if (upper.endsWith(quote) && upper.length > quote.length) {
+      return {
+        base: normalizeKrakenAsset(upper.slice(0, -quote.length)),
+        quote: normalizeKrakenAsset(quote),
+      };
+    }
+  }
+  return null;
 }
 
 /** Map Kraken transaction type to DTax type */
@@ -273,4 +319,123 @@ function parseSingleEntry(
   }
 
   return tx;
+}
+
+/**
+ * Detect if a CSV is in Kraken Trades format (one row per order fill).
+ * Distinguished from the Ledger format by "ordertxid" and "pair" — the
+ * Ledger format has neither (it has "refid" and "asset" instead).
+ */
+export function isKrakenTradesCsv(csv: string): boolean {
+  const firstLine = csv.split("\n")[0]?.toLowerCase() || "";
+  return (
+    firstLine.includes("ordertxid") &&
+    firstLine.includes("pair") &&
+    firstLine.includes("vol")
+  );
+}
+
+/**
+ * Parse a Kraken Trades CSV — the actual spot buy/sell fill history (as
+ * opposed to the Ledger export, which only has trades if you didn't filter
+ * by type and can bury them among deposits/staking/Earn activity).
+ *
+ * One row = one order fill = one ParsedTransaction. Large orders routinely
+ * split into dozens of fills at slightly different prices; we don't
+ * aggregate by ordertxid because cost basis needs the per-fill price.
+ */
+export function parseKrakenTradesCsv(csv: string): CsvParseResult {
+  const objects = parseCsvToObjects(csv);
+  const errors: CsvParseError[] = [];
+  const transactions: ParsedTransaction[] = [];
+
+  for (let i = 0; i < objects.length; i++) {
+    const row = objects[i];
+    const rowNum = i + 2;
+
+    try {
+      const tsRaw = row["time"] || "";
+      const timestamp = safeParseDateToIso(tsRaw);
+      if (!timestamp) {
+        errors.push({ row: rowNum, message: `Invalid date: "${tsRaw}"` });
+        continue;
+      }
+
+      const pairRaw = row["pair"] || "";
+      const pair = splitKrakenPair(pairRaw);
+      if (!pair) {
+        errors.push({
+          row: rowNum,
+          message: `Unrecognized trading pair: "${pairRaw}"`,
+        });
+        continue;
+      }
+
+      const side = (row["type"] || "").toLowerCase().trim();
+      const vol = safeParseNumber(row["vol"]);
+      const cost = safeParseNumber(row["cost"]);
+      const fee = safeParseNumber(row["fee"]) || 0;
+
+      if (!vol || vol <= 0 || !cost || cost <= 0) {
+        errors.push({ row: rowNum, message: "Missing volume or cost" });
+        continue;
+      }
+
+      const isQuoteFiat = FIAT_CURRENCIES.has(pair.quote);
+
+      let tx: ParsedTransaction;
+      if (side === "buy") {
+        tx = {
+          type: isQuoteFiat ? "BUY" : "TRADE",
+          timestamp,
+          sentAsset: pair.quote,
+          sentAmount: cost,
+          receivedAsset: pair.base,
+          receivedAmount: vol,
+        };
+        if (isQuoteFiat) tx.sentValueUsd = cost;
+      } else if (side === "sell") {
+        tx = {
+          type: isQuoteFiat ? "SELL" : "TRADE",
+          timestamp,
+          sentAsset: pair.base,
+          sentAmount: vol,
+          receivedAsset: pair.quote,
+          receivedAmount: cost,
+        };
+        if (isQuoteFiat) tx.receivedValueUsd = cost;
+      } else {
+        errors.push({
+          row: rowNum,
+          message: `Unknown trade side: "${row["type"]}"`,
+        });
+        continue;
+      }
+
+      if (fee > 0) {
+        tx.feeAmount = fee;
+        tx.feeAsset = pair.quote;
+      }
+
+      transactions.push(tx);
+    } catch (e) {
+      errors.push({
+        row: rowNum,
+        message: e instanceof Error ? e.message : "Unknown error",
+      });
+    }
+  }
+
+  transactions.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+  return {
+    transactions,
+    errors,
+    summary: {
+      totalRows: objects.length,
+      parsed: transactions.length,
+      failed: errors.length,
+      format: "kraken_trades",
+    },
+  };
 }

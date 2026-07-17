@@ -3,7 +3,12 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { parseKrakenCsv, isKrakenCsv } from "../parsers/kraken";
+import {
+  parseKrakenCsv,
+  isKrakenCsv,
+  parseKrakenTradesCsv,
+  isKrakenTradesCsv,
+} from "../parsers/kraken";
 import { detectCsvFormat, parseCsv } from "../parsers";
 
 // ─── Detection ──────────────────────────────────
@@ -243,5 +248,139 @@ describe("parseKrakenCsv", () => {
     expect(result.transactions[0].type).toBe("TRANSFER_IN"); // deposit USD
     expect(result.transactions[1].type).toBe("BUY"); // paired trade
     expect(result.transactions[2].type).toBe("STAKING_REWARD"); // staking
+  });
+});
+
+// ─── Trades format (one row per order fill) ────────────────────────
+
+describe("isKrakenTradesCsv", () => {
+  it("detects Kraken Trades format", () => {
+    expect(
+      isKrakenTradesCsv(
+        '"txid","ordertxid","pair","aclass","subclass","time","type","ordertype","price","cost","fee","vol","margin","misc","ledgers"',
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects the Ledger format (has refid/asset, not ordertxid/pair/vol)", () => {
+    expect(
+      isKrakenTradesCsv(
+        '"txid","refid","time","type","subtype","aclass","asset","amount","fee","balance"',
+      ),
+    ).toBe(false);
+  });
+
+  it("integrates with detectCsvFormat", () => {
+    const csv =
+      '"txid","ordertxid","pair","aclass","subclass","time","type","ordertype","price","cost","fee","vol","margin","misc","ledgers"\n';
+    expect(detectCsvFormat(csv)).toBe("kraken_trades");
+  });
+});
+
+describe("parseKrakenTradesCsv", () => {
+  const tradesHeader =
+    '"txid","ordertxid","pair","aclass","subclass","time","type","ordertype","price","cost","fee","vol","margin","misc","ledgers","posttxid","posstatuscode","cprice","ccost","cfee","cvol","cmargin","net","costusd","trades"';
+
+  it("parses a real-shaped sell fill (BTC/USD)", () => {
+    const csv = [
+      tradesHeader,
+      '"THRLBT-NPJIN-YHAPVW","O22I65-AIQM2-NLFWMH","BTC/USD","forex","crypto","2025-07-18 23:56:31.1534","sell","limit",118013.09995,22184.28781,88.73716,0.18798157,0.00000,"initiated","LMK3R6-JVEKI-LYSVOO,L7PRXT-UIPGO-NZ5YWD","TKH2SE-M7IF5-CFI7LT","","","","","","","",22184.28781,""',
+    ].join("\n");
+
+    const result = parseKrakenTradesCsv(csv);
+    expect(result.transactions).toHaveLength(1);
+    expect(result.errors).toHaveLength(0);
+    const tx = result.transactions[0];
+    expect(tx.type).toBe("SELL");
+    expect(tx.sentAsset).toBe("BTC");
+    expect(tx.sentAmount).toBe(0.18798157);
+    expect(tx.receivedAsset).toBe("USD");
+    expect(tx.receivedAmount).toBe(22184.28781);
+    expect(tx.receivedValueUsd).toBe(22184.28781);
+    expect(tx.feeAmount).toBe(88.73716);
+    expect(tx.feeAsset).toBe("USD");
+  });
+
+  it("parses a buy fill (BTC/USD)", () => {
+    const csv = [
+      tradesHeader,
+      '"TBUY001","OBUY001","BTC/USD","forex","crypto","2025-03-01 10:00:00.0000","buy","market",50000.00,5000.00,10.00,0.1,0.00000,"","","","","","","","","","",5000.00,""',
+    ].join("\n");
+
+    const result = parseKrakenTradesCsv(csv);
+    expect(result.transactions).toHaveLength(1);
+    const tx = result.transactions[0];
+    expect(tx.type).toBe("BUY");
+    expect(tx.sentAsset).toBe("USD");
+    expect(tx.sentAmount).toBe(5000);
+    expect(tx.sentValueUsd).toBe(5000);
+    expect(tx.receivedAsset).toBe("BTC");
+    expect(tx.receivedAmount).toBe(0.1);
+    expect(tx.feeAmount).toBe(10);
+  });
+
+  it("classifies a non-fiat-quote pair as TRADE, not BUY/SELL", () => {
+    const csv = [
+      tradesHeader,
+      '"TCRYPTO1","OCRYPTO1","ETH/BTC","forex","crypto","2025-03-01 10:00:00.0000","sell","market",0.05,1.0,0.002,20,0.00000,"","","","","","","","","","",0,""',
+    ].join("\n");
+
+    const result = parseKrakenTradesCsv(csv);
+    expect(result.transactions).toHaveLength(1);
+    const tx = result.transactions[0];
+    expect(tx.type).toBe("TRADE");
+    expect(tx.sentAsset).toBe("ETH");
+    expect(tx.receivedAsset).toBe("BTC");
+    expect(tx.receivedValueUsd).toBeUndefined();
+  });
+
+  it("handles invalid dates gracefully", () => {
+    const csv = [
+      tradesHeader,
+      '"TBAD1","OBAD1","BTC/USD","forex","crypto","not-a-date","sell","limit",50000,5000,10,0.1,0,"","","","","","","","","","",5000,""',
+    ].join("\n");
+
+    const result = parseKrakenTradesCsv(csv);
+    expect(result.transactions).toHaveLength(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].message).toContain("Invalid date");
+  });
+
+  it("handles an unrecognized pair gracefully", () => {
+    const csv = [
+      tradesHeader,
+      '"TBAD2","OBAD2","???","forex","crypto","2025-03-01 10:00:00.0000","sell","limit",50000,5000,10,0.1,0,"","","","","","","","","","",5000,""',
+    ].join("\n");
+
+    const result = parseKrakenTradesCsv(csv);
+    expect(result.transactions).toHaveLength(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].message).toContain("Unrecognized trading pair");
+  });
+
+  it("integrates with parseCsv auto-detection and does not misfire against the Ledger format", () => {
+    const csv = [
+      tradesHeader,
+      '"TAUTO1","OAUTO1","BTC/USD","forex","crypto","2025-03-01 10:00:00.0000","sell","limit",50000,5000,10,0.1,0,"","","","","","","","","","",5000,""',
+    ].join("\n");
+
+    const result = parseCsv(csv);
+    expect(result.summary.format).toBe("kraken_trades");
+    expect(result.transactions).toHaveLength(1);
+    expect(result.transactions[0].type).toBe("SELL");
+  });
+
+  it("sorts fills by timestamp", () => {
+    const csv = [
+      tradesHeader,
+      '"T2","O2","BTC/USD","forex","crypto","2025-03-02 00:00:00.0000","sell","limit",50000,5000,10,0.1,0,"","","","","","","","","","",5000,""',
+      '"T1","O1","BTC/USD","forex","crypto","2025-03-01 00:00:00.0000","sell","limit",49000,4900,10,0.1,0,"","","","","","","","","","",4900,""',
+    ].join("\n");
+
+    const result = parseKrakenTradesCsv(csv);
+    expect(result.transactions).toHaveLength(2);
+    expect(
+      result.transactions[0].timestamp < result.transactions[1].timestamp,
+    ).toBe(true);
   });
 });

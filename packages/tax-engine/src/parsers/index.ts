@@ -15,7 +15,12 @@ import {
   isBinanceCsv,
   isBinanceUsCsv,
 } from "./binance";
-import { parseKrakenCsv, isKrakenCsv } from "./kraken";
+import {
+  parseKrakenCsv,
+  isKrakenCsv,
+  parseKrakenTradesCsv,
+  isKrakenTradesCsv,
+} from "./kraken";
 import {
   parseEtherscanCsv,
   parseEtherscanErc20Csv,
@@ -60,6 +65,7 @@ export function detectCsvFormat(csv: string): CsvFormat {
   if (isBinanceCsv(csv)) return "binance";
   if (isBinanceUsCsv(csv)) return "binance_us";
   if (isKrakenCsv(csv)) return "kraken";
+  if (isKrakenTradesCsv(csv)) return "kraken_trades";
   if (isSolscanDefiCsv(csv)) return "solscan_defi";
   if (isSolscanSplCsv(csv)) return "solscan";
   if (isSolscanCsv(csv)) return "solscan";
@@ -115,6 +121,8 @@ export function parseCsv(
       return parseBinanceUsCsv(csv);
     case "kraken":
       return parseKrakenCsv(csv);
+    case "kraken_trades":
+      return parseKrakenTradesCsv(csv);
     case "etherscan":
       return parseEtherscanCsv(
         csv,
@@ -184,7 +192,12 @@ export {
   isBinanceCsv,
   isBinanceUsCsv,
 } from "./binance";
-export { parseKrakenCsv, isKrakenCsv } from "./kraken";
+export {
+  parseKrakenCsv,
+  isKrakenCsv,
+  parseKrakenTradesCsv,
+  isKrakenTradesCsv,
+} from "./kraken";
 export {
   parseEtherscanCsv,
   parseEtherscanErc20Csv,
