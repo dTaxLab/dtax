@@ -61,7 +61,20 @@ function mapKrakenType(
     return amount > 0 ? "TRANSFER_IN" : "TRANSFER_OUT";
   }
   if (t === "margin trade") return "TRADE";
-  if (t === "earn" || t === "reward") return "INTEREST";
+  if (t === "earn") {
+    // Kraken's "Earn" product emits two distinct subtypes under the same
+    // top-level "earn" type: "reward" is an actual payout (taxable income),
+    // "autoallocation"/"allocation"/"deallocation" is Kraken moving the same
+    // balance between the "spot / main" and "earn / liquid" wallets — an
+    // internal transfer, not new income. Treating both as INTEREST double-
+    // counted every reallocation cycle as phantom income (the payout AND
+    // its subsequent internal move both landed as taxable interest).
+    if (s === "autoallocation" || s === "allocation" || s === "deallocation") {
+      return amount > 0 ? "TRANSFER_IN" : "TRANSFER_OUT";
+    }
+    return "INTEREST";
+  }
+  if (t === "reward") return "INTEREST";
   if (t === "airdrop") return "AIRDROP";
   return "UNKNOWN";
 }

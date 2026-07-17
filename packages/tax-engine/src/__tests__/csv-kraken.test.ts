@@ -160,6 +160,25 @@ describe("parseKrakenCsv", () => {
     expect(result.transactions[1].type).toBe("TRANSFER_IN");
   });
 
+  it("classifies Earn 'reward' as INTEREST but 'autoallocation' as an internal transfer, not income", () => {
+    // Real-world shape (Kraken "spot ledgers" export): a reward payout, then
+    // Kraken auto-moving that same balance from spot to the earn wallet.
+    // Before the fix both legs were INTEREST — double-counting the payout
+    // as income a second time when it was just moved between own wallets.
+    const csv = [
+      header,
+      '"L30","R30","2025-08-24 17:03:57","earn","reward","currency","BTC","0.0000294667","0","0.0000294667"',
+      '"L31","R31","2025-08-24 17:03:58","earn","autoallocation","currency","BTC","-0.0000294667","0","0.0000000000"',
+      '"L32","R32","2025-08-24 17:03:58","earn","autoallocation","currency","BTC","0.0000294667","0","0.0000294667"',
+    ].join("\n");
+
+    const result = parseKrakenCsv(csv);
+    expect(result.transactions).toHaveLength(3);
+    expect(result.transactions[0].type).toBe("INTEREST");
+    expect(result.transactions[1].type).toBe("TRANSFER_OUT");
+    expect(result.transactions[2].type).toBe("TRANSFER_IN");
+  });
+
   it("handles invalid dates gracefully", () => {
     const csv = [
       header,
