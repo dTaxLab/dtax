@@ -393,7 +393,12 @@ export function parseKrakenTradesCsv(csv: string): CsvParseResult {
           receivedAsset: pair.base,
           receivedAmount: vol,
         };
-        if (isQuoteFiat) tx.sentValueUsd = cost;
+        if (isQuoteFiat) {
+          // mapToTaxLot() reads receivedValueUsd as the new lot's cost basis
+          // — the fiat amount paid is the USD value of the crypto acquired.
+          tx.sentValueUsd = cost;
+          tx.receivedValueUsd = cost;
+        }
       } else if (side === "sell") {
         tx = {
           type: isQuoteFiat ? "SELL" : "TRADE",
@@ -403,7 +408,12 @@ export function parseKrakenTradesCsv(csv: string): CsvParseResult {
           receivedAsset: pair.quote,
           receivedAmount: cost,
         };
-        if (isQuoteFiat) tx.receivedValueUsd = cost;
+        if (isQuoteFiat) {
+          // mapToTaxableEvent() reads sentValueUsd as the disposal's proceeds
+          // — the fiat amount received is the USD value of the crypto sold.
+          tx.sentValueUsd = cost;
+          tx.receivedValueUsd = cost;
+        }
       } else {
         errors.push({
           row: rowNum,

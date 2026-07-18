@@ -297,6 +297,9 @@ describe("parseKrakenTradesCsv", () => {
     expect(tx.receivedAsset).toBe("USD");
     expect(tx.receivedAmount).toBe(22184.28781);
     expect(tx.receivedValueUsd).toBe(22184.28781);
+    // mapToTaxableEvent() reads sentValueUsd as the disposal's proceeds —
+    // without it the sale is silently dropped from every tax report.
+    expect(tx.sentValueUsd).toBe(22184.28781);
     expect(tx.feeAmount).toBe(88.73716);
     expect(tx.feeAsset).toBe("USD");
   });
@@ -316,6 +319,9 @@ describe("parseKrakenTradesCsv", () => {
     expect(tx.sentValueUsd).toBe(5000);
     expect(tx.receivedAsset).toBe("BTC");
     expect(tx.receivedAmount).toBe(0.1);
+    // mapToTaxLot() reads receivedValueUsd as the new lot's cost basis —
+    // without it every purchased lot silently gets $0 cost basis.
+    expect(tx.receivedValueUsd).toBe(5000);
     expect(tx.feeAmount).toBe(10);
   });
 
