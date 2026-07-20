@@ -115,18 +115,26 @@ function sectionHeader(
   doc.fillColor("#000").moveDown(0.5);
 }
 
-function tableHeader(
+/** @internal Exported for testing column-header vertical spacing (see form8949-pdf-columns.test.ts sibling). */
+export function tableHeader(
   doc: InstanceType<typeof PDFDocument>,
   cols: Array<{ x: number; label: string; align?: "left" | "right" }>,
   colWidth = 58,
 ): void {
   doc.fontSize(7).font("Helvetica-Bold").fillColor("#6b7280");
+  // Capture y once and reuse it for every column — PDFKit's .text() advances
+  // doc.y after drawing even when an explicit y is given, so re-reading
+  // doc.y inside the loop would make each successive column drift downward.
+  const y = doc.y;
   for (const col of cols) {
-    doc.text(col.label, col.x, doc.y, {
+    doc.text(col.label, col.x, y, {
       width: colWidth,
       align: col.align ?? "left",
     });
   }
+  // Deliberately not resetting doc.y back to `y` here — the last .text()
+  // call above already advanced doc.y by one line from `y`, which is what
+  // moveDown() below needs to build correct spacing on top of.
   doc.fillColor("#000").moveDown(0.3);
 }
 
@@ -278,11 +286,13 @@ export async function generateAuditDefensePdf(
       );
     doc.moveDown(0.4);
 
-    // Header
+    // Header — capture y once and reuse for every column (see tableHeader()
+    // for why re-reading doc.y between calls causes columns to drift).
     doc.fontSize(7).font("Helvetica-Bold").fillColor("#6b7280");
-    doc.text("Account Name", MARGIN, doc.y, { width: 200 });
-    doc.text("Type", MARGIN + 200, doc.y - LINE_HEIGHT, { width: 100 });
-    doc.text("Chain", MARGIN + 310, doc.y - LINE_HEIGHT, { width: 100 });
+    const acctHeaderY = doc.y;
+    doc.text("Account Name", MARGIN, acctHeaderY, { width: 200 });
+    doc.text("Type", MARGIN + 200, acctHeaderY, { width: 100 });
+    doc.text("Chain", MARGIN + 310, acctHeaderY, { width: 100 });
     doc.fillColor("#000").moveDown(0.2);
 
     for (const acct of accounts) {
@@ -293,13 +303,14 @@ export async function generateAuditDefensePdf(
           : acct.type === "BLOCKCHAIN"
             ? "Wallet"
             : "CSV";
+      const acctRowY = doc.y;
       doc
         .fontSize(8)
         .font("Helvetica")
         .fillColor("#111827")
-        .text(acct.name, MARGIN, doc.y, { width: 195 });
-      doc.text(typeLabel, MARGIN + 200, doc.y - LINE_HEIGHT, { width: 100 });
-      doc.text(acct.chain ?? "—", MARGIN + 310, doc.y - LINE_HEIGHT, {
+        .text(acct.name, MARGIN, acctRowY, { width: 195 });
+      doc.text(typeLabel, MARGIN + 200, acctRowY, { width: 100 });
+      doc.text(acct.chain ?? "—", MARGIN + 310, acctRowY, {
         width: 100,
       });
       doc.moveDown(0.1);

@@ -15,16 +15,41 @@ import {
   renderFooter,
 } from "./pdf-utils";
 
-/** Column layout shared across all row types. */
-const COLS = [
-  { label: "(a) Description", x: MARGIN, w: 120 },
-  { label: "(b) Acquired", x: MARGIN + 122, w: 72 },
-  { label: "(c) Sold", x: MARGIN + 196, w: 72 },
-  { label: "(d) Proceeds", x: MARGIN + 270, w: 75 },
-  { label: "(e) Cost Basis", x: MARGIN + 347, w: 75 },
-  { label: "(f)", x: MARGIN + CONTENT_WIDTH - 75 - 50 - 28, w: 26 },
-  { label: "(g) Adj.", x: MARGIN + CONTENT_WIDTH - 75 - 50, w: 48 },
-  { label: "(h) Gain/Loss", x: MARGIN + CONTENT_WIDTH - 75, w: 75 },
+/**
+ * Column layout shared across all row types. Widths + 3pt gaps sum to exactly
+ * CONTENT_WIDTH (512pt at MARGIN=50) so columns are laid out sequentially with
+ * no overlap. (f)/(g)/(h) were previously anchored from the right edge with a
+ * formula that ignored (e)'s actual rendered width, causing (e) and (f) to
+ * overlap — e.g. "(e) Cost Ba(g)sis Adj." / "10,961.470.00" in the PDF output.
+ */
+const GAP = 3;
+const WIDTHS = {
+  a: 123, // (a) Description
+  b: 58, // (b) Acquired
+  c: 58, // (c) Sold
+  d: 64, // (d) Proceeds
+  e: 64, // (e) Cost Basis
+  f: 20, // (f) Code
+  g: 40, // (g) Adj.
+  h: 64, // (h) Gain/Loss
+} as const;
+const X_A = MARGIN;
+const X_B = X_A + WIDTHS.a + GAP;
+const X_C = X_B + WIDTHS.b + GAP;
+const X_D = X_C + WIDTHS.c + GAP;
+const X_E = X_D + WIDTHS.d + GAP;
+const X_F = X_E + WIDTHS.e + GAP;
+const X_G = X_F + WIDTHS.f + GAP;
+const X_H = X_G + WIDTHS.g + GAP;
+export const COLS = [
+  { label: "(a) Description", x: X_A, w: WIDTHS.a },
+  { label: "(b) Acquired", x: X_B, w: WIDTHS.b },
+  { label: "(c) Sold", x: X_C, w: WIDTHS.c },
+  { label: "(d) Proceeds", x: X_D, w: WIDTHS.d },
+  { label: "(e) Cost Basis", x: X_E, w: WIDTHS.e },
+  { label: "(f)", x: X_F, w: WIDTHS.f },
+  { label: "(g) Adj.", x: X_G, w: WIDTHS.g },
+  { label: "(h) Gain/Loss", x: X_H, w: WIDTHS.h },
 ] as const;
 
 /**
