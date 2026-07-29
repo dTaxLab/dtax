@@ -11,6 +11,7 @@ import {
   isBinanceCsv,
   isBinanceUsCsv,
 } from "../parsers/binance";
+import { detectCsvFormat } from "../parsers/index";
 
 // ─── Binance International (Trade History) ──────────
 
@@ -312,5 +313,74 @@ describe("parseBinanceUsCsv", () => {
     expect(withdrawal.type).toBe("TRANSFER_OUT");
     expect(withdrawal.sentAsset).toBe("BTC");
     expect(withdrawal.sentAmount).toBe(0.1);
+  });
+});
+
+// ─── Binance US (Order/Transaction History — Realized Amount shape) ───
+//
+// Real customer report (2026-07): a Binance US export with User ID / Time /
+// Category / Operation / Primary Asset / Base Asset / Quote Asset / Fee
+// Asset columns, each paired with a "Realized Amount ... in USD" column.
+// Neither the Binance International parser nor the older Binance US
+// "statement" parser recognized this shape — auto-detect fell through to
+// "generic" ("No asset found"), and manually selecting Binance US failed
+// too ("Invalid date", since this shape uses "Time" not "Date").
+
+const BINANCE_US_REALIZED_CSV = `User ID,Time,Category,Operation,Order ID,Transaction ID,Primary Asset,Realized Amount For Primary Asset,Realized Amount for Primary Asset in USD,Base Asset,Realized Amount For Base Asset,Realized Amount For Base Asset In USD,Quote Asset,Realized Amount for Quote Asset,Realized Amount for Quote Asset in USD,Fee Asset,Realized Amount for Fee Asset,Realized Amount for Fee Asset in USD,Payment Method,Withdraw Method,Additional Note
+35011137,2024-03-02T22:06:56,Spot Trading,Sell,78051950,2331787792,,,,ZRX,7,3.022746,USDT,2.9981,2.999916,USDT,0.0119924,0.012,Wallet,,
+35011137,2024-03-14T09:15:00,Spot Trading,Buy,78099999,2331999999,,,,BTC,0.01,700,USD,700,700,USD,1.5,1.5,Wallet,,
+35011137,2024-04-01T00:00:00,Spot Trading,Deposit,,,BTC,0.25,15000,,,,,,,,,,Wallet,,
+`;
+
+describe("isBinanceUsCsv (Realized Amount shape)", () => {
+  it("detects the Realized Amount export", () => {
+    expect(isBinanceUsCsv(BINANCE_US_REALIZED_CSV)).toBe(true);
+  });
+
+  it("auto-detects as binance_us, not generic or binance", () => {
+    expect(detectCsvFormat(BINANCE_US_REALIZED_CSV)).toBe("binance_us");
+  });
+});
+
+describe("parseBinanceUsCsv (Realized Amount shape)", () => {
+  it("parses every row with no errors", () => {
+    const result = parseBinanceUsCsv(BINANCE_US_REALIZED_CSV);
+    expect(result.errors).toHaveLength(0);
+    expect(result.summary.parsed).toBe(3);
+  });
+
+  it("maps a stablecoin-quoted Sell to TRADE, not SELL — USDT is not fiat", () => {
+    const result = parseBinanceUsCsv(BINANCE_US_REALIZED_CSV);
+    const tx = result.transactions[0];
+    expect(tx.type).toBe("TRADE");
+    expect(tx.sentAsset).toBe("ZRX");
+    expect(tx.sentAmount).toBe(7);
+    expect(tx.sentValueUsd).toBeCloseTo(3.022746, 6);
+    expect(tx.receivedAsset).toBe("USDT");
+    expect(tx.receivedAmount).toBeCloseTo(2.9981, 6);
+    expect(tx.receivedValueUsd).toBeCloseTo(2.999916, 6);
+    expect(tx.feeAsset).toBe("USDT");
+    expect(tx.feeAmount).toBeCloseTo(0.0119924, 6);
+    expect(tx.feeValueUsd).toBeCloseTo(0.012, 6);
+  });
+
+  it("maps a USD-quoted Buy to BUY — real fiat", () => {
+    const result = parseBinanceUsCsv(BINANCE_US_REALIZED_CSV);
+    const tx = result.transactions[1];
+    expect(tx.type).toBe("BUY");
+    expect(tx.receivedAsset).toBe("BTC");
+    expect(tx.receivedAmount).toBe(0.01);
+    expect(tx.receivedValueUsd).toBe(700);
+    expect(tx.sentAsset).toBe("USD");
+    expect(tx.sentValueUsd).toBe(700);
+  });
+
+  it("maps a Primary-Asset-only Deposit row to TRANSFER_IN", () => {
+    const result = parseBinanceUsCsv(BINANCE_US_REALIZED_CSV);
+    const tx = result.transactions[2];
+    expect(tx.type).toBe("TRANSFER_IN");
+    expect(tx.receivedAsset).toBe("BTC");
+    expect(tx.receivedAmount).toBe(0.25);
+    expect(tx.receivedValueUsd).toBe(15000);
   });
 });

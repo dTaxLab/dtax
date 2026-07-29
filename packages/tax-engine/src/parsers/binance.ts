@@ -513,11 +513,37 @@ function mapBinanceUsType(raw: string): ParsedTransaction["type"] {
   return map[raw.toLowerCase().trim()] || "UNKNOWN";
 }
 
+const BINANCE_US_FIAT_CURRENCIES = new Set([
+  "USD",
+  "EUR",
+  "GBP",
+  "JPY",
+  "CAD",
+  "AUD",
+  "CHF",
+]);
+
 /**
- * Detect Binance US CSV format.
+ * Detect Binance US "Order/Transaction History" CSV — the export with
+ * User ID / Time / Category / Operation / Primary Asset / Base Asset /
+ * Quote Asset / Fee Asset columns, each paired with a "Realized Amount
+ * ... in USD" column. Distinct from the older Date/Type/Asset/Status/
+ * Balance statement format below.
+ */
+function isBinanceUsRealizedAmountCsv(firstLine: string): boolean {
+  return (
+    firstLine.includes("base asset") &&
+    firstLine.includes("quote asset") &&
+    firstLine.includes("realized amount")
+  );
+}
+
+/**
+ * Detect Binance US CSV format (either shape).
  */
 export function isBinanceUsCsv(csv: string): boolean {
   const firstLine = csv.split("\n")[0]?.toLowerCase() || "";
+  if (isBinanceUsRealizedAmountCsv(firstLine)) return true;
   // Binance US uses "Date" without "(UTC)" and has "Status" + "Balance" columns
   return (
     firstLine.includes("date") &&
@@ -528,9 +554,170 @@ export function isBinanceUsCsv(csv: string): boolean {
 }
 
 /**
- * Parse Binance US transaction history CSV.
+ * Parse Binance US "Order/Transaction History" CSV (Realized Amount shape).
+ *
+ * Each row reports up to three legs independently, each with its own
+ * already-computed USD value — no price lookup needed:
+ *   - Base/Quote Asset: a Spot Trading fill (Operation = Buy/Sell). Buy
+ *     receives Base and sends Quote; Sell sends Base and receives Quote.
+ *   - Primary Asset: a single-asset operation (deposit, withdrawal,
+ *     staking reward, etc.) with no counter-asset.
+ *   - Fee Asset: always optional, on top of either shape above.
+ *
+ * Quote-side type is BUY/SELL only when the quote asset is real fiat;
+ * a stablecoin quote (USDT, USDC, ...) is a crypto-to-crypto TRADE per
+ * IRS property treatment — mirrors the Binance International parser's
+ * isFiatQuote logic above.
  */
-export function parseBinanceUsCsv(csv: string): CsvParseResult {
+function parseBinanceUsRealizedAmountCsv(csv: string): CsvParseResult {
+  const objects = parseCsvToObjects(csv);
+  const transactions: ParsedTransaction[] = [];
+  const errors: CsvParseError[] = [];
+
+  const PRIMARY_OPERATION_TYPE: Record<string, ParsedTransaction["type"]> = {
+    deposit: "TRANSFER_IN",
+    withdrawal: "TRANSFER_OUT",
+    withdraw: "TRANSFER_OUT",
+    "staking rewards": "STAKING_REWARD",
+    "staking reward": "STAKING_REWARD",
+    distribution: "AIRDROP",
+    "referral commission": "INTEREST",
+    interest: "INTEREST",
+    send: "TRANSFER_OUT",
+    receive: "TRANSFER_IN",
+  };
+
+  for (let i = 0; i < objects.length; i++) {
+    const row = objects[i];
+    const rowNum = i + 2;
+
+    try {
+      const tsRaw = row["time"] || row["date"] || "";
+      const timestamp = safeParseDateToIso(tsRaw);
+      if (!timestamp) {
+        errors.push({ row: rowNum, message: `Invalid date: "${tsRaw}"` });
+        continue;
+      }
+
+      const operation = (row["operation"] || "").toLowerCase().trim();
+      const baseAsset = (row["base asset"] || "").toUpperCase().trim();
+      const quoteAsset = (row["quote asset"] || "").toUpperCase().trim();
+      const primaryAsset = (row["primary asset"] || "").toUpperCase().trim();
+
+      const feeAsset = (row["fee asset"] || "").toUpperCase().trim();
+      const feeAmount = safeParseNumber(row["realized amount for fee asset"]);
+      const feeValueUsd = safeParseNumber(
+        row["realized amount for fee asset in usd"],
+      );
+
+      let tx: ParsedTransaction;
+
+      if (baseAsset && quoteAsset) {
+        // Spot Trading fill: Base/Quote both present.
+        const isBuy = operation === "buy";
+        const isFiatQuote = BINANCE_US_FIAT_CURRENCIES.has(quoteAsset);
+        const baseAmount = safeParseNumber(
+          row["realized amount for base asset"],
+        );
+        const baseValueUsd = safeParseNumber(
+          row["realized amount for base asset in usd"],
+        );
+        const quoteAmount = safeParseNumber(
+          row["realized amount for quote asset"],
+        );
+        const quoteValueUsd = safeParseNumber(
+          row["realized amount for quote asset in usd"],
+        );
+
+        tx = {
+          type: isFiatQuote ? (isBuy ? "BUY" : "SELL") : "TRADE",
+          timestamp,
+        };
+        if (isBuy) {
+          tx.receivedAsset = baseAsset;
+          tx.receivedAmount = baseAmount;
+          tx.receivedValueUsd = baseValueUsd;
+          tx.sentAsset = quoteAsset;
+          tx.sentAmount = quoteAmount;
+          tx.sentValueUsd = quoteValueUsd;
+        } else {
+          tx.sentAsset = baseAsset;
+          tx.sentAmount = baseAmount;
+          tx.sentValueUsd = baseValueUsd;
+          tx.receivedAsset = quoteAsset;
+          tx.receivedAmount = quoteAmount;
+          tx.receivedValueUsd = quoteValueUsd;
+        }
+      } else if (primaryAsset) {
+        // Single-asset operation: deposit, withdrawal, reward, etc.
+        const type = PRIMARY_OPERATION_TYPE[operation];
+        if (!type) {
+          errors.push({
+            row: rowNum,
+            message: `Unrecognized operation: "${row["operation"]}"`,
+          });
+          continue;
+        }
+        const amount = safeParseNumber(
+          row["realized amount for primary asset"],
+        );
+        const valueUsd = safeParseNumber(
+          row["realized amount for primary asset in usd"],
+        );
+        const isInflow = [
+          "TRANSFER_IN",
+          "STAKING_REWARD",
+          "AIRDROP",
+          "INTEREST",
+        ].includes(type);
+
+        tx = { type, timestamp };
+        if (isInflow) {
+          tx.receivedAsset = primaryAsset;
+          tx.receivedAmount = amount;
+          tx.receivedValueUsd = valueUsd;
+        } else {
+          tx.sentAsset = primaryAsset;
+          tx.sentAmount = amount;
+          tx.sentValueUsd = valueUsd;
+        }
+      } else {
+        errors.push({ row: rowNum, message: "No asset found in row" });
+        continue;
+      }
+
+      if (feeAsset && feeAmount) {
+        tx.feeAsset = feeAsset;
+        tx.feeAmount = feeAmount;
+        tx.feeValueUsd = feeValueUsd;
+      }
+
+      transactions.push(tx);
+    } catch (e) {
+      errors.push({
+        row: rowNum,
+        message: e instanceof Error ? e.message : "Unknown error",
+      });
+    }
+  }
+
+  return {
+    transactions,
+    errors,
+    summary: {
+      totalRows: objects.length,
+      parsed: transactions.length,
+      failed: errors.length,
+      format: "binance_us",
+    },
+  };
+}
+
+/**
+ * Parse Binance US "statement" transaction history CSV — the older
+ * Date/Type/Asset/Amount/Status/Balance/Fee shape.
+ */
+function parseBinanceUsStatementCsv(csv: string): CsvParseResult {
   const objects = parseCsvToObjects(csv);
   const transactions: ParsedTransaction[] = [];
   const errors: CsvParseError[] = [];
@@ -603,4 +790,15 @@ export function parseBinanceUsCsv(csv: string): CsvParseResult {
       format: "binance",
     },
   };
+}
+
+/**
+ * Parse Binance US transaction history CSV (dispatches to whichever of the
+ * two known export shapes matches the header).
+ */
+export function parseBinanceUsCsv(csv: string): CsvParseResult {
+  const firstLine = csv.split("\n")[0]?.toLowerCase() || "";
+  return isBinanceUsRealizedAmountCsv(firstLine)
+    ? parseBinanceUsRealizedAmountCsv(csv)
+    : parseBinanceUsStatementCsv(csv);
 }
