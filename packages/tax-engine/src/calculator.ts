@@ -25,7 +25,12 @@ import { calculateCanadaACB } from "./methods/canada-acb";
 import { calculateKoreaVirtualAsset } from "./methods/korea-virtual-asset";
 import { calculateIndiaVDA } from "./methods/india-vda";
 import { calculateSpainCGT } from "./methods/spain-cgt";
-import { ukDayIndex, ukDayOfLot, transferredLotId } from "./methods/shared";
+import {
+  ukDayIndex,
+  ukDayOfLot,
+  transferredLotId,
+  baseLotId,
+} from "./methods/shared";
 import type {
   TaxLot,
   TaxableEvent,
@@ -71,6 +76,11 @@ export class CostBasisCalculator {
   /** Transfers between the taxpayer's own wallets, oldest first. */
   private transfers: TransferEvent[] = [];
   private transfersDone = 0;
+  /** Every transfer / consume-only id ever registered (never forgotten). */
+  private seenTransferIds = new Set<string>();
+  private seenConsumeIds = new Set<string>();
+  /** Lots (as bought) that sales have consumed units from. */
+  private consumedBySales = new Set<string>();
   /** Disposals that only use up lots (never reported), oldest first. */
   private consumeOnly: TaxableEvent[] = [];
   private consumeOnlyDone = 0;
@@ -147,8 +157,8 @@ export class CostBasisCalculator {
    * calculated disposal that happens after them. Call before any calculate().
    */
   registerConsumptionEvents(events: TaxableEvent[]): void {
-    const known = new Set(this.consumeOnly.map((e) => e.id));
-    const fresh = events.filter((e) => !known.has(e.id));
+    const fresh = events.filter((e) => !this.seenConsumeIds.has(e.id));
+    for (const e of fresh) this.seenConsumeIds.add(e.id);
     const pending = this.consumeOnly.slice(this.consumeOnlyDone);
     this.consumeOnly = [...pending, ...fresh].sort(
       (a, b) => a.date.getTime() - b.date.getTime(),
@@ -164,12 +174,12 @@ export class CostBasisCalculator {
    * calculated disposal that happens after it. Call before any calculate().
    */
   registerTransfers(transfers: TransferEvent[]): void {
-    const known = new Set(this.transfers.map((t) => t.id));
+    const fresh = transfers.filter((t) => !this.seenTransferIds.has(t.id));
+    for (const t of fresh) this.seenTransferIds.add(t.id);
     const pending = this.transfers.slice(this.transfersDone);
-    this.transfers = [
-      ...pending,
-      ...transfers.filter((t) => !known.has(t.id)),
-    ].sort((a, b) => a.date.getTime() - b.date.getTime());
+    this.transfers = [...pending, ...fresh].sort(
+      (a, b) => a.date.getTime() - b.date.getTime(),
+    );
     this.transfersDone = 0;
   }
 
@@ -297,6 +307,29 @@ export class CostBasisCalculator {
     event: TaxableEvent,
     strictSilo: boolean,
   ): CalculationResult {
+    const result = this.dispatch(event, strictSilo);
+    this.noteConsumed(result);
+    return result;
+  }
+
+  private noteConsumed(result: CalculationResult): void {
+    for (const m of result.matchedLots) {
+      if (m.amountConsumed > 0) this.consumedBySales.add(baseLotId(m.lotId));
+    }
+  }
+
+  /**
+   * Lots (as bought) that any calculated sale has taken units from. Moving
+   * coins between wallets or paying a network fee does not count.
+   */
+  consumedLotIds(): Set<string> {
+    return new Set(this.consumedBySales);
+  }
+
+  private dispatch(
+    event: TaxableEvent,
+    strictSilo: boolean,
+  ): CalculationResult {
     const lots = this.eligibleLots(event);
     switch (this.method) {
       case "FIFO":
@@ -349,7 +382,13 @@ export class CostBasisCalculator {
     selections: LotSelection[],
   ): CalculationResult {
     this.advanceTimeline(event.date, false);
-    return calculateSpecificId(this.eligibleLots(event), event, selections);
+    const result = calculateSpecificId(
+      this.eligibleLots(event),
+      event,
+      selections,
+    );
+    this.noteConsumed(result);
+    return result;
   }
 
   /** Get current method */

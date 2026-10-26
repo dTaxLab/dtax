@@ -215,3 +215,54 @@ describe("transfers and consume-only sales share one timeline (review fixes)", (
     expect(r.unmatchedAmount ?? 0).toBe(0);
   });
 });
+
+describe("review round 3 (engine)", () => {
+  it("registering again after calculating never repeats what already ran", () => {
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([
+      lot("L1", 4, 400, "2023-01-01", "A"),
+      lot("L2", 4, 400, "2023-01-02", "A"),
+    ]);
+    const t1 = move("T1", 4, "2025-01-10", "A", "B");
+    c.registerTransfers([t1]);
+    c.calculate(sale("S1", 0.1, 10, "2025-02-01", "B"), true);
+    c.registerTransfers([t1, move("T2", 1, "2025-03-01", "A", "B")]);
+    c.calculate(sale("S2", 0.1, 10, "2025-03-05", "B"), true);
+    c.registerTransfers([t1, move("T2", 1, "2025-03-01", "A", "B")]); // third time
+    c.calculate(sale("S3", 0.1, 10, "2025-04-01", "B"), true);
+    const inA = c
+      .getLots()
+      .filter((l) => l.sourceId === "A")
+      .reduce((n, l) => n + l.amount, 0);
+    expect(inA).toBeCloseTo(3, 9); // 8 held - 4 (T1) - 1 (T2), once each
+  });
+
+  it("consume-only sales are not consumed twice either", () => {
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([lot("L", 10, 1000, "2023-01-01", "A")]);
+    const u1 = sale("U1", 3, 0, "2025-01-10", "A");
+    c.registerConsumptionEvents([u1]);
+    c.calculate(sale("S1", 1, 100, "2025-02-01", "A"));
+    c.registerConsumptionEvents([u1, sale("U2", 2, 0, "2025-02-05", "A")]);
+    c.calculate(sale("S2", 1, 100, "2025-03-01", "A"));
+    c.registerConsumptionEvents([u1]);
+    c.calculate(sale("S3", 1, 100, "2025-04-01", "A"));
+    expect(c.getLots().reduce((n, l) => n + l.amount, 0)).toBeCloseTo(
+      10 - 3 - 2 - 3,
+      9,
+    );
+  });
+
+  it("only sales count as consuming a lot; a transfer or its fee does not", () => {
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([
+      lot("L", 2, 200, "2023-01-01", "A"),
+      lot("M", 1, 100, "2023-02-01", "A"),
+    ]);
+    c.registerTransfers([
+      { ...move("T", 0.99, "2025-01-10", "A", "B"), feeAmount: 0.01 },
+    ]);
+    c.calculate(sale("S", 0.5, 100, "2025-02-01", "B"), true);
+    expect([...c.consumedLotIds()]).toEqual(["L"]); // the sale used L; M was never touched
+  });
+});
