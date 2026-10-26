@@ -867,4 +867,86 @@ describe("computeWashSaleCarryover", () => {
     );
     expect(out.extraCost.get("before")).toBe(400);
   });
+
+  it("a replacement lot already touched by a sale is not used (the cost would land on sold units)", async () => {
+    const { computeWashSaleCarryover } = await import("../wash-sale");
+    const out = computeWashSaleCarryover(
+      [loss("L", 1, -400, "2024-12-20", ["old"])],
+      [acq("old", 1, "2024-01-01"), acq("r", 10, "2025-01-05")],
+      { touchedLotIds: new Set(["r"]) },
+    );
+    expect(out.extraCost.size).toBe(0);
+  });
+
+  it("sub-cent losses use up no replacement quantity", async () => {
+    const { computeWashSaleCarryover } = await import("../wash-sale");
+    const out = computeWashSaleCarryover(
+      [
+        loss("tiny", 1, -0.001, "2024-12-10", ["a"]),
+        loss("L", 1, -50, "2024-12-12", ["b"]),
+      ],
+      [
+        acq("a", 1, "2024-01-01"),
+        acq("b", 1, "2024-01-02"),
+        acq("r", 1, "2024-12-20"),
+      ],
+    );
+    expect(out.extraCost.get("r")).toBe(50);
+  });
+
+  it("the Form 8949 adjustment and the carried cost come from one allocation", async () => {
+    const { computeWashSaleCarryover, washSaleAdjustmentsFromAllocations } =
+      await import("../wash-sale");
+    const results = [loss("L", 10, -10000, "2023-12-15", ["a"])];
+    const out = computeWashSaleCarryover(results, [
+      acq("a", 10, "2023-06-01"),
+      acq("r1", 4, "2023-12-20"),
+      acq("r2", 6, "2024-01-10"),
+    ]);
+    const adj = washSaleAdjustmentsFromAllocations(out.allocations, results);
+    const carried = [...out.extraCost.values()].reduce((n, v) => n + v, 0);
+    expect(adj).toHaveLength(1);
+    expect(adj[0].disallowedLoss).toBe(carried); // 10000 both ways: never counted twice
+    expect(adj[0].fullDisallowance).toBe(true);
+  });
+});
+
+describe("computeWashSaleCarryover: when a replacement lot counts as touched", () => {
+  const d = (s: string) => new Date(`${s}T00:00:00Z`);
+  const loss = {
+    event: {
+      id: "L",
+      asset: "BTC",
+      amount: 1,
+      proceedsUsd: 0,
+      date: d("2024-12-20"),
+      sourceId: "s",
+    },
+    matchedLots: [
+      { lotId: "old", amountConsumed: 1, costBasisUsd: 0, fullyConsumed: true },
+    ],
+    gainLoss: -400,
+    holdingPeriod: "SHORT_TERM" as const,
+    method: "FIFO",
+  };
+  const acquisitions = [
+    { lotId: "old", asset: "BTC", amount: 1, acquiredAt: d("2024-01-01") },
+    { lotId: "r", asset: "BTC", amount: 1, acquiredAt: d("2025-01-05") },
+  ];
+
+  it("a sale in a LATER year does not disqualify the lot", async () => {
+    const { computeWashSaleCarryover } = await import("../wash-sale");
+    const out = computeWashSaleCarryover([loss], acquisitions, {
+      consumedAt: new Map([["r", d("2025-06-01")]]),
+    });
+    expect(out.extraCost.get("r")).toBe(400);
+  });
+
+  it("a sale in the SAME year as the loss does", async () => {
+    const { computeWashSaleCarryover } = await import("../wash-sale");
+    const out = computeWashSaleCarryover([loss], acquisitions, {
+      consumedAt: new Map([["r", d("2024-12-28")]]),
+    });
+    expect(out.extraCost.size).toBe(0);
+  });
 });

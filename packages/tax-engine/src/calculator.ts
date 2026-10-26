@@ -143,8 +143,10 @@ export class CostBasisCalculator {
    * calculated disposal that happens after them. Call before any calculate().
    */
   registerConsumptionEvents(events: TaxableEvent[]): void {
+    const known = new Set(this.consumeOnly.map((e) => e.id));
+    const fresh = events.filter((e) => !known.has(e.id));
     const pending = this.consumeOnly.slice(this.consumeOnlyDone);
-    this.consumeOnly = [...pending, ...events].sort(
+    this.consumeOnly = [...pending, ...fresh].sort(
       (a, b) => a.date.getTime() - b.date.getTime(),
     );
     this.consumeOnlyDone = 0;

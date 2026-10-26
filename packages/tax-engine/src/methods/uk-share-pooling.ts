@@ -12,6 +12,11 @@
  * Same-day and 30-day matches use the matched lot's own acquisition cost and
  * remove that quantity from the lot, so it never enters the pool afterwards.
  *
+ * Sources: TCGA 1992 s104 (pool), s105(1) (same day, acquisitions of one day
+ * count as a single acquisition), s106A (30 days, earliest acquisition first;
+ * all subject to s105(1)); HMRC Cryptoassets Manual CRYPTO22200-CRYPTO22255.
+ * Not applied: the s106A exclusion for acquisitions made while not UK resident.
+ *
  * Lots must be offered up to 30 days past the disposal day (the calculator
  * does this for this method). Events must be processed in chronological order.
  *

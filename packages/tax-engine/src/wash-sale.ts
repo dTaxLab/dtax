@@ -6,10 +6,10 @@
  * or after the sale, the loss is disallowed. The disallowed loss is
  * added to the cost basis of the replacement lot.
  *
- * Note: As of 2025, wash sale rules technically apply only to "securities"
- * and the IRS has not officially classified all crypto as securities.
- * However, proposed legislation (HR 1data) and conservative tax advice
- * recommend tracking wash sales for crypto. DTax detects and flags them
+ * Note: IRC §1091 is written for "stock or securities". Whether it reaches
+ * digital assets is not settled (the IRS position is still evolving and
+ * legislation has been proposed), so the rule is optional in dTax and off by
+ * default; conservative tax advice recommends tracking wash sales for crypto. DTax detects and flags them
  * as a protective measure. This module only detects: the Form 8949 W
  * adjustment is built from its result, and the API adds each disallowed loss
  * to the cost of its replacement lot in the following year's calculation
@@ -178,37 +178,68 @@ export function detectWashSales(
   };
 }
 
+/** One loss spread over (part of) one replacement lot. */
+export interface WashSaleAllocation {
+  lossEventId: string;
+  asset: string;
+  /** Loss of the whole sale (positive number). */
+  originalLoss: number;
+  replacementLotId: string;
+  replacementDate: Date;
+  /** Units of the replacement lot used for this loss. */
+  quantity: number;
+  /** Loss disallowed on those units (positive number). */
+  disallowed: number;
+}
+
 /** Result of carrying disallowed wash-sale losses into replacement lots. */
 export interface WashSaleCarryover {
   /** Extra cost to add to each replacement lot, by lot id. */
   extraCost: Map<string, number>;
   /** Replacement quantity already used per lot (so it is not used again). */
   usedQuantity: Map<string, number>;
+  /** The same allocation, loss by loss. */
+  allocations: WashSaleAllocation[];
 }
 
 /**
- * Carry the losses disallowed by earlier sales into their replacement lots.
+ * Allocate disallowed wash-sale losses to replacement lots. This is the single
+ * allocation used both for the Form 8949 W adjustment of the year of the sale
+ * and for the cost added to the replacement lot in later years, so the two can
+ * never disagree.
  *
- * Unlike {@link detectWashSales} (which labels one year's Form 8949 lines),
- * this walks the losses in date order and spreads each over the replacement
+ * Walks the losses in date order and spreads each over the replacement
  * quantity that is still free:
  * - a replacement lot can serve several losses until its quantity is used up;
- * - only the lots the loss sale itself consumed are excluded for that loss,
- *   not lots consumed by other sales;
- * - the cost added per unit is the disallowed loss spread over the lot's
- *   original quantity.
+ * - a lot is only a replacement if no sale had touched it by the end of the
+ *   loss's calendar year (`touchedLotIds`: consumed by any sale so far;
+ *   `consumedAt`: the date of the first sale that consumed each lot). The cost
+ *   added later is spread over every unit of the lot, so this keeps it from
+ *   landing on units that were already sold;
+ * - the sold lots of the loss itself are never its replacement;
+ * - sub-cent losses are ignored.
  *
- * @param results - Results of the earlier years' sales that have a price
+ * @param results - Results of the sales that have a price
  * @param acquisitions - Acquisitions as bought (original quantities)
- * @param windowDays - Calendar days before and after the sale (30)
+ * @param options.touchedLotIds - Lots consumed by any sale up to the end of the period
+ * @param options.consumedAt - Date of the first sale that consumed each lot
+ * @param options.windowDays - Calendar days before and after the sale (30)
  */
 export function computeWashSaleCarryover(
   results: CalculationResult[],
   acquisitions: AcquisitionRecord[],
-  windowDays: number = 30,
+  options: {
+    touchedLotIds?: Set<string>;
+    consumedAt?: Map<string, Date>;
+    windowDays?: number;
+  } = {},
 ): WashSaleCarryover {
+  const windowDays = options.windowDays ?? 30;
+  const touched = options.touchedLotIds ?? new Set<string>();
+  const consumedAt = options.consumedAt ?? new Map<string, Date>();
   const extraCost = new Map<string, number>();
   const usedQuantity = new Map<string, number>();
+  const allocations: WashSaleAllocation[] = [];
 
   const byAsset = new Map<string, AcquisitionRecord[]>();
   for (const a of acquisitions) {
@@ -222,7 +253,7 @@ export function computeWashSaleCarryover(
   const dayOf = (d: Date) => Math.floor(d.getTime() / (24 * 60 * 60 * 1000));
 
   const losses = results
-    .filter((r) => r.gainLoss < 0 && r.event.amount > 0)
+    .filter((r) => r.gainLoss <= -0.005 && r.event.amount > 0)
     .sort((a, b) => a.event.date.getTime() - b.event.date.getTime());
 
   for (const loss of losses) {
@@ -230,6 +261,7 @@ export function computeWashSaleCarryover(
     if (!list) continue;
     const sold = new Set(loss.matchedLots.map((m) => m.lotId));
     const saleDay = dayOf(loss.event.date);
+    const yearEnd = Date.UTC(loss.event.date.getUTCFullYear() + 1, 0, 1);
     const perUnitLoss = ddiv(-loss.gainLoss, loss.event.amount);
     let toCover = loss.event.amount;
 
@@ -244,17 +276,57 @@ export function computeWashSaleCarryover(
     for (let i = lo; i < list.length && toCover > 1e-12; i++) {
       const repl = list[i];
       if (dayOf(repl.acquiredAt) > saleDay + windowDays) break;
-      if (sold.has(repl.lotId)) continue;
+      if (sold.has(repl.lotId) || touched.has(repl.lotId)) continue;
+      // touched by a sale up to the end of the loss's calendar year
+      const first = consumedAt.get(repl.lotId);
+      if (first && first.getTime() < yearEnd) continue;
       const free = repl.amount - (usedQuantity.get(repl.lotId) ?? 0);
       if (free <= 1e-12) continue;
       const qty = Math.min(free, toCover);
+      const disallowed = dmul(perUnitLoss, qty);
       usedQuantity.set(repl.lotId, (usedQuantity.get(repl.lotId) ?? 0) + qty);
-      extraCost.set(
-        repl.lotId,
-        (extraCost.get(repl.lotId) ?? 0) + dmul(perUnitLoss, qty),
-      );
+      extraCost.set(repl.lotId, (extraCost.get(repl.lotId) ?? 0) + disallowed);
+      allocations.push({
+        lossEventId: loss.event.id,
+        asset: loss.event.asset,
+        originalLoss: -loss.gainLoss,
+        replacementLotId: repl.lotId,
+        replacementDate: repl.acquiredAt,
+        quantity: qty,
+        disallowed,
+      });
       toCover -= qty;
     }
   }
-  return { extraCost, usedQuantity };
+  return { extraCost, usedQuantity, allocations };
+}
+
+/** One Form 8949 W adjustment per loss, from the shared allocation. */
+export function washSaleAdjustmentsFromAllocations(
+  allocations: WashSaleAllocation[],
+  results: CalculationResult[],
+): WashSaleAdjustment[] {
+  const byLoss = new Map<string, WashSaleAllocation[]>();
+  for (const a of allocations) {
+    const list = byLoss.get(a.lossEventId);
+    if (list) list.push(a);
+    else byLoss.set(a.lossEventId, [a]);
+  }
+  const amountOf = new Map(results.map((r) => [r.event.id, r.event.amount]));
+  const out: WashSaleAdjustment[] = [];
+  for (const [id, list] of byLoss) {
+    const disallowed =
+      Math.round(list.reduce((n, a) => n + a.disallowed, 0) * 100) / 100;
+    const qty = list.reduce((n, a) => n + a.quantity, 0);
+    out.push({
+      lossEventId: id,
+      asset: list[0].asset,
+      originalLoss: -list[0].originalLoss,
+      disallowedLoss: disallowed,
+      replacementLotId: list[0].replacementLotId,
+      replacementDate: list[0].replacementDate,
+      fullDisallowance: qty >= (amountOf.get(id) ?? 0) - 1e-12,
+    });
+  }
+  return out;
 }
