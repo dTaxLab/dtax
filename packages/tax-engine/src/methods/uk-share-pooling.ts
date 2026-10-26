@@ -5,9 +5,10 @@
  * asset (the "Section 104 pool"). Individual lot costs are replaced by the
  * pool average. Lots are consumed FIFO for tracking purposes.
  *
- * Note: Same-day and Bed & Breakfast (30-day) matching rules are tracked
- * but not enforced in this version — they would require event-level lookahead
- * across the full tax year, which is a future enhancement.
+ * Not implemented: HMRC's same-day and Bed & Breakfast (30-day) matching
+ * rules, which take precedence over the pool. A disposal affected by them is
+ * costed from the pool without any flag. (The calculator only offers this
+ * method the lots acquired on or before the disposal date.)
  *
  * @license AGPL-3.0
  */
