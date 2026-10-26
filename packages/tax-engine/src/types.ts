@@ -106,6 +106,9 @@ export interface CalculationResult {
 /**
  * A lot that was matched to a taxable event.
  */
+/** HMRC matching rule that produced a UK share-pooling match. */
+export type UkMatchRule = "SAME_DAY" | "THIRTY_DAY" | "SECTION_104";
+
 export interface MatchedLot {
   /** Reference to the original lot */
   lotId: string;
@@ -120,5 +123,5 @@ export interface MatchedLot {
    * Same-day and 30-day matches use the actual acquisition cost of the lot;
    * SECTION_104 matches use the pool's weighted average cost.
    */
-  rule?: "SAME_DAY" | "THIRTY_DAY" | "SECTION_104";
+  rule?: UkMatchRule;
 }

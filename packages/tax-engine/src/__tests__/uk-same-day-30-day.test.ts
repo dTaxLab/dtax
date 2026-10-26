@@ -213,3 +213,106 @@ describe("UK calendar days", () => {
     expect(r.gainLoss).toBe(100);
   });
 });
+
+describe("reservation for later same-day disposals", () => {
+  const events = (...e: TaxableEvent[]) => e;
+
+  it("registering the same events twice does not double the reservation", () => {
+    const c = uk([
+      lot("P", 10, 1000, "2025-01-01"),
+      lot("L", 2, 100, "2025-03-10"),
+    ]);
+    const d1 = sale("D1", 1, 200, "2025-03-01");
+    const d2 = sale("D2", 1, 200, "2025-03-10");
+    c.registerEvents(events(d1, d2));
+    c.registerEvents(events(d1, d2));
+    const r1 = c.calculate(d1);
+    // L has 2 units, D2 needs 1 on the day: 1 unit is free for D1's 30-day match
+    expect(r1.matchedLots.map((m) => [m.lotId, m.rule])).toEqual([
+      ["L", "THIRTY_DAY"],
+    ]);
+    expect(r1.gainLoss).toBe(200 - 50);
+  });
+
+  it("a reservation larger than the lot leaves the whole lot to the later disposal", () => {
+    const c = uk([
+      lot("P", 10, 1000, "2025-01-01"),
+      lot("L", 1, 50, "2025-03-10"),
+    ]);
+    const d1 = sale("D1", 1, 200, "2025-03-01");
+    const d2 = sale("D2", 3, 600, "2025-03-10");
+    c.registerEvents(events(d1, d2));
+    expect(c.calculate(d1).matchedLots.map((m) => m.rule)).toEqual([
+      "SECTION_104",
+    ]);
+  });
+
+  it("a reservation spanning several lots is taken from the earliest lots first", () => {
+    const c = uk([
+      lot("P", 10, 1000, "2025-01-01"),
+      lot("L1", 1, 50, "2025-03-10"),
+      lot("L2", 1, 70, "2025-03-10"),
+    ]);
+    const d1 = sale("D1", 2, 400, "2025-03-01");
+    const d2 = sale("D2", 1.5, 300, "2025-03-10");
+    c.registerEvents(events(d1, d2));
+    const r1 = c.calculate(d1);
+    // 0.5 of L2 is free for D1; the other 1.5 units come from the pool
+    expect(
+      r1.matchedLots.map((m) => [m.lotId, m.rule, m.amountConsumed]),
+    ).toEqual([
+      ["L2", "THIRTY_DAY", 0.5],
+      ["P", "SECTION_104", 1.5],
+    ]);
+    expect(r1.gainLoss).toBe(400 - 35 - 150);
+  });
+
+  it("with strictSilo only disposals of the same source reserve a lot", () => {
+    const mk = () =>
+      uk([lot("P", 10, 1000, "2025-01-01"), lot("L", 1, 50, "2025-03-10")]);
+    const d1 = sale("D1", 1, 200, "2025-03-01");
+    const d2 = { ...sale("D2", 1, 200, "2025-03-10"), sourceId: "other" };
+    const strict = mk();
+    strict.registerEvents(events(d1, d2));
+    expect(strict.calculate(d1, true).matchedLots[0]).toMatchObject({
+      lotId: "L",
+      rule: "THIRTY_DAY",
+    });
+    const loose = mk();
+    loose.registerEvents(events(d1, d2));
+    expect(loose.calculate(d1, false).matchedLots[0].rule).toBe("SECTION_104");
+  });
+});
+
+describe("UK method scales to large accounts", () => {
+  it("10,000 lots and 3,000 disposals finish in under 5 seconds", () => {
+    const c = uk([]);
+    const lots: TaxLot[] = [];
+    for (let i = 0; i < 10000; i++) {
+      lots.push({
+        id: `l${i}`,
+        asset: i % 2 ? "BTC" : "ETH",
+        amount: 1,
+        costBasisUsd: 100 + i,
+        acquiredAt: new Date(Date.UTC(2020, 0, 1) + i * 3600_000 * 6),
+        sourceId: "s1",
+      });
+    }
+    c.addLots(lots);
+    const evs: TaxableEvent[] = [];
+    for (let i = 0; i < 3000; i++) {
+      evs.push({
+        id: `e${i}`,
+        asset: i % 2 ? "BTC" : "ETH",
+        amount: 0.5,
+        proceedsUsd: 500,
+        date: new Date(Date.UTC(2021, 0, 1) + i * 3600_000 * 12),
+        sourceId: "s1",
+      });
+    }
+    c.registerEvents(evs);
+    const t0 = Date.now();
+    for (const e of evs) c.calculate(e);
+    expect(Date.now() - t0).toBeLessThan(5000);
+  });
+});

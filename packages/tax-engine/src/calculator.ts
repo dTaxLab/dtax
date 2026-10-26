@@ -25,7 +25,7 @@ import { calculateCanadaACB } from "./methods/canada-acb";
 import { calculateKoreaVirtualAsset } from "./methods/korea-virtual-asset";
 import { calculateIndiaVDA } from "./methods/india-vda";
 import { calculateSpainCGT } from "./methods/spain-cgt";
-import { ukDayIndex } from "./methods/shared";
+import { ukDayIndex, ukDayOfLot } from "./methods/shared";
 import type {
   TaxLot,
   TaxableEvent,
@@ -67,8 +67,13 @@ export function getRegisteredStrategies(): string[] {
 export class CostBasisCalculator {
   private method: CostBasisMethod;
   private lots: TaxLot[] = [];
-  private knownEvents: TaxableEvent[] = [];
-  private processedEventIds = new Set<string>();
+  private lotsByAsset = new Map<string, TaxLot[]>();
+  private knownEvents = new Map<string, TaxableEvent>();
+  /** Known disposals per asset, ascending by UK day; rebuilt lazily. */
+  private eventIndex: Map<
+    string,
+    { day: number; event: TaxableEvent }[]
+  > | null = null;
 
   constructor(method: CostBasisMethod = "FIFO") {
     this.method = method;
@@ -76,7 +81,12 @@ export class CostBasisCalculator {
 
   /** Add tax lots (acquisitions) */
   addLots(lots: TaxLot[]): void {
-    this.lots.push(...lots);
+    for (const lot of lots) {
+      this.lots.push(lot);
+      const bucket = this.lotsByAsset.get(lot.asset);
+      if (bucket) bucket.push(lot);
+      else this.lotsByAsset.set(lot.asset, [lot]);
+    }
   }
 
   /**
@@ -87,9 +97,12 @@ export class CostBasisCalculator {
   private eligibleLots(event: TaxableEvent): TaxLot[] {
     // UK share pooling also matches acquisitions up to 30 UK days after the
     // disposal day (same-day / 30-day rules); it applies those rules itself.
+    // It only ever looks at the disposed asset, so hand it just that bucket.
     if (this.method === "UK_SHARE_POOLING") {
       const lastDay = ukDayIndex(event.date) + UK_THIRTY_DAY_WINDOW;
-      return this.lots.filter((lot) => ukDayIndex(lot.acquiredAt) <= lastDay);
+      return (this.lotsByAsset.get(event.asset) ?? []).filter(
+        (lot) => ukDayOfLot(lot) <= lastDay,
+      );
     }
     const cutoff = event.date.getTime();
     return this.lots.filter((lot) => lot.acquiredAt.getTime() <= cutoff);
@@ -100,9 +113,43 @@ export class CostBasisCalculator {
    * them: a disposal on the day a lot was acquired has priority (same-day
    * rule) over an earlier disposal's 30-day match to that lot. Pass the
    * disposals of the period being calculated plus those up to 30 days after.
+   * Registering the same event id again is a no-op.
    */
   registerEvents(events: TaxableEvent[]): void {
-    this.knownEvents.push(...events);
+    for (const e of events) this.knownEvents.set(e.id, e);
+    this.eventIndex = null;
+  }
+
+  /** Known disposals of the asset in the 30 UK days after the event's day. */
+  private laterDisposals(event: TaxableEvent): TaxableEvent[] {
+    if (this.knownEvents.size === 0) return [];
+    if (!this.eventIndex) {
+      const index = new Map<string, { day: number; event: TaxableEvent }[]>();
+      for (const e of this.knownEvents.values()) {
+        const list = index.get(e.asset) ?? [];
+        list.push({ day: ukDayIndex(e.date), event: e });
+        index.set(e.asset, list);
+      }
+      for (const list of index.values()) list.sort((a, b) => a.day - b.day);
+      this.eventIndex = index;
+    }
+    const list = this.eventIndex.get(event.asset);
+    if (!list) return [];
+    const from = ukDayIndex(event.date) + 1;
+    const to = from - 1 + UK_THIRTY_DAY_WINDOW;
+    // first index with day >= from (binary search), then take the window
+    let lo = 0;
+    let hi = list.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (list[mid].day < from) lo = mid + 1;
+      else hi = mid;
+    }
+    const out: TaxableEvent[] = [];
+    for (let i = lo; i < list.length && list[i].day <= to; i++) {
+      out.push(list[i].event);
+    }
+    return out;
   }
 
   /** Calculate gains/losses for a taxable event */
@@ -111,7 +158,6 @@ export class CostBasisCalculator {
     strictSilo: boolean = false,
   ): CalculationResult {
     const lots = this.eligibleLots(event);
-    this.processedEventIds.add(event.id);
     switch (this.method) {
       case "FIFO":
         return calculateFIFO(lots, event, strictSilo);
@@ -130,7 +176,7 @@ export class CostBasisCalculator {
           lots,
           event,
           strictSilo,
-          this.knownEvents.filter((e) => !this.processedEventIds.has(e.id)),
+          this.laterDisposals(event),
         );
       case "AU_CGT_DISCOUNT":
         return calculateAustraliaCGT(lots, event, strictSilo);

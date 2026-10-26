@@ -23,8 +23,14 @@ import type {
   TaxableEvent,
   CalculationResult,
   MatchedLot,
+  UkMatchRule,
 } from "../types";
-import { getHoldingPeriod, rebalanceAverageCost, ukDayIndex } from "./shared";
+import {
+  getHoldingPeriod,
+  rebalanceAverageCost,
+  ukDayIndex,
+  ukDayOfLot,
+} from "./shared";
 import { dadd, dsub, dmul, ddiv, isEffectivelyZero } from "../math";
 
 /** Days after the disposal day in which acquisitions are matched (30-day rule). */
@@ -57,7 +63,7 @@ export function calculateUKSharePooling(
     .sort((a, b) => a.acquiredAt.getTime() - b.acquiredAt.getTime());
 
   const eventDay = ukDayIndex(event.date);
-  const dayOf = (l: TaxLot) => ukDayIndex(l.acquiredAt);
+  const dayOf = ukDayOfLot;
   const sameDayLots = assetLots.filter((l) => dayOf(l) === eventDay);
   const thirtyDayLots = assetLots.filter(
     (l) => dayOf(l) > eventDay && dayOf(l) <= eventDay + UK_THIRTY_DAY_WINDOW,
@@ -73,7 +79,7 @@ export function calculateUKSharePooling(
   const consume = (
     lot: TaxLot,
     amount: number,
-    rule: NonNullable<MatchedLot["rule"]>,
+    rule: UkMatchRule,
     costPerUnit: number,
   ) => {
     const consumeAmount = Math.min(lot.amount, remainingAmount, amount);

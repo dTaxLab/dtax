@@ -36,7 +36,7 @@ export function rebalanceAverageCost(
   }
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+export const DAY_MS = 24 * 60 * 60 * 1000;
 const ukDateFormat = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Europe/London",
   year: "numeric",
@@ -51,4 +51,25 @@ const ukDateFormat = new Intl.DateTimeFormat("en-CA", {
 export function ukDayIndex(d: Date): number {
   const [y, m, day] = ukDateFormat.format(d).split("-").map(Number);
   return Date.UTC(y, m - 1, day) / DAY_MS;
+}
+
+const lotDayCache = new WeakMap<TaxLot, { ms: number; day: number }>();
+
+/**
+ * UK calendar day of a lot's acquisition, cached per lot. Formatting a date in
+ * the Europe/London zone is ~500x slower than a plain comparison and the UK
+ * method asks for it once per lot per disposal.
+ */
+export function ukDayOfLot(lot: TaxLot): number {
+  const ms = lot.acquiredAt.getTime();
+  const hit = lotDayCache.get(lot);
+  if (hit && hit.ms === ms) return hit.day;
+  const day = ukDayIndex(lot.acquiredAt);
+  lotDayCache.set(lot, { ms, day });
+  return day;
+}
+
+/** The UK calendar date (YYYY-MM-DD) of an instant. */
+export function ukDateString(d: Date): string {
+  return ukDateFormat.format(d);
 }

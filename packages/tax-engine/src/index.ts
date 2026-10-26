@@ -15,7 +15,11 @@ export { calculateSpecificId } from "./methods/specific-id";
 export { calculateGermanyFIFO } from "./methods/germany-fifo";
 export { calculatePMPA } from "./methods/pmpa";
 export { calculateTotalAverage } from "./methods/total-average";
-export { calculateUKSharePooling } from "./methods/uk-share-pooling";
+export {
+  calculateUKSharePooling,
+  UK_THIRTY_DAY_WINDOW,
+} from "./methods/uk-share-pooling";
+export { DAY_MS } from "./methods/shared";
 export {
   CostBasisCalculator,
   registerStrategy,
@@ -29,6 +33,7 @@ export type {
   CostBasisMethod,
   CostBasisStrategy,
   LotSelection,
+  UkMatchRule,
 } from "./types";
 
 // CSV Parsers
@@ -93,10 +98,26 @@ export { generateForm8949Pdf } from "./reports/form8949-pdf";
 export { generateReconcilePdf } from "./reports/reconcile-pdf";
 export type { ReconcilePdfOptions } from "./reports/reconcile-pdf";
 export { generateAuditDefensePdf } from "./reports/audit-pdf";
-export type { AuditReportData, AuditTxRow, AuditAccount } from "./reports/audit-pdf";
+export type {
+  AuditReportData,
+  AuditTxRow,
+  AuditAccount,
+} from "./reports/audit-pdf";
 export { generateHoldingsSnapshotPdf } from "./reports/holdings-snapshot-pdf";
-export type { HoldingsSnapshotData, HoldingSnapshotRow } from "./reports/holdings-snapshot-pdf";
+export type {
+  HoldingsSnapshotData,
+  HoldingSnapshotRow,
+} from "./reports/holdings-snapshot-pdf";
 export { form8949ToTxf } from "./reports/form8949-txf";
+export {
+  generateUkDisposalSchedule,
+  ukDisposalScheduleToCsv,
+} from "./reports/uk-disposal-schedule";
+export type {
+  UkDisposalRow,
+  UkDisposalSummary,
+  UkDisposalSchedule,
+} from "./reports/uk-disposal-schedule";
 export { generateScheduleD } from "./reports/schedule-d";
 export type { ScheduleDLine, ScheduleDReport } from "./reports/schedule-d";
 export type {
