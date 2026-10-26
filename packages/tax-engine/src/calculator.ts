@@ -116,7 +116,21 @@ export class CostBasisCalculator {
    * Registering the same event id again is a no-op.
    */
   registerEvents(events: TaxableEvent[]): void {
-    for (const e of events) this.knownEvents.set(e.id, e);
+    for (const e of events) {
+      const known = this.knownEvents.get(e.id);
+      if (
+        known &&
+        known !== e &&
+        (known.date.getTime() !== e.date.getTime() ||
+          known.amount !== e.amount ||
+          known.asset !== e.asset)
+      ) {
+        throw new Error(
+          `registerEvents: two different disposals share id ${e.id}`,
+        );
+      }
+      this.knownEvents.set(e.id, e);
+    }
     this.eventIndex = null;
   }
 

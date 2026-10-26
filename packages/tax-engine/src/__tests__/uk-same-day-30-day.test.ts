@@ -264,7 +264,8 @@ describe("reservation for later same-day disposals", () => {
       ["L2", "THIRTY_DAY", 0.5],
       ["P", "SECTION_104", 1.5],
     ]);
-    expect(r1.gainLoss).toBe(400 - 35 - 150);
+    // L1 and L2 were bought the same day: one acquisition at (50+70)/2 = 60 each
+    expect(r1.gainLoss).toBe(400 - 30 - 150);
   });
 
   it("with strictSilo only disposals of the same source reserve a lot", () => {
@@ -314,5 +315,47 @@ describe("UK method scales to large accounts", () => {
     const t0 = Date.now();
     for (const e of evs) c.calculate(e);
     expect(Date.now() - t0).toBeLessThan(5000);
+  });
+});
+
+describe("one day's acquisitions are a single acquisition at their average cost", () => {
+  it("same-day lots with different prices cost their average, whichever is consumed", () => {
+    const c = uk([
+      lot("P", 5, 500, "2025-01-01"),
+      lot("a", 1, 100, "2025-06-01"),
+      lot("b", 1, 200, "2025-06-01"),
+    ]);
+    const r = c.calculate(sale("S", 1, 300, "2025-06-01"));
+    expect(r.matchedLots[0]).toMatchObject({
+      rule: "SAME_DAY",
+      costBasisUsd: 150,
+    });
+    expect(r.gainLoss).toBe(150);
+    // what is left of that day enters the pool at the same average
+    const r2 = c.calculate(sale("S2", 1, 300, "2025-08-01"));
+    expect(r2.matchedLots.every((m) => m.rule === "SECTION_104")).toBe(true);
+  });
+
+  it("30-day lots acquired on one day are averaged, lots of different days are not", () => {
+    const c = uk([
+      lot("P", 5, 500, "2025-01-01"),
+      lot("d1a", 1, 100, "2025-06-10"),
+      lot("d1b", 1, 300, "2025-06-10"),
+      lot("d2", 1, 900, "2025-06-12"),
+    ]);
+    const r = c.calculate(sale("S", 3, 1000, "2025-06-01"));
+    expect(r.matchedLots.map((m) => [m.lotId, m.costBasisUsd])).toEqual([
+      ["d1a", 200],
+      ["d1b", 200],
+      ["d2", 900],
+    ]);
+  });
+
+  it("two different disposals may not share an id", () => {
+    const c = uk([lot("P", 5, 500, "2025-01-01")]);
+    c.registerEvents([sale("X", 1, 100, "2025-03-01")]);
+    expect(() => c.registerEvents([sale("X", 2, 100, "2025-03-02")])).toThrow(
+      /share id/,
+    );
   });
 });

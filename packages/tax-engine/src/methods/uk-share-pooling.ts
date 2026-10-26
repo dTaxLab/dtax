@@ -107,13 +107,30 @@ export function calculateUKSharePooling(
     return consumeAmount;
   };
 
-  // 1. Same-day: actual cost of the matched lot
-  for (const lot of sameDayLots) {
-    if (!open()) break;
-    consume(lot, lot.amount, "SAME_DAY", ddiv(lot.costBasisUsd, lot.amount));
+  // Acquisitions of one asset on one day count as a single acquisition at their
+  // average cost (TCGA 1992 s105(1)), so the cost does not depend on which lot
+  // of that day is consumed first.
+  const averageCost = (group: TaxLot[]): number => {
+    let amount = 0;
+    let cost = 0;
+    for (const l of group) {
+      amount = dadd(amount, l.amount);
+      cost = dadd(cost, l.costBasisUsd);
+    }
+    return !isEffectivelyZero(amount) ? ddiv(cost, amount) : 0;
+  };
+
+  // 1. Same-day
+  if (sameDayLots.length > 0) {
+    const avg = averageCost(sameDayLots);
+    for (const lot of sameDayLots) {
+      if (!open()) break;
+      consume(lot, lot.amount, "SAME_DAY", avg);
+    }
+    rebalanceAverageCost(sameDayLots, avg);
   }
 
-  // 2. 30-day: actual cost, leaving what later same-day disposals will need
+  // 2. 30-day: day by day, leaving what later same-day disposals will need
   if (open()) {
     const reservedByDay = new Map<number, number>();
     for (const p of pendingDisposals) {
@@ -123,16 +140,27 @@ export function calculateUKSharePooling(
       if (day <= eventDay) continue;
       reservedByDay.set(day, dadd(reservedByDay.get(day) ?? 0, p.amount));
     }
+    const lotsByDay = new Map<number, TaxLot[]>();
     for (const lot of thirtyDayLots) {
-      if (!open()) break;
       const day = dayOf(lot);
-      const reserved = reservedByDay.get(day) ?? 0;
-      // Reserve is taken from the day's earliest lots first
-      const held = Math.min(lot.amount, reserved);
-      reservedByDay.set(day, dsub(reserved, held));
-      const available = dsub(lot.amount, held);
-      if (isEffectivelyZero(available) || available < 0) continue;
-      consume(lot, available, "THIRTY_DAY", ddiv(lot.costBasisUsd, lot.amount));
+      const group = lotsByDay.get(day);
+      if (group) group.push(lot);
+      else lotsByDay.set(day, [lot]);
+    }
+    for (const [day, group] of lotsByDay) {
+      if (!open()) break;
+      const avg = averageCost(group);
+      let reserved = reservedByDay.get(day) ?? 0;
+      for (const lot of group) {
+        if (!open()) break;
+        // The reserve is taken from the day's earliest lots first
+        const held = Math.min(lot.amount, reserved);
+        reserved = dsub(reserved, held);
+        const available = dsub(lot.amount, held);
+        if (isEffectivelyZero(available) || available < 0) continue;
+        consume(lot, available, "THIRTY_DAY", avg);
+      }
+      rebalanceAverageCost(group, avg);
     }
   }
 
