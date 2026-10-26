@@ -115,4 +115,10 @@ export interface MatchedLot {
   costBasisUsd: number;
   /** Whether the lot was fully consumed */
   fullyConsumed: boolean;
+  /**
+   * UK share pooling only: which HMRC matching rule produced this match.
+   * Same-day and 30-day matches use the actual acquisition cost of the lot;
+   * SECTION_104 matches use the pool's weighted average cost.
+   */
+  rule?: "SAME_DAY" | "THIRTY_DAY" | "SECTION_104";
 }

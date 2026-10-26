@@ -43,7 +43,7 @@ function makeEvent(overrides: Partial<TaxableEvent> = {}): TaxableEvent {
     asset: "BTC",
     amount: 1,
     proceedsUsd: 15000,
-    date: new Date("2024-06-01"),
+    date: new Date("2024-07-01"),
     sourceId: "exchange-1",
     ...overrides,
   };
@@ -154,9 +154,10 @@ describe("UK Share Pooling (Section 104)", () => {
     const event2 = makeEvent({ id: "evt-2", amount: 1, proceedsUsd: 50000 });
     const result2 = calculateUKSharePooling(lots, event2);
 
-    // Only lot-2 remains: avg = 40000/1 = 40000
-    // Gain = 50000 - 40000 = 10000
-    expect(result2.gainLoss).toBe(10000);
+    // The pool is 1 BTC at the same 30000 average (total cost 60000, 30000
+    // already used): consuming FIFO does not turn lot-2 back into 40000.
+    // Gain = 50000 - 30000 = 20000
+    expect(result2.gainLoss).toBe(20000);
   });
 
   // 5. No matching lots → zero result

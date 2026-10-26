@@ -33,7 +33,7 @@ import type {
   CalculationResult,
   MatchedLot,
 } from "../types";
-import { getHoldingPeriod } from "./shared";
+import { getHoldingPeriod, rebalanceAverageCost } from "./shared";
 import { dadd, dsub, dmul, ddiv, isEffectivelyZero } from "../math";
 
 /**
@@ -110,6 +110,8 @@ export function calculateCanadaACB(
       earliestLotDate = lot.acquiredAt;
     }
   }
+
+  rebalanceAverageCost(assetLots, acbPerUnit);
 
   const unmatchedAmount =
     !isEffectivelyZero(remainingAmount) && remainingAmount > 0

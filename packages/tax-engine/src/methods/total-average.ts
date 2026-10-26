@@ -15,7 +15,7 @@ import type {
   CalculationResult,
   MatchedLot,
 } from "../types";
-import { getHoldingPeriod } from "./shared";
+import { getHoldingPeriod, rebalanceAverageCost } from "./shared";
 import { dadd, dsub, dmul, ddiv, isEffectivelyZero } from "../math";
 
 /**
@@ -94,6 +94,8 @@ export function calculateTotalAverage(
       earliestLotDate = lot.acquiredAt;
     }
   }
+
+  rebalanceAverageCost(assetLots, avgCostPerUnit);
 
   const unmatchedAmount =
     !isEffectivelyZero(remainingAmount) && remainingAmount > 0

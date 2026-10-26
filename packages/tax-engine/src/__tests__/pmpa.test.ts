@@ -187,8 +187,8 @@ describe("calculatePMPA", () => {
     });
 
     const result2 = calculatePMPA(lots, event2);
-    // Now only lot-2 remains: avg cost = 40000 / 1.0 = 40k
-    expect(result2.gainLoss).toBe(10000); // 50000 - 40000
+    // The pool keeps its 30k average (total cost 60k, 30k already used)
+    expect(result2.gainLoss).toBe(20000); // 50000 - 30000
   });
 
   // ── Test 5: Loss scenario ─────────────────────────

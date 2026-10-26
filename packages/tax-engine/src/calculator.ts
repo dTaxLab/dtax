@@ -15,12 +15,17 @@ import { calculateSpecificId } from "./methods/specific-id";
 import { calculateGermanyFIFO } from "./methods/germany-fifo";
 import { calculatePMPA } from "./methods/pmpa";
 import { calculateTotalAverage } from "./methods/total-average";
-import { calculateUKSharePooling } from "./methods/uk-share-pooling";
+import {
+  calculateUKSharePooling,
+  UK_THIRTY_DAY_WINDOW,
+} from "./methods/uk-share-pooling";
+
 import { calculateAustraliaCGT } from "./methods/australia-cgt";
 import { calculateCanadaACB } from "./methods/canada-acb";
 import { calculateKoreaVirtualAsset } from "./methods/korea-virtual-asset";
 import { calculateIndiaVDA } from "./methods/india-vda";
 import { calculateSpainCGT } from "./methods/spain-cgt";
+import { ukDayIndex } from "./methods/shared";
 import type {
   TaxLot,
   TaxableEvent,
@@ -62,6 +67,8 @@ export function getRegisteredStrategies(): string[] {
 export class CostBasisCalculator {
   private method: CostBasisMethod;
   private lots: TaxLot[] = [];
+  private knownEvents: TaxableEvent[] = [];
+  private processedEventIds = new Set<string>();
 
   constructor(method: CostBasisMethod = "FIFO") {
     this.method = method;
@@ -78,8 +85,24 @@ export class CostBasisCalculator {
    * is still tracked on the calculator's own lots.
    */
   private eligibleLots(event: TaxableEvent): TaxLot[] {
+    // UK share pooling also matches acquisitions up to 30 UK days after the
+    // disposal day (same-day / 30-day rules); it applies those rules itself.
+    if (this.method === "UK_SHARE_POOLING") {
+      const lastDay = ukDayIndex(event.date) + UK_THIRTY_DAY_WINDOW;
+      return this.lots.filter((lot) => ukDayIndex(lot.acquiredAt) <= lastDay);
+    }
     const cutoff = event.date.getTime();
     return this.lots.filter((lot) => lot.acquiredAt.getTime() <= cutoff);
+  }
+
+  /**
+   * Make later disposals known to the calculator. Only UK share pooling uses
+   * them: a disposal on the day a lot was acquired has priority (same-day
+   * rule) over an earlier disposal's 30-day match to that lot. Pass the
+   * disposals of the period being calculated plus those up to 30 days after.
+   */
+  registerEvents(events: TaxableEvent[]): void {
+    this.knownEvents.push(...events);
   }
 
   /** Calculate gains/losses for a taxable event */
@@ -88,6 +111,7 @@ export class CostBasisCalculator {
     strictSilo: boolean = false,
   ): CalculationResult {
     const lots = this.eligibleLots(event);
+    this.processedEventIds.add(event.id);
     switch (this.method) {
       case "FIFO":
         return calculateFIFO(lots, event, strictSilo);
@@ -102,7 +126,12 @@ export class CostBasisCalculator {
       case "TOTAL_AVERAGE":
         return calculateTotalAverage(lots, event, strictSilo);
       case "UK_SHARE_POOLING":
-        return calculateUKSharePooling(lots, event, strictSilo);
+        return calculateUKSharePooling(
+          lots,
+          event,
+          strictSilo,
+          this.knownEvents.filter((e) => !this.processedEventIds.has(e.id)),
+        );
       case "AU_CGT_DISCOUNT":
         return calculateAustraliaCGT(lots, event, strictSilo);
       case "CA_ACB":

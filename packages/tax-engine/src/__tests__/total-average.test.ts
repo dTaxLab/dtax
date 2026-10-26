@@ -143,8 +143,8 @@ describe("calculateTotalAverage", () => {
     });
 
     const result2 = calculateTotalAverage(lots, event2);
-    // Only lot-2 left: avg = 30000 / 1 = 30k
-    expect(result2.gainLoss).toBe(5000); // 35000 - 30000
+    // The pool keeps its 20k average (total cost 40k, 20k already used)
+    expect(result2.gainLoss).toBe(15000); // 35000 - 20000
   });
 
   // ── Test 4: Empty lots edge case ──────────────────
