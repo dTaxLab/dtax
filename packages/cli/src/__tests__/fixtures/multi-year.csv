@@ -1,0 +1,5 @@
+Type,Timestamp,Received Asset,Received Amount,Received Value USD,Sent Asset,Sent Amount,Sent Value USD
+BUY,2023-01-01T00:00:00Z,BTC,1,10000,,,
+BUY,2023-06-01T00:00:00Z,BTC,1,30000,,,
+SELL,2024-03-01T00:00:00Z,,,,BTC,1,20000
+SELL,2025-03-01T00:00:00Z,,,,BTC,1,50000

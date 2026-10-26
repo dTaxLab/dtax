@@ -220,11 +220,11 @@ function calculate(files: string[], flags: Record<string, string>): void {
   events.sort((a, b) => a.date.getTime() - b.date.getTime());
   calculator.registerEvents(events);
   const reportEvents = yearFilter
-    ? events.filter((e) => e.date.getFullYear() === yearFilter)
+    ? events.filter((e) => e.date.getUTCFullYear() === yearFilter)
     : events;
   for (const event of events) {
     const result = calculator.calculate(event);
-    if (yearFilter && event.date.getFullYear() !== yearFilter) continue;
+    if (yearFilter && event.date.getUTCFullYear() !== yearFilter) continue;
     results.push(result);
 
     if (result.holdingPeriod === "SHORT_TERM") {
@@ -268,7 +268,7 @@ function calculate(files: string[], flags: Record<string, string>): void {
 
   // Form 8949 + Schedule D generation
   const lotDates: LotDateMap = new Map(lots.map((l) => [l.id, l.acquiredAt]));
-  const taxYear = yearFilter || new Date().getFullYear();
+  const taxYear = yearFilter || new Date().getUTCFullYear();
   const form8949Report = generateForm8949(results, {
     taxYear,
     lotDates,

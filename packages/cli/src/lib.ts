@@ -99,7 +99,7 @@ export function toTaxableEvent(
   if (!asset || !amount || amount <= 0) return null;
 
   const eventDate = new Date(tx.timestamp);
-  if (yearFilter && eventDate.getFullYear() !== yearFilter) return null;
+  if (yearFilter && eventDate.getUTCFullYear() !== yearFilter) return null;
 
   return {
     id: `evt-${index}`,

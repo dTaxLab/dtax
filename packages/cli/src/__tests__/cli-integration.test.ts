@@ -50,6 +50,17 @@ describe("CLI Integration", () => {
       expect(output.length).toBeGreaterThan(0);
     });
 
+    it("--year still lets earlier years' sales use up their lots", () => {
+      // 2024 sale consumes the 10000 lot, so the 2025 sale (FIFO) uses the
+      // 30000 lot: gain 20000. Ignoring the 2024 sale would report 40000.
+      const output = runCli(
+        `calculate ${path.join(FIXTURE_DIR, "multi-year.csv")} --year 2025 --json`,
+      );
+      const parsed = JSON.parse(output.slice(output.indexOf("{")));
+      expect(parsed.totalDispositions).toBe(1);
+      expect(parsed.results[0].gainLoss).toBe(20000);
+    });
+
     it("should output JSON with --json flag", () => {
       const output = runCli(`calculate ${COINBASE} --json`);
       // The CLI prints info lines before the JSON block; extract the JSON portion
