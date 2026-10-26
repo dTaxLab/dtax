@@ -399,3 +399,69 @@ describe("review round 4 (engine)", () => {
     expect(Date.now() - t0).toBeLessThan(3000);
   });
 });
+
+describe("review round 5 (engine)", () => {
+  it("the guard remembers everything applied, not only the last list entry", () => {
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([lot("L", 10, 1000, "2023-01-01", "A")]);
+    c.registerTransfers([move("T1", 1, "2025-01-10", "A", "B")]);
+    c.calculate(sale("S", 1, 100, "2025-02-01", "B"), true);
+    c.registerTransfers([move("T3", 1, "2025-04-01", "A", "B")]); // later: fine
+    expect(() =>
+      c.registerTransfers([move("T0", 1, "2025-01-05", "A", "C")]),
+    ).toThrow(/dated before/);
+  });
+
+  it("a transfer cannot be registered before a sale that was already calculated", () => {
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([lot("L", 10, 1000, "2023-01-01", "A")]);
+    c.calculate(sale("S", 1, 100, "2025-06-01", "A"), true);
+    expect(() =>
+      c.registerTransfers([move("T", 1, "2025-03-01", "A", "B")]),
+    ).toThrow(/dated before/);
+  });
+
+  it("transfers and consume-only sales check each other", () => {
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([lot("L", 10, 1000, "2023-01-01", "A")]);
+    c.registerConsumptionEvents([sale("U", 1, 0, "2025-06-01", "A")]);
+    c.calculate(sale("S", 1, 100, "2025-07-01", "A"), true);
+    expect(() =>
+      c.registerTransfers([move("T", 1, "2025-03-01", "A", "B")]),
+    ).toThrow(/dated before/);
+  });
+
+  it("the same date is allowed", () => {
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([lot("L", 10, 1000, "2023-01-01", "A")]);
+    c.calculate(sale("S", 1, 100, "2025-06-01", "A"), true);
+    expect(() =>
+      c.registerTransfers([move("T", 1, "2025-06-01", "A", "B")]),
+    ).not.toThrow();
+  });
+
+  it("50,000 lots in ONE wallet and 2,000 small transfers stay fast (sorted wallet list)", () => {
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots(
+      Array.from({ length: 50000 }, (_, i) => ({
+        ...lot(`l${i}`, 1, 100, "2023-01-01", "big"),
+        acquiredAt: new Date(Date.UTC(2023, 0, 1) + i * 60000),
+      })),
+    );
+    c.registerTransfers(
+      Array.from({ length: 2000 }, (_, i) => ({
+        ...move(`t${i}`, 0.5, "2024-01-01", "big", "small"),
+        date: new Date(Date.UTC(2024, 0, 1) + i * 60000),
+      })),
+    );
+    const t0 = Date.now();
+    c.applyConsumptionUntil(d("2025-01-01"), true);
+    expect(Date.now() - t0).toBeLessThan(1500);
+    expect(
+      c
+        .getLots()
+        .filter((l) => l.sourceId === "small")
+        .reduce((n, l) => n + l.amount, 0),
+    ).toBeCloseTo(1000, 6);
+  });
+});

@@ -76,6 +76,8 @@ export class CostBasisCalculator {
   /** Transfers between the taxpayer's own wallets, oldest first. */
   private transfers: TransferEvent[] = [];
   private transfersDone = 0;
+  /** Latest date of anything applied so far (time never goes backwards). */
+  private lastAppliedAt = -Infinity;
   /** Every transfer / consume-only id ever registered (never forgotten). */
   private seenTransferIds = new Set<string>();
   private seenConsumeIds = new Set<string>();
@@ -86,7 +88,7 @@ export class CostBasisCalculator {
   private consumeOnlyDone = 0;
   private lotsByAsset = new Map<string, TaxLot[]>();
   /** Lots of one asset in one wallet, so a transfer does not scan every lot. */
-  private lotsByWallet = new Map<string, Set<TaxLot>>();
+  private lotsByWallet = new Map<string, TaxLot[]>();
   /** Order lots were added: breaks ties between lots acquired at the same time. */
   private lotSeq = new WeakMap<TaxLot, number>();
   private nextSeq = 0;
@@ -101,14 +103,34 @@ export class CostBasisCalculator {
     this.method = method;
   }
 
-  private walletBucket(asset: string, sourceId: string): Set<TaxLot> {
+  private walletBucket(asset: string, sourceId: string): TaxLot[] {
     const key = `${asset}\u0000${sourceId}`;
-    let set = this.lotsByWallet.get(key);
-    if (!set) {
-      set = new Set();
-      this.lotsByWallet.set(key, set);
+    let list = this.lotsByWallet.get(key);
+    if (!list) {
+      list = [];
+      this.lotsByWallet.set(key, list);
     }
-    return set;
+    return list;
+  }
+
+  /** Order of lots inside a wallet: acquisition time, then the order added. */
+  private lotOrder(a: TaxLot, b: TaxLot): number {
+    return (
+      a.acquiredAt.getTime() - b.acquiredAt.getTime() ||
+      (this.lotSeq.get(a) ?? 0) - (this.lotSeq.get(b) ?? 0)
+    );
+  }
+
+  /** Insert into a wallet's list, keeping it ordered (binary search). */
+  private insertSorted(list: TaxLot[], lot: TaxLot): void {
+    let lo = 0;
+    let hi = list.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (this.lotOrder(list[mid], lot) <= 0) lo = mid + 1;
+      else hi = mid;
+    }
+    list.splice(lo, 0, lot);
   }
 
   /** Add tax lots (acquisitions) */
@@ -119,7 +141,7 @@ export class CostBasisCalculator {
       if (bucket) bucket.push(lot);
       else this.lotsByAsset.set(lot.asset, [lot]);
       this.lotSeq.set(lot, this.nextSeq++);
-      this.walletBucket(lot.asset, lot.sourceId).add(lot);
+      this.insertSorted(this.walletBucket(lot.asset, lot.sourceId), lot);
     }
   }
 
@@ -175,10 +197,7 @@ export class CostBasisCalculator {
    */
   registerConsumptionEvents(events: TaxableEvent[]): void {
     const fresh = events.filter((e) => !this.seenConsumeIds.has(e.id));
-    this.assertNotBeforeExecuted(
-      fresh,
-      this.consumeOnly[this.consumeOnlyDone - 1],
-    );
+    this.assertNotBeforeApplied(fresh);
     for (const e of fresh) this.seenConsumeIds.add(e.id);
     const pending = this.consumeOnly.slice(this.consumeOnlyDone);
     this.consumeOnly = [...pending, ...fresh].sort(
@@ -190,15 +209,12 @@ export class CostBasisCalculator {
 
   /**
    * Events can be added after others have already run, but not dated before
-   * the last one that ran: it would be applied late, against lots that have
-   * moved or been used since, and fail silently.
+   * anything already applied (a transfer, a consume-only sale or a calculated
+   * sale): it would be applied late, against lots that have moved or been used
+   * since, and fail silently.
    */
-  private assertNotBeforeExecuted(
-    fresh: { id: string; date: Date }[],
-    lastDone: { date: Date } | undefined,
-  ): void {
-    if (!lastDone) return;
-    const late = fresh.find((e) => e.date.getTime() < lastDone.date.getTime());
+  private assertNotBeforeApplied(fresh: { id: string; date: Date }[]): void {
+    const late = fresh.find((e) => e.date.getTime() < this.lastAppliedAt);
     if (late) {
       throw new Error(
         `Event ${late.id} is dated before one that has already been applied; register events before calculating`,
@@ -214,7 +230,7 @@ export class CostBasisCalculator {
    */
   registerTransfers(transfers: TransferEvent[]): void {
     const fresh = transfers.filter((t) => !this.seenTransferIds.has(t.id));
-    this.assertNotBeforeExecuted(fresh, this.transfers[this.transfersDone - 1]);
+    this.assertNotBeforeApplied(fresh);
     for (const t of fresh) this.seenTransferIds.add(t.id);
     const pending = this.transfers.slice(this.transfersDone);
     this.transfers = [...pending, ...fresh].sort(
@@ -260,31 +276,28 @@ export class CostBasisCalculator {
    * fee units from the sending wallet (their cost is not claimed).
    */
   private moveLots(t: TransferEvent): void {
+    this.lastAppliedAt = Math.max(this.lastAppliedAt, t.date.getTime());
     if (t.fromSourceId === t.toSourceId) return;
     let toMove = t.amount;
     let toDrop = t.feeAmount ?? 0;
-    const fromBucket = this.walletBucket(t.asset, t.fromSourceId);
-    const candidates = [...fromBucket]
-      .filter((l) => {
-        if (l.amount <= 1e-12) {
-          fromBucket.delete(l); // used up: drop it from the index
-          return false;
-        }
-        return l.acquiredAt.getTime() <= t.date.getTime();
-      })
-      .sort(
-        (a, b) =>
-          a.acquiredAt.getTime() - b.acquiredAt.getTime() ||
-          (this.lotSeq.get(a) ?? 0) - (this.lotSeq.get(b) ?? 0),
-      );
-    for (const lot of candidates) {
-      if (toMove <= 1e-12 && toDrop <= 1e-12) break;
+    const fromList = this.walletBucket(t.asset, t.fromSourceId);
+    const limit = t.date.getTime();
+    // The list is ordered, so the lots to move are at the front: walk it until
+    // everything is placed or the lots become too recent.
+    let i = 0;
+    while (i < fromList.length && (toMove > 1e-12 || toDrop > 1e-12)) {
+      const lot = fromList[i];
+      if (lot.amount <= 1e-12) {
+        fromList.splice(i, 1); // used up: drop it from the index
+        continue;
+      }
+      if (lot.acquiredAt.getTime() > limit) break;
       if (toMove > 1e-12) {
         if (lot.amount <= toMove + 1e-12) {
           toMove -= lot.amount;
           lot.sourceId = t.toSourceId; // the whole lot moves
-          fromBucket.delete(lot);
-          this.walletBucket(t.asset, t.toSourceId).add(lot);
+          fromList.splice(i, 1);
+          this.insertSorted(this.walletBucket(t.asset, t.toSourceId), lot);
           continue;
         }
         const share = toMove / lot.amount;
@@ -307,6 +320,7 @@ export class CostBasisCalculator {
         lot.amount -= take;
         toDrop -= take;
       }
+      i++;
     }
   }
 
@@ -355,6 +369,7 @@ export class CostBasisCalculator {
     event: TaxableEvent,
     strictSilo: boolean,
   ): CalculationResult {
+    this.lastAppliedAt = Math.max(this.lastAppliedAt, event.date.getTime());
     const result = this.dispatch(event, strictSilo);
     this.noteConsumed(result);
     return result;
