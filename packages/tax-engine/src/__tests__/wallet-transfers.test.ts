@@ -266,3 +266,136 @@ describe("review round 3 (engine)", () => {
     expect([...c.consumedLotIds()]).toEqual(["L"]); // the sale used L; M was never touched
   });
 });
+
+describe("review round 4 (engine)", () => {
+  it("an event dated before one that already ran is refused, not applied late", () => {
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([lot("L", 10, 1000, "2023-01-01", "A")]);
+    c.registerTransfers([move("T1", 4, "2025-01-10", "A", "B")]);
+    c.calculate(sale("S", 1, 100, "2025-02-01", "B"), true);
+    expect(() =>
+      c.registerTransfers([move("T0", 2, "2025-01-05", "A", "C")]),
+    ).toThrow(/dated before/);
+    // later events are fine
+    expect(() =>
+      c.registerTransfers([move("T2", 1, "2025-03-01", "A", "C")]),
+    ).not.toThrow();
+  });
+
+  it("the same for consume-only sales", () => {
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([lot("L", 10, 1000, "2023-01-01", "A")]);
+    c.registerConsumptionEvents([sale("U1", 1, 0, "2025-01-10", "A")]);
+    c.calculate(sale("S", 1, 100, "2025-02-01", "A"));
+    expect(() =>
+      c.registerConsumptionEvents([sale("U0", 1, 0, "2025-01-05", "A")]),
+    ).toThrow(/dated before/);
+  });
+
+  it("the wallet index gives the same lots as scanning every lot (random transfers and sales)", () => {
+    let seed = 12345;
+    const rnd = () =>
+      (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+    const wallets = ["A", "B", "C"];
+    for (let run = 0; run < 60; run++) {
+      const lots = Array.from({ length: 8 }, (_, i) =>
+        lot(
+          `l${i}`,
+          1 + Math.floor(rnd() * 5),
+          100 + i,
+          `2023-0${1 + (i % 9)}-0${1 + (i % 8)}`,
+          wallets[Math.floor(rnd() * 3)],
+        ),
+      );
+      const transfers = Array.from({ length: 6 }, (_, i) => {
+        const from = wallets[Math.floor(rnd() * 3)];
+        let to = wallets[Math.floor(rnd() * 3)];
+        if (to === from) to = wallets[(wallets.indexOf(from) + 1) % 3];
+        return move(`t${i}`, 0.5 + rnd() * 4, `2024-0${1 + i}-15`, from, to);
+      });
+      const run1 = (items: TaxLot[]) => {
+        const c = new CostBasisCalculator("FIFO");
+        c.addLots(items.map((l) => ({ ...l })));
+        c.registerTransfers(transfers);
+        c.applyConsumptionUntil(d("2025-01-01"), true);
+        return c
+          .getLots()
+          .map(
+            (l) =>
+              `${l.id}:${l.sourceId}:${l.amount.toFixed(6)}:${l.costBasisUsd.toFixed(6)}`,
+          )
+          .sort();
+      };
+      // brute force: apply every transfer by scanning all lots, earliest first
+      const brute = (items: TaxLot[]) => {
+        const all = items.map((l) => ({ ...l }));
+        for (const t of [...transfers].sort(
+          (a, b) => a.date.getTime() - b.date.getTime(),
+        )) {
+          let left = t.amount;
+          const cands = all
+            .filter(
+              (l) =>
+                l.asset === t.asset &&
+                l.sourceId === t.fromSourceId &&
+                l.amount > 1e-12 &&
+                l.acquiredAt <= t.date,
+            )
+            .sort((a, b) => a.acquiredAt.getTime() - b.acquiredAt.getTime());
+          for (const l of cands) {
+            if (left <= 1e-12) break;
+            if (l.amount <= left + 1e-12) {
+              left -= l.amount;
+              l.sourceId = t.toSourceId;
+              continue;
+            }
+            const share = left / l.amount;
+            const cost = l.costBasisUsd * share;
+            all.push({
+              ...l,
+              id: `${l.id}~t${t.id}`,
+              amount: left,
+              costBasisUsd: cost,
+              sourceId: t.toSourceId,
+            });
+            l.amount -= left;
+            l.costBasisUsd -= cost;
+            left = 0;
+          }
+        }
+        return all
+          .map(
+            (l) =>
+              `${l.id}:${l.sourceId}:${l.amount.toFixed(6)}:${l.costBasisUsd.toFixed(6)}`,
+          )
+          .sort();
+      };
+      expect(run1(lots)).toEqual(brute(lots));
+    }
+  });
+
+  it("20,000 lots and 5,000 transfers over 10 wallets finish quickly", () => {
+    const wallets = Array.from({ length: 10 }, (_, i) => `w${i}`);
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots(
+      Array.from({ length: 20000 }, (_, i) =>
+        lot(`l${i}`, 1, 100, "2023-01-01", wallets[i % 10]),
+      ),
+    );
+    c.registerTransfers(
+      Array.from({ length: 5000 }, (_, i) => ({
+        ...move(
+          `t${i}`,
+          0.5,
+          "2024-01-01",
+          wallets[i % 10],
+          wallets[(i + 1) % 10],
+        ),
+        date: new Date(Date.UTC(2024, 0, 1) + i * 60000),
+      })),
+    );
+    const t0 = Date.now();
+    c.applyConsumptionUntil(d("2025-01-01"), true);
+    expect(Date.now() - t0).toBeLessThan(3000);
+  });
+});
