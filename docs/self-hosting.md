@@ -9,8 +9,11 @@ The API and web application are proprietary (see `LICENSE-COMMERCIAL`), so this 
 To self-host, email support@getdtax.com to request registry access. You will receive a GitHub account/token with read access to the images; then log in before step 3:
 
 ```bash
+read -rs GHCR_TOKEN        # paste the token; it is not echoed or kept in shell history
 echo "$GHCR_TOKEN" | docker login ghcr.io -u <your-github-username> --password-stdin
 ```
+
+Do not put the token on a command line or in a file under version control.
 
 **Known limitation:** the web image bakes `NEXT_PUBLIC_*` values (including `NEXT_PUBLIC_API_URL`) into its JavaScript at build time. Until a runtime-configurable web image is published, a customer-specific domain requires a web image built for that domain; tell us your domain when you request access.
 
@@ -40,13 +43,14 @@ cp .env.production.example .env
 
 Edit `.env` and set **all required values**:
 
-| Variable            | Description                                                                                                     |
-| ------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `POSTGRES_PASSWORD` | Strong database password                                                                                        |
-| `JWT_SECRET`        | Random string, at least 32 characters                                                                           |
-| `ENCRYPTION_KEY`    | **64-character hex string** (32 raw bytes). Use `openssl rand -hex 32` — other formats crash the API on startup |
-| `CORS_ORIGIN`       | Your domain, e.g. `https://tax.example.com`                                                                     |
-| `APP_URL`           | Public URL of your web app (used in password-reset emails), e.g. `https://tax.example.com`                      |
+| Variable              | Description                                                                                                          |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_PASSWORD`   | Strong database password                                                                                             |
+| `JWT_SECRET`          | Random string, at least 32 characters                                                                                |
+| `ENCRYPTION_KEY`      | **64-character hex string** (32 raw bytes). Use `openssl rand -hex 32` — other formats crash the API on startup      |
+| `CORS_ORIGIN`         | Your domain, e.g. `https://tax.example.com`                                                                          |
+| `APP_URL`             | Public URL of your web app (used in password-reset emails), e.g. `https://tax.example.com`                           |
+| `NEXT_PUBLIC_API_URL` | Public URL of the API, e.g. `https://tax.example.com/api`. Baked into the web image at build time (see Availability) |
 
 Generate secure secrets:
 
