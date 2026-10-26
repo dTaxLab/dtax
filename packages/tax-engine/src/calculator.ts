@@ -133,7 +133,10 @@ export class CostBasisCalculator {
     list.splice(lo, 0, lot);
   }
 
-  /** Add tax lots (acquisitions) */
+  /**
+   * Add tax lots (acquisitions). A lot's acquiredAt must not change after it
+   * is added: the per-wallet lists are kept sorted by it.
+   */
   addLots(lots: TaxLot[]): void {
     for (const lot of lots) {
       this.lots.push(lot);
@@ -445,6 +448,7 @@ export class CostBasisCalculator {
     selections: LotSelection[],
   ): CalculationResult {
     this.advanceTimeline(event.date, false);
+    this.lastAppliedAt = Math.max(this.lastAppliedAt, event.date.getTime());
     const result = calculateSpecificId(
       this.eligibleLots(event),
       event,

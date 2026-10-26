@@ -51,6 +51,16 @@ export function matchInternalTransfers(
     .filter((t) => t.type === "TRANSFER_IN" || t.type === "BRIDGE_IN")
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
+  // Ins bucketed by asset, each bucket keeps the global time order, so the
+  // candidates of an out are one binary-searched slice instead of every in.
+  const insByAsset = new Map<string, TransferRecord[]>();
+  for (const t of ins) {
+    const bucket = insByAsset.get(t.asset);
+    if (bucket) bucket.push(t);
+    else insByAsset.set(t.asset, [t]);
+  }
+  const CLOCK_SKEW_MS = 60000;
+
   const matched: InternalTransferMatch[] = [];
   const usedIns = new Set<string>();
 
@@ -59,7 +69,23 @@ export function matchInternalTransfers(
     let smallestAmountDiff = Infinity;
     let smallestTimeDiff = Infinity;
 
-    for (const inTx of ins) {
+    const bucket = insByAsset.get(outTx.asset) ?? [];
+    const earliest = outTx.timestamp.getTime() - CLOCK_SKEW_MS;
+    let lo = 0;
+    let hi = bucket.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (bucket[mid].timestamp.getTime() < earliest) lo = mid + 1;
+      else hi = mid;
+    }
+
+    for (let i = lo; i < bucket.length; i++) {
+      const inTx = bucket[i];
+      if (
+        inTx.timestamp.getTime() - outTx.timestamp.getTime() >
+        maxTimeWindowMs
+      )
+        break;
       // Skip if already assigned, wrong asset, or same wallet source
       // CSV-6: transfers from the same sourceId are not internal transfers
       if (usedIns.has(inTx.id)) continue;
@@ -96,9 +122,8 @@ export function matchInternalTransfers(
     }
   }
 
-  const unmatchedOut = outs.filter(
-    (t) => !matched.some((m) => m.outTx.id === t.id),
-  );
+  const matchedOutIds = new Set(matched.map((m) => m.outTx.id));
+  const unmatchedOut = outs.filter((t) => !matchedOutIds.has(t.id));
   const unmatchedIn = ins.filter((t) => !usedIns.has(t.id));
 
   return { matched, unmatchedOut, unmatchedIn };

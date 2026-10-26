@@ -498,3 +498,68 @@ describe("matchInternalTransfers — edge cases", () => {
     expect(result.unmatchedIn).toHaveLength(1);
   });
 });
+
+describe("matchInternalTransfers: bucketed search equals the full scan", () => {
+  // Reference: the original all-pairs algorithm.
+  function reference(
+    transfers: TransferRecord[],
+    windowMs = 24 * 60 * 60 * 1000,
+  ) {
+    const outs = transfers
+      .filter((t) => t.type === "TRANSFER_OUT")
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    const ins = transfers
+      .filter((t) => t.type === "TRANSFER_IN")
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    const used = new Set<string>();
+    const pairs: string[] = [];
+    for (const o of outs) {
+      let best: TransferRecord | null = null;
+      let bd = Infinity;
+      let bt = Infinity;
+      for (const i of ins) {
+        if (used.has(i.id) || i.asset !== o.asset || i.sourceId === o.sourceId)
+          continue;
+        const td = i.timestamp.getTime() - o.timestamp.getTime();
+        if (td < -60000 || td > windowMs) continue;
+        const ad = o.amount - i.amount;
+        if (ad >= -0.00000001) {
+          if (ad < bd || (Math.abs(ad - bd) < 0.00000001 && td < bt)) {
+            bd = ad;
+            bt = td;
+            best = i;
+          }
+        }
+      }
+      if (best) {
+        pairs.push(`${o.id}>${best.id}`);
+        used.add(best.id);
+      }
+    }
+    return pairs;
+  }
+
+  it("gives the same pairs on 300 random sets", () => {
+    let seed = 7;
+    const rnd = () =>
+      (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+    for (let round = 0; round < 300; round++) {
+      const rows: TransferRecord[] = [];
+      const n = 2 + Math.floor(rnd() * 40);
+      for (let k = 0; k < n; k++) {
+        rows.push({
+          id: `r${k}`,
+          sourceId: `w${Math.floor(rnd() * 3)}`,
+          type: rnd() < 0.5 ? "TRANSFER_OUT" : "TRANSFER_IN",
+          timestamp: new Date(1_700_000_000_000 + Math.floor(rnd() * 5e6) * 60),
+          asset: rnd() < 0.7 ? "BTC" : "ETH",
+          amount: Math.floor(rnd() * 4) / 2 + 0.5,
+        });
+      }
+      const got = matchInternalTransfers(rows).matched.map(
+        (m) => `${m.outTx.id}>${m.inTx.id}`,
+      );
+      expect(got).toEqual(reference(rows));
+    }
+  });
+});
