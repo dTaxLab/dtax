@@ -72,36 +72,47 @@ export class CostBasisCalculator {
     this.lots.push(...lots);
   }
 
+  /**
+   * Lots a disposal may consume: only those acquired at or before the
+   * disposal time. Lots are shared by reference, so consumption by a method
+   * is still tracked on the calculator's own lots.
+   */
+  private eligibleLots(event: TaxableEvent): TaxLot[] {
+    const cutoff = event.date.getTime();
+    return this.lots.filter((lot) => lot.acquiredAt.getTime() <= cutoff);
+  }
+
   /** Calculate gains/losses for a taxable event */
   calculate(
     event: TaxableEvent,
     strictSilo: boolean = false,
   ): CalculationResult {
+    const lots = this.eligibleLots(event);
     switch (this.method) {
       case "FIFO":
-        return calculateFIFO(this.lots, event, strictSilo);
+        return calculateFIFO(lots, event, strictSilo);
       case "LIFO":
-        return calculateLIFO(this.lots, event, strictSilo);
+        return calculateLIFO(lots, event, strictSilo);
       case "HIFO":
-        return calculateHIFO(this.lots, event, strictSilo);
+        return calculateHIFO(lots, event, strictSilo);
       case "GERMANY_FIFO":
-        return calculateGermanyFIFO(this.lots, event, strictSilo);
+        return calculateGermanyFIFO(lots, event, strictSilo);
       case "PMPA":
-        return calculatePMPA(this.lots, event, strictSilo);
+        return calculatePMPA(lots, event, strictSilo);
       case "TOTAL_AVERAGE":
-        return calculateTotalAverage(this.lots, event, strictSilo);
+        return calculateTotalAverage(lots, event, strictSilo);
       case "UK_SHARE_POOLING":
-        return calculateUKSharePooling(this.lots, event, strictSilo);
+        return calculateUKSharePooling(lots, event, strictSilo);
       case "AU_CGT_DISCOUNT":
-        return calculateAustraliaCGT(this.lots, event, strictSilo);
+        return calculateAustraliaCGT(lots, event, strictSilo);
       case "CA_ACB":
-        return calculateCanadaACB(this.lots, event, strictSilo);
+        return calculateCanadaACB(lots, event, strictSilo);
       case "KR_VIRTUAL_ASSET":
-        return calculateKoreaVirtualAsset(this.lots, event, strictSilo);
+        return calculateKoreaVirtualAsset(lots, event, strictSilo);
       case "IN_VDA":
-        return calculateIndiaVDA(this.lots, event, strictSilo);
+        return calculateIndiaVDA(lots, event, strictSilo);
       case "ES_CGT":
-        return calculateSpainCGT(this.lots, event, strictSilo);
+        return calculateSpainCGT(lots, event, strictSilo);
       case "SPECIFIC_ID":
         throw new Error(
           "SPECIFIC_ID requires lot selections — use calculateSpecificId()",
@@ -110,7 +121,7 @@ export class CostBasisCalculator {
         // Check custom strategy registry
         const strategy = strategyRegistry.get(this.method);
         if (strategy) {
-          return strategy.calculate(this.lots, event, strictSilo);
+          return strategy.calculate(lots, event, strictSilo);
         }
         throw new Error(`Unknown method: ${this.method}`);
       }
@@ -122,7 +133,7 @@ export class CostBasisCalculator {
     event: TaxableEvent,
     selections: LotSelection[],
   ): CalculationResult {
-    return calculateSpecificId(this.lots, event, selections);
+    return calculateSpecificId(this.eligibleLots(event), event, selections);
   }
 
   /** Get current method */
