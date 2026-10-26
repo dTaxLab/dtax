@@ -30,6 +30,24 @@ import type { WashSaleAdjustment } from "../wash-sale";
  */
 export type Form8949Box = "A" | "B" | "C" | "D" | "E" | "F";
 
+const UK_RULE_LABEL = {
+  SAME_DAY: "same-day",
+  THIRTY_DAY: "30-day",
+  SECTION_104: "Section 104",
+} as const;
+
+/** " (UK: same-day, Section 104)" when UK share pooling set the cost, else "". */
+function ukRuleSuffix(
+  matched: { rule?: keyof typeof UK_RULE_LABEL }[],
+): string {
+  const rules = (["SAME_DAY", "THIRTY_DAY", "SECTION_104"] as const).filter(
+    (r) => matched.some((m) => m.rule === r),
+  );
+  return rules.length > 0
+    ? ` (UK: ${rules.map((r) => UK_RULE_LABEL[r]).join(", ")})`
+    : "";
+}
+
 /** Single line item on Form 8949 */
 export interface Form8949Line {
   /** (a) Description, e.g. "2.5 BTC" */
@@ -208,7 +226,7 @@ export function generateForm8949(
       : round2(gainLoss);
 
     lines.push({
-      description: `${event.amount} ${event.asset}`,
+      description: `${event.amount} ${event.asset}${ukRuleSuffix(matchedLots)}`,
       dateAcquired,
       dateSold: formatDate(event.date),
       proceeds: round2(event.proceedsUsd),

@@ -333,3 +333,65 @@ describe("Form 8949 Generator", () => {
     expect(report.lines[0].dateAcquired).toBe("VARIOUS");
   });
 });
+
+describe("Form 8949 description for UK share pooling", () => {
+  it("names the HMRC rules that set the cost; other methods are unchanged", async () => {
+    const { generateForm8949 } = await import("../reports/form8949");
+    const base = {
+      event: {
+        id: "S",
+        asset: "BTC",
+        amount: 2,
+        proceedsUsd: 100,
+        date: new Date("2025-06-01T00:00:00Z"),
+        sourceId: "s",
+      },
+      gainLoss: 10,
+      holdingPeriod: "SHORT_TERM" as const,
+    };
+    const uk = generateForm8949(
+      [
+        {
+          ...base,
+          method: "UK_SHARE_POOLING",
+          matchedLots: [
+            {
+              lotId: "a",
+              amountConsumed: 1,
+              costBasisUsd: 40,
+              fullyConsumed: true,
+              rule: "SAME_DAY",
+            },
+            {
+              lotId: "b",
+              amountConsumed: 1,
+              costBasisUsd: 50,
+              fullyConsumed: true,
+              rule: "SECTION_104",
+            },
+          ],
+        },
+      ],
+      { taxYear: 2025 },
+    );
+    expect(uk.lines[0].description).toBe("2 BTC (UK: same-day, Section 104)");
+    const fifo = generateForm8949(
+      [
+        {
+          ...base,
+          method: "FIFO",
+          matchedLots: [
+            {
+              lotId: "a",
+              amountConsumed: 2,
+              costBasisUsd: 90,
+              fullyConsumed: true,
+            },
+          ],
+        },
+      ],
+      { taxYear: 2025 },
+    );
+    expect(fifo.lines[0].description).toBe("2 BTC");
+  });
+});

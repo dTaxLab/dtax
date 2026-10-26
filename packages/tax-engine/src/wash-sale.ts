@@ -10,7 +10,10 @@
  * and the IRS has not officially classified all crypto as securities.
  * However, proposed legislation (HR 1data) and conservative tax advice
  * recommend tracking wash sales for crypto. DTax detects and flags them
- * as a protective measure.
+ * as a protective measure. This module only detects: the Form 8949 W
+ * adjustment is built from its result, and the API adds each disallowed loss
+ * to the cost of its replacement lot in the following year's calculation
+ * (priorYearWashSaleBasis).
  *
  * @license AGPL-3.0
  */
