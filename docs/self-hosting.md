@@ -2,6 +2,20 @@
 
 This guide covers deploying DTax on your own server using Docker Compose.
 
+## Availability
+
+The API and web application are proprietary (see `LICENSE-COMMERCIAL`), so this public repository contains the deployment files (`docker-compose.yml`, nginx config, scripts) but **not** the application source or Dockerfiles. The container images `ghcr.io/dtaxlab/dtax-api` and `ghcr.io/dtaxlab/dtax-web` are private: an anonymous `docker compose up` fails with `unauthorized`.
+
+To self-host, email support@getdtax.com to request registry access. You will receive a GitHub account/token with read access to the images; then log in before step 3:
+
+```bash
+echo "$GHCR_TOKEN" | docker login ghcr.io -u <your-github-username> --password-stdin
+```
+
+**Known limitation:** the web image bakes `NEXT_PUBLIC_*` values (including `NEXT_PUBLIC_API_URL`) into its JavaScript at build time. Until a runtime-configurable web image is published, a customer-specific domain requires a web image built for that domain; tell us your domain when you request access.
+
+Plans and prices are the same as the cloud service (Free / Pro / CPA); there is no separate self-hosting fee. The open-source tax engine (`packages/tax-engine`) and CLI can be used on their own without any of the above.
+
 ## Prerequisites
 
 - Linux server (Ubuntu 22.04+ recommended) with 2+ GB RAM
@@ -161,7 +175,7 @@ docker compose exec postgres psql -U dtax -c \
 
 ```bash
 git pull
-docker compose build
+docker compose pull
 docker compose up -d
 ```
 
