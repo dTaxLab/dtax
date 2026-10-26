@@ -3,8 +3,9 @@
  * HMRC rule (same-day, 30-day or Section 104 pool) set the allowable cost,
  * plus the totals a Capital Gains Tax summary asks for.
  *
- * Amounts are in the currency the transactions were valued in (USD in dTax).
- * HMRC requires sterling: convert before filing. This report does not.
+ * Amounts are in whatever currency the results were calculated in. The API
+ * converts lots and disposals to pounds sterling before pooling, which is what
+ * HMRC requires; this module only formats.
  *
  * @license AGPL-3.0
  */
@@ -129,6 +130,49 @@ export function generateUkDisposalSchedule(
       totalGains,
       totalLosses,
       netGainLoss: dsub(totalGains, totalLosses),
+    },
+  };
+}
+
+/**
+ * Round every amount to whole pence (quantities and counts are left alone).
+ * Totals are recomputed from the rounded rows so the lines add up to the
+ * summary exactly.
+ */
+export function roundUkDisposalSchedule(
+  schedule: UkDisposalSchedule,
+): UkDisposalSchedule {
+  const pence = (n: number): number => Math.round(n * 100) / 100;
+  const rows = schedule.rows.map((r) => ({
+    ...r,
+    proceeds: pence(r.proceeds),
+    allowableCost: pence(r.allowableCost),
+    fees: pence(r.fees),
+    gainLoss: pence(r.gainLoss),
+  }));
+  const net = new Map<string, number>();
+  let proceeds = 0;
+  let costs = 0;
+  for (const r of rows) {
+    proceeds = pence(proceeds + r.proceeds);
+    costs = pence(costs + r.allowableCost + r.fees);
+    net.set(r.disposalId, pence((net.get(r.disposalId) ?? 0) + r.gainLoss));
+  }
+  let gains = 0;
+  let losses = 0;
+  for (const n of net.values()) {
+    if (n >= 0) gains = pence(gains + n);
+    else losses = pence(losses - n);
+  }
+  return {
+    rows,
+    summary: {
+      numberOfDisposals: schedule.summary.numberOfDisposals,
+      totalProceeds: proceeds,
+      totalAllowableCosts: costs,
+      totalGains: gains,
+      totalLosses: losses,
+      netGainLoss: pence(gains - losses),
     },
   };
 }

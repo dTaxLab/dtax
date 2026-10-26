@@ -19,7 +19,7 @@ export {
   calculateUKSharePooling,
   UK_THIRTY_DAY_WINDOW,
 } from "./methods/uk-share-pooling";
-export { DAY_MS } from "./methods/shared";
+export { DAY_MS, ukDayIndex, ukDateString } from "./methods/shared";
 export {
   CostBasisCalculator,
   registerStrategy,
@@ -112,6 +112,7 @@ export { form8949ToTxf } from "./reports/form8949-txf";
 export {
   generateUkDisposalSchedule,
   ukDisposalScheduleToCsv,
+  roundUkDisposalSchedule,
 } from "./reports/uk-disposal-schedule";
 export type {
   UkDisposalRow,

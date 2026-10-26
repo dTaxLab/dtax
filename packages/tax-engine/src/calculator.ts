@@ -67,6 +67,9 @@ export function getRegisteredStrategies(): string[] {
 export class CostBasisCalculator {
   private method: CostBasisMethod;
   private lots: TaxLot[] = [];
+  /** Disposals that only use up lots (never reported), oldest first. */
+  private consumeOnly: TaxableEvent[] = [];
+  private consumeOnlyDone = 0;
   private lotsByAsset = new Map<string, TaxLot[]>();
   private knownEvents = new Map<string, TaxableEvent>();
   /** Known disposals per asset, ascending by UK day; rebuilt lazily. */
@@ -134,6 +137,30 @@ export class CostBasisCalculator {
     this.eventIndex = null;
   }
 
+  /**
+   * Disposals that must use up lots but are not reported (for example a sale
+   * without a price): they are applied, in date order, just before the first
+   * calculated disposal that happens after them. Call before any calculate().
+   */
+  registerConsumptionEvents(events: TaxableEvent[]): void {
+    const pending = this.consumeOnly.slice(this.consumeOnlyDone);
+    this.consumeOnly = [...pending, ...events].sort(
+      (a, b) => a.date.getTime() - b.date.getTime(),
+    );
+    this.consumeOnlyDone = 0;
+    this.registerEvents(events);
+  }
+
+  private drainConsumption(until: Date, strictSilo: boolean): void {
+    while (
+      this.consumeOnlyDone < this.consumeOnly.length &&
+      this.consumeOnly[this.consumeOnlyDone].date.getTime() <= until.getTime()
+    ) {
+      const e = this.consumeOnly[this.consumeOnlyDone++];
+      this.calculateOne(e, strictSilo);
+    }
+  }
+
   /** Known disposals of the asset in the 30 UK days after the event's day. */
   private laterDisposals(event: TaxableEvent): TaxableEvent[] {
     if (this.knownEvents.size === 0) return [];
@@ -170,6 +197,14 @@ export class CostBasisCalculator {
   calculate(
     event: TaxableEvent,
     strictSilo: boolean = false,
+  ): CalculationResult {
+    this.drainConsumption(event.date, strictSilo);
+    return this.calculateOne(event, strictSilo);
+  }
+
+  private calculateOne(
+    event: TaxableEvent,
+    strictSilo: boolean,
   ): CalculationResult {
     const lots = this.eligibleLots(event);
     switch (this.method) {
@@ -222,6 +257,7 @@ export class CostBasisCalculator {
     event: TaxableEvent,
     selections: LotSelection[],
   ): CalculationResult {
+    this.drainConsumption(event.date, false);
     return calculateSpecificId(this.eligibleLots(event), event, selections);
   }
 

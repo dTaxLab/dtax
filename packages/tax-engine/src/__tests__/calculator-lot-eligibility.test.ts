@@ -102,3 +102,52 @@ describe("lot eligibility by date", () => {
     ).toThrow(/not found/);
   });
 });
+
+describe("disposals that only consume lots", () => {
+  it("a consume-only sale uses its lot before a later reported sale", () => {
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([earlyLot(), { ...lateLot(), acquiredAt: d("2025-02-01") }]);
+    c.registerConsumptionEvents([
+      { ...sale("2025-03-01"), id: "UNPRICED", proceedsUsd: 0 },
+    ]);
+    const r = c.calculate({ ...sale("2025-06-01"), id: "REPORTED" });
+    // the unpriced March sale took the early lot; the June sale gets the later one
+    expect(r.matchedLots.map((m) => m.lotId)).toEqual(["B-after-sale"]);
+  });
+
+  // Negative control: without it the reported sale would use the early lot.
+  it("without the consume-only sale the reported sale takes the early lot", () => {
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([earlyLot(), { ...lateLot(), acquiredAt: d("2025-02-01") }]);
+    const r = c.calculate({ ...sale("2025-06-01"), id: "REPORTED" });
+    expect(r.matchedLots.map((m) => m.lotId)).toEqual(["A-early"]);
+  });
+
+  it("a consume-only sale after the reported one is not applied yet", () => {
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([earlyLot()]);
+    c.registerConsumptionEvents([
+      { ...sale("2025-09-01"), id: "LATER", proceedsUsd: 0 },
+    ]);
+    const r = c.calculate({ ...sale("2025-06-01"), id: "REPORTED" });
+    expect(r.matchedLots.map((m) => m.lotId)).toEqual(["A-early"]);
+    expect(r.unmatchedAmount ?? 0).toBe(0);
+  });
+
+  it("registering consume-only sales twice keeps both", () => {
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([
+      earlyLot(),
+      { ...lateLot(), id: "B", acquiredAt: d("2025-02-01") },
+      { ...lateLot(), id: "C", acquiredAt: d("2025-02-02") },
+    ]);
+    c.registerConsumptionEvents([
+      { ...sale("2025-03-01"), id: "U1", proceedsUsd: 0 },
+    ]);
+    c.registerConsumptionEvents([
+      { ...sale("2025-03-02"), id: "U2", proceedsUsd: 0 },
+    ]);
+    const r = c.calculate({ ...sale("2025-06-01"), id: "REPORTED" });
+    expect(r.matchedLots.map((m) => m.lotId)).toEqual(["C"]); // A and B used by U1, U2
+  });
+});

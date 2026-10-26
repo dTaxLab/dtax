@@ -178,3 +178,79 @@ describe("generateUkDisposalSchedule", () => {
     expect(csv).toContain("'=HYPERLINK(1)");
   });
 });
+
+describe("roundUkDisposalSchedule", () => {
+  it("rounds amounts to pence and leaves quantity and counts alone", async () => {
+    const { roundUkDisposalSchedule } =
+      await import("../reports/uk-disposal-schedule");
+    const out = roundUkDisposalSchedule({
+      rows: [
+        {
+          disposalId: "S",
+          disposalDate: "2025-06-01",
+          asset: "BTC",
+          quantity: 0.123456789,
+          proceeds: 10.005,
+          allowableCost: 3.3333333,
+          fees: 0.004,
+          gainLoss: 6.6716667,
+          rule: "SECTION_104",
+          acquiredOn: "",
+          lotId: "x",
+        },
+      ],
+      summary: {
+        numberOfDisposals: 1,
+        totalProceeds: 10.005,
+        totalAllowableCosts: 3.3333,
+        totalGains: 6.6716,
+        totalLosses: 0,
+        netGainLoss: 6.6716,
+      },
+    });
+    expect(out.rows[0]).toMatchObject({
+      quantity: 0.123456789,
+      allowableCost: 3.33,
+      fees: 0,
+      gainLoss: 6.67,
+    });
+    expect(out.summary.numberOfDisposals).toBe(1);
+    expect(out.summary.totalAllowableCosts).toBe(3.33);
+  });
+
+  it("rounded rows add up to the rounded totals", async () => {
+    const { roundUkDisposalSchedule } =
+      await import("../reports/uk-disposal-schedule");
+    const row = (id: string, p: number) => ({
+      disposalId: id,
+      disposalDate: "2025-06-01",
+      asset: "BTC",
+      quantity: 1,
+      proceeds: p,
+      allowableCost: 0,
+      fees: 0,
+      gainLoss: p,
+      rule: "SECTION_104" as const,
+      acquiredOn: "",
+      lotId: "x",
+    });
+    const out = roundUkDisposalSchedule({
+      rows: [row("A", 10.004), row("A", 10.004), row("A", 10.004)],
+      summary: {
+        numberOfDisposals: 1,
+        totalProceeds: 30.012,
+        totalAllowableCosts: 0,
+        totalGains: 30.012,
+        totalLosses: 0,
+        netGainLoss: 30.012,
+      },
+    });
+    expect(out.rows.reduce((n, r) => n + r.proceeds, 0)).toBeCloseTo(
+      out.summary.totalProceeds,
+      10,
+    );
+    expect(out.summary.netGainLoss).toBe(
+      out.summary.totalGains - out.summary.totalLosses,
+    );
+  });
+});
