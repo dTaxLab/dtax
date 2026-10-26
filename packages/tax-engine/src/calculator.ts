@@ -25,10 +25,11 @@ import { calculateCanadaACB } from "./methods/canada-acb";
 import { calculateKoreaVirtualAsset } from "./methods/korea-virtual-asset";
 import { calculateIndiaVDA } from "./methods/india-vda";
 import { calculateSpainCGT } from "./methods/spain-cgt";
-import { ukDayIndex, ukDayOfLot } from "./methods/shared";
+import { ukDayIndex, ukDayOfLot, transferredLotId } from "./methods/shared";
 import type {
   TaxLot,
   TaxableEvent,
+  TransferEvent,
   CalculationResult,
   CostBasisMethod,
   CostBasisStrategy,
@@ -67,6 +68,9 @@ export function getRegisteredStrategies(): string[] {
 export class CostBasisCalculator {
   private method: CostBasisMethod;
   private lots: TaxLot[] = [];
+  /** Transfers between the taxpayer's own wallets, oldest first. */
+  private transfers: TransferEvent[] = [];
+  private transfersDone = 0;
   /** Disposals that only use up lots (never reported), oldest first. */
   private consumeOnly: TaxableEvent[] = [];
   private consumeOnlyDone = 0;
@@ -154,21 +158,97 @@ export class CostBasisCalculator {
   }
 
   /**
-   * Apply the registered consume-only disposals dated up to `until`. Reported
-   * calculations do this themselves; call it directly when only some
-   * disposals are calculated through this calculator.
+   * Register transfers between the taxpayer's own wallets. In wallet-by-wallet
+   * mode (strictSilo) each one moves lots, with their acquisition date and
+   * cost, from the sending to the receiving wallet just before the first
+   * calculated disposal that happens after it. Call before any calculate().
    */
-  applyConsumptionUntil(until: Date, strictSilo: boolean = false): void {
-    this.drainConsumption(until, strictSilo);
+  registerTransfers(transfers: TransferEvent[]): void {
+    const known = new Set(this.transfers.map((t) => t.id));
+    const pending = this.transfers.slice(this.transfersDone);
+    this.transfers = [
+      ...pending,
+      ...transfers.filter((t) => !known.has(t.id)),
+    ].sort((a, b) => a.date.getTime() - b.date.getTime());
+    this.transfersDone = 0;
   }
 
-  private drainConsumption(until: Date, strictSilo: boolean): void {
-    while (
-      this.consumeOnlyDone < this.consumeOnly.length &&
-      this.consumeOnly[this.consumeOnlyDone].date.getTime() <= until.getTime()
-    ) {
-      const e = this.consumeOnly[this.consumeOnlyDone++];
-      this.calculateOne(e, strictSilo);
+  /**
+   * Apply the registered consume-only disposals and (in wallet-by-wallet
+   * mode) transfers dated up to `until`. Reported calculations do this
+   * themselves; call it directly when only some disposals are calculated
+   * through this calculator.
+   */
+  applyConsumptionUntil(until: Date, strictSilo: boolean = false): void {
+    this.advanceTimeline(until, strictSilo);
+  }
+
+  /**
+   * Bring wallets and lots up to date for `until`: apply, in date order, every
+   * registered transfer and consume-only disposal dated up to then. At the same
+   * instant a transfer comes first. Without wallet-by-wallet mode transfers are
+   * skipped (lots are pooled across wallets, nothing moves).
+   */
+  private advanceTimeline(until: Date, strictSilo: boolean): void {
+    const limit = until.getTime();
+    for (;;) {
+      const t = strictSilo ? this.transfers[this.transfersDone] : undefined;
+      const c = this.consumeOnly[this.consumeOnlyDone];
+      const tAt = t && t.date.getTime() <= limit ? t.date.getTime() : Infinity;
+      const cAt = c && c.date.getTime() <= limit ? c.date.getTime() : Infinity;
+      if (tAt === Infinity && cAt === Infinity) return;
+      if (tAt <= cAt) {
+        this.moveLots(this.transfers[this.transfersDone++]);
+      } else {
+        this.calculateOne(this.consumeOnly[this.consumeOnlyDone++], strictSilo);
+      }
+    }
+  }
+
+  /**
+   * Move the arrived units between wallets, earliest lots first, and drop the
+   * fee units from the sending wallet (their cost is not claimed).
+   */
+  private moveLots(t: TransferEvent): void {
+    if (t.fromSourceId === t.toSourceId) return;
+    let toMove = t.amount;
+    let toDrop = t.feeAmount ?? 0;
+    const candidates = (this.lotsByAsset.get(t.asset) ?? [])
+      .filter(
+        (l) =>
+          l.sourceId === t.fromSourceId &&
+          l.amount > 1e-12 &&
+          l.acquiredAt.getTime() <= t.date.getTime(),
+      )
+      .sort((a, b) => a.acquiredAt.getTime() - b.acquiredAt.getTime());
+    for (const lot of candidates) {
+      if (toMove <= 1e-12 && toDrop <= 1e-12) break;
+      if (toMove > 1e-12) {
+        if (lot.amount <= toMove + 1e-12) {
+          toMove -= lot.amount;
+          lot.sourceId = t.toSourceId; // the whole lot moves
+          continue;
+        }
+        const share = toMove / lot.amount;
+        const cost = lot.costBasisUsd * share;
+        const moved: TaxLot = {
+          ...lot,
+          id: transferredLotId(lot.id, t.id),
+          amount: toMove,
+          costBasisUsd: cost,
+          sourceId: t.toSourceId,
+        };
+        lot.amount -= toMove;
+        lot.costBasisUsd -= cost;
+        this.addLots([moved]);
+        toMove = 0;
+      }
+      if (toDrop > 1e-12 && lot.amount > 1e-12) {
+        const take = Math.min(lot.amount, toDrop);
+        lot.costBasisUsd -= lot.costBasisUsd * (take / lot.amount);
+        lot.amount -= take;
+        toDrop -= take;
+      }
     }
   }
 
@@ -209,7 +289,7 @@ export class CostBasisCalculator {
     event: TaxableEvent,
     strictSilo: boolean = false,
   ): CalculationResult {
-    this.drainConsumption(event.date, strictSilo);
+    this.advanceTimeline(event.date, strictSilo);
     return this.calculateOne(event, strictSilo);
   }
 
@@ -268,7 +348,7 @@ export class CostBasisCalculator {
     event: TaxableEvent,
     selections: LotSelection[],
   ): CalculationResult {
-    this.drainConsumption(event.date, false);
+    this.advanceTimeline(event.date, false);
     return calculateSpecificId(this.eligibleLots(event), event, selections);
   }
 

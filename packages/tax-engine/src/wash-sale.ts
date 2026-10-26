@@ -20,6 +20,7 @@
 
 import type { CalculationResult } from "./types";
 import { ddiv, dmul } from "./math";
+import { baseLotId } from "./methods/shared";
 
 /** Return the number of UTC calendar days between two dates (signed) */
 function utcDaysDiff(a: Date, b: Date): number {
@@ -259,7 +260,7 @@ export function computeWashSaleCarryover(
   for (const loss of losses) {
     const list = byAsset.get(loss.event.asset);
     if (!list) continue;
-    const sold = new Set(loss.matchedLots.map((m) => m.lotId));
+    const sold = new Set(loss.matchedLots.map((m) => baseLotId(m.lotId)));
     const saleDay = dayOf(loss.event.date);
     const yearEnd = Date.UTC(loss.event.date.getUTCFullYear() + 1, 0, 1);
     const perUnitLoss = ddiv(-loss.gainLoss, loss.event.amount);

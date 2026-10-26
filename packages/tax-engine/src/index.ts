@@ -19,7 +19,7 @@ export {
   calculateUKSharePooling,
   UK_THIRTY_DAY_WINDOW,
 } from "./methods/uk-share-pooling";
-export { DAY_MS, ukDayIndex, ukDateString } from "./methods/shared";
+export { DAY_MS, ukDayIndex, ukDateString, baseLotId } from "./methods/shared";
 export {
   CostBasisCalculator,
   registerStrategy,
@@ -34,6 +34,7 @@ export type {
   CostBasisStrategy,
   LotSelection,
   UkMatchRule,
+  TransferEvent,
 } from "./types";
 
 // CSV Parsers

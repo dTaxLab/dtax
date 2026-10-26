@@ -73,3 +73,14 @@ export function ukDayOfLot(lot: TaxLot): number {
 export function ukDateString(d: Date): string {
   return ukDateFormat.format(d);
 }
+
+/** Id given to the part of a lot that moved to another wallet. */
+export function transferredLotId(lotId: string, transferId: string): string {
+  return `${lotId}~t${transferId}`;
+}
+
+/** The lot as bought: strips the suffixes added when a lot is split by a transfer. */
+export function baseLotId(lotId: string): string {
+  const i = lotId.indexOf("~t");
+  return i < 0 ? lotId : lotId.slice(0, i);
+}

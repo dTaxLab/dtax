@@ -106,6 +106,26 @@ export interface CalculationResult {
 /**
  * A lot that was matched to a taxable event.
  */
+/**
+ * A transfer of units between two of the taxpayer's own wallets or accounts.
+ * Not a disposal: the units keep their acquisition date and cost and only
+ * change wallet (26 CFR 1.1012-1(j)(1): the transfer date is disregarded).
+ */
+export interface TransferEvent {
+  id: string;
+  asset: string;
+  /** Units that arrived in the destination wallet. */
+  amount: number;
+  /**
+   * Units that left but did not arrive (the network fee). They are removed
+   * from the sending wallet; their cost is not claimed.
+   */
+  feeAmount?: number;
+  date: Date;
+  fromSourceId: string;
+  toSourceId: string;
+}
+
 /** HMRC matching rule that produced a UK share-pooling match. */
 export type UkMatchRule = "SAME_DAY" | "THIRTY_DAY" | "SECTION_104";
 
