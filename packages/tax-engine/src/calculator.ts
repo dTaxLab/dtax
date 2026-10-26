@@ -151,6 +151,15 @@ export class CostBasisCalculator {
     this.registerEvents(events);
   }
 
+  /**
+   * Apply the registered consume-only disposals dated up to `until`. Reported
+   * calculations do this themselves; call it directly when only some
+   * disposals are calculated through this calculator.
+   */
+  applyConsumptionUntil(until: Date, strictSilo: boolean = false): void {
+    this.drainConsumption(until, strictSilo);
+  }
+
   private drainConsumption(until: Date, strictSilo: boolean): void {
     while (
       this.consumeOnlyDone < this.consumeOnly.length &&

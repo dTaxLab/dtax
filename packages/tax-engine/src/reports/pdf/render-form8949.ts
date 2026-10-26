@@ -158,7 +158,22 @@ export function renderDataLine(
   line: Form8949Line,
 ): number {
   doc.fontSize(8).font("Helvetica");
-  doc.text(line.description, COLS[0].x, y, { width: COLS[0].w });
+  // A long description (e.g. with the UK rules) must not wrap into the next
+  // line: shrink it to fit the column, down to a readable minimum.
+  let descSize = 8;
+  while (doc.widthOfString(line.description) > COLS[0].w && descSize > 5.5) {
+    descSize -= 0.5;
+    doc.fontSize(descSize);
+  }
+  let description = line.description;
+  while (description.length > 1 && doc.widthOfString(description) > COLS[0].w) {
+    description = `${description.slice(0, -2)}…`;
+  }
+  doc.text(description, COLS[0].x, y, {
+    width: COLS[0].w,
+    lineBreak: false,
+  });
+  doc.fontSize(8);
   doc.text(line.dateAcquired, COLS[1].x, y, { width: COLS[1].w });
   doc.text(line.dateSold, COLS[2].x, y, { width: COLS[2].w });
   doc.text(fmt(line.proceeds), COLS[3].x, y, {

@@ -160,7 +160,8 @@ export type {
 } from "./normalizers/internal-transfer";
 
 // Wash Sale Detection
-export { detectWashSales } from "./wash-sale";
+export { detectWashSales, computeWashSaleCarryover } from "./wash-sale";
+export type { WashSaleCarryover } from "./wash-sale";
 export type {
   WashSaleAdjustment,
   WashSaleResult,

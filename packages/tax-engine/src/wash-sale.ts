@@ -177,3 +177,84 @@ export function detectWashSales(
     totalDisallowed: Math.round(totalDisallowed * 100) / 100,
   };
 }
+
+/** Result of carrying disallowed wash-sale losses into replacement lots. */
+export interface WashSaleCarryover {
+  /** Extra cost to add to each replacement lot, by lot id. */
+  extraCost: Map<string, number>;
+  /** Replacement quantity already used per lot (so it is not used again). */
+  usedQuantity: Map<string, number>;
+}
+
+/**
+ * Carry the losses disallowed by earlier sales into their replacement lots.
+ *
+ * Unlike {@link detectWashSales} (which labels one year's Form 8949 lines),
+ * this walks the losses in date order and spreads each over the replacement
+ * quantity that is still free:
+ * - a replacement lot can serve several losses until its quantity is used up;
+ * - only the lots the loss sale itself consumed are excluded for that loss,
+ *   not lots consumed by other sales;
+ * - the cost added per unit is the disallowed loss spread over the lot's
+ *   original quantity.
+ *
+ * @param results - Results of the earlier years' sales that have a price
+ * @param acquisitions - Acquisitions as bought (original quantities)
+ * @param windowDays - Calendar days before and after the sale (30)
+ */
+export function computeWashSaleCarryover(
+  results: CalculationResult[],
+  acquisitions: AcquisitionRecord[],
+  windowDays: number = 30,
+): WashSaleCarryover {
+  const extraCost = new Map<string, number>();
+  const usedQuantity = new Map<string, number>();
+
+  const byAsset = new Map<string, AcquisitionRecord[]>();
+  for (const a of acquisitions) {
+    const list = byAsset.get(a.asset);
+    if (list) list.push(a);
+    else byAsset.set(a.asset, [a]);
+  }
+  for (const list of byAsset.values()) {
+    list.sort((x, y) => x.acquiredAt.getTime() - y.acquiredAt.getTime());
+  }
+  const dayOf = (d: Date) => Math.floor(d.getTime() / (24 * 60 * 60 * 1000));
+
+  const losses = results
+    .filter((r) => r.gainLoss < 0 && r.event.amount > 0)
+    .sort((a, b) => a.event.date.getTime() - b.event.date.getTime());
+
+  for (const loss of losses) {
+    const list = byAsset.get(loss.event.asset);
+    if (!list) continue;
+    const sold = new Set(loss.matchedLots.map((m) => m.lotId));
+    const saleDay = dayOf(loss.event.date);
+    const perUnitLoss = ddiv(-loss.gainLoss, loss.event.amount);
+    let toCover = loss.event.amount;
+
+    // first acquisition inside the window (binary search on the sorted list)
+    let lo = 0;
+    let hi = list.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (dayOf(list[mid].acquiredAt) < saleDay - windowDays) lo = mid + 1;
+      else hi = mid;
+    }
+    for (let i = lo; i < list.length && toCover > 1e-12; i++) {
+      const repl = list[i];
+      if (dayOf(repl.acquiredAt) > saleDay + windowDays) break;
+      if (sold.has(repl.lotId)) continue;
+      const free = repl.amount - (usedQuantity.get(repl.lotId) ?? 0);
+      if (free <= 1e-12) continue;
+      const qty = Math.min(free, toCover);
+      usedQuantity.set(repl.lotId, (usedQuantity.get(repl.lotId) ?? 0) + qty);
+      extraCost.set(
+        repl.lotId,
+        (extraCost.get(repl.lotId) ?? 0) + dmul(perUnitLoss, qty),
+      );
+      toCover -= qty;
+    }
+  }
+  return { extraCost, usedQuantity };
+}

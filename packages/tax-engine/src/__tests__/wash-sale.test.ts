@@ -770,3 +770,101 @@ describe("Wash Sale Detection", () => {
     });
   });
 });
+
+describe("computeWashSaleCarryover", () => {
+  const d = (s: string) => new Date(`${s}T00:00:00Z`);
+  const loss = (
+    id: string,
+    amount: number,
+    gain: number,
+    day: string,
+    lots: string[],
+  ) => ({
+    event: {
+      id,
+      asset: "BTC",
+      amount,
+      proceedsUsd: 0,
+      date: d(day),
+      sourceId: "s",
+    },
+    matchedLots: lots.map((l) => ({
+      lotId: l,
+      amountConsumed: amount,
+      costBasisUsd: 0,
+      fullyConsumed: true,
+    })),
+    gainLoss: gain,
+    holdingPeriod: "SHORT_TERM" as const,
+    method: "FIFO",
+  });
+  const acq = (id: string, amount: number, day: string) => ({
+    lotId: id,
+    asset: "BTC",
+    amount,
+    acquiredAt: d(day),
+  });
+
+  it("spreads one loss over the replacement quantity and caps at the loss quantity", async () => {
+    const { computeWashSaleCarryover } = await import("../wash-sale");
+    const out = computeWashSaleCarryover(
+      [loss("L", 4, -400, "2024-12-20", ["old"])],
+      [
+        acq("old", 4, "2024-01-01"),
+        acq("r1", 3, "2025-01-05"),
+        acq("r2", 5, "2025-01-10"),
+      ],
+    );
+    expect(out.extraCost.get("r1")).toBe(300); // 3 units x 100
+    expect(out.extraCost.get("r2")).toBe(100); // the remaining 1 unit
+    expect(out.usedQuantity.get("r2")).toBe(1);
+    expect(out.extraCost.has("old")).toBe(false); // the sold lot is never its own replacement
+  });
+
+  it("a replacement lot serves a second loss with the quantity left", async () => {
+    const { computeWashSaleCarryover } = await import("../wash-sale");
+    const out = computeWashSaleCarryover(
+      [
+        loss("L1", 1, -50, "2024-12-10", ["a"]),
+        loss("L2", 1, -50, "2024-12-12", ["b"]),
+      ],
+      [
+        acq("a", 1, "2024-01-01"),
+        acq("b", 1, "2024-01-02"),
+        acq("r", 10, "2024-12-20"),
+      ],
+    );
+    expect(out.extraCost.get("r")).toBe(100); // both losses, not only the first
+  });
+
+  it("lots consumed by other sales stay available as replacements", async () => {
+    const { computeWashSaleCarryover } = await import("../wash-sale");
+    const out = computeWashSaleCarryover(
+      [
+        loss("L", 1, -400, "2024-12-20", ["old"]),
+        loss("OTHER", 1, 10, "2025-06-01", ["r"]),
+      ].filter((x) => x.gainLoss < 0),
+      [acq("old", 1, "2024-01-01"), acq("r", 1, "2025-01-05")],
+    );
+    expect(out.extraCost.get("r")).toBe(400);
+  });
+
+  // Negative control: outside the 30-day window nothing is carried.
+  it("carries nothing when the purchase is more than 30 days away", async () => {
+    const { computeWashSaleCarryover } = await import("../wash-sale");
+    const out = computeWashSaleCarryover(
+      [loss("L", 1, -400, "2024-12-20", ["old"])],
+      [acq("old", 1, "2024-01-01"), acq("far", 1, "2025-01-25")],
+    );
+    expect(out.extraCost.size).toBe(0);
+  });
+
+  it("a purchase up to 30 days before the sale counts too", async () => {
+    const { computeWashSaleCarryover } = await import("../wash-sale");
+    const out = computeWashSaleCarryover(
+      [loss("L", 1, -400, "2024-12-20", ["old"])],
+      [acq("old", 1, "2024-01-01"), acq("before", 1, "2024-11-25")],
+    );
+    expect(out.extraCost.get("before")).toBe(400);
+  });
+});

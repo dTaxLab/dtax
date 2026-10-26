@@ -31,12 +31,15 @@ import type { WashSaleAdjustment } from "../wash-sale";
 export type Form8949Box = "A" | "B" | "C" | "D" | "E" | "F";
 
 const UK_RULE_LABEL = {
-  SAME_DAY: "same-day",
-  THIRTY_DAY: "30-day",
-  SECTION_104: "Section 104",
+  SAME_DAY: "SD",
+  THIRTY_DAY: "30D",
+  SECTION_104: "S104",
 } as const;
 
-/** " (UK: same-day, Section 104)" when UK share pooling set the cost, else "". */
+/**
+ * " (UK: SD, S104)" when UK share pooling set the cost, else "". SD = same-day
+ * rule, 30D = 30-day rule, S104 = Section 104 pool (short so it fits the column).
+ */
 function ukRuleSuffix(
   matched: { rule?: keyof typeof UK_RULE_LABEL }[],
 ): string {

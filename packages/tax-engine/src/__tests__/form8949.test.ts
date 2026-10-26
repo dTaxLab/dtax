@@ -374,7 +374,7 @@ describe("Form 8949 description for UK share pooling", () => {
       ],
       { taxYear: 2025 },
     );
-    expect(uk.lines[0].description).toBe("2 BTC (UK: same-day, Section 104)");
+    expect(uk.lines[0].description).toBe("2 BTC (UK: SD, S104)");
     const fifo = generateForm8949(
       [
         {
