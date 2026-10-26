@@ -38,17 +38,23 @@ export function calculateFIFO(
   lots: TaxLot[],
   event: TaxableEvent,
   strictSilo: boolean = false,
+  presorted: boolean = false,
 ): CalculationResult {
-  const applicableLots = strictSilo
-    ? lots.filter((l) => l.sourceId === event.sourceId)
-    : lots;
-
-  // Sort lots by acquisition date (ascending) for FIFO
-  const sortedLots = [...applicableLots]
-    .filter(
-      (lot) => lot.asset === event.asset && !isEffectivelyZero(lot.amount),
-    )
-    .sort((a, b) => a.acquiredAt.getTime() - b.acquiredAt.getTime());
+  // `presorted`: the caller guarantees `lots` is already in non-decreasing
+  // acquisition order (ties in the order they were added), so the same lots
+  // are taken in the same order without filtering and sorting the whole list
+  // for every sale — only as many lots as the sale needs are looked at.
+  const sortedLots = presorted
+    ? lots
+    : [
+        ...(strictSilo
+          ? lots.filter((l) => l.sourceId === event.sourceId)
+          : lots),
+      ]
+        .filter(
+          (lot) => lot.asset === event.asset && !isEffectivelyZero(lot.amount),
+        )
+        .sort((a, b) => a.acquiredAt.getTime() - b.acquiredAt.getTime());
 
   let remainingAmount = event.amount;
   let totalCostBasis = 0;
@@ -57,6 +63,13 @@ export function calculateFIFO(
 
   for (const lot of sortedLots) {
     if (isEffectivelyZero(remainingAmount) || remainingAmount < 0) break;
+    if (
+      presorted &&
+      (lot.asset !== event.asset ||
+        (strictSilo && lot.sourceId !== event.sourceId) ||
+        isEffectivelyZero(lot.amount))
+    )
+      continue;
 
     const consumeAmount = Math.min(lot.amount, remainingAmount);
     const costPerUnit = ddiv(lot.costBasisUsd, lot.amount);

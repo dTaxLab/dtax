@@ -8,6 +8,7 @@
  * @license AGPL-3.0
  */
 
+import { isEffectivelyZero } from "./math";
 import { calculateFIFO } from "./methods/fifo";
 import { calculateLIFO } from "./methods/lifo";
 import { calculateHIFO } from "./methods/hifo";
@@ -70,6 +71,24 @@ export function getRegisteredStrategies(): string[] {
   return Array.from(strategyRegistry.keys());
 }
 
+/** Calculations between rebuilds of an asset's list of lots with units left. */
+const SCOPED_REBUILD_EVERY = 256;
+
+/** Built-in methods that only use lots of the disposed asset. */
+const ASSET_SCOPED_METHODS = new Set<CostBasisMethod>([
+  "FIFO",
+  "LIFO",
+  "HIFO",
+  "GERMANY_FIFO",
+  "PMPA",
+  "TOTAL_AVERAGE",
+  "AU_CGT_DISCOUNT",
+  "CA_ACB",
+  "KR_VIRTUAL_ASSET",
+  "IN_VDA",
+  "ES_CGT",
+]);
+
 export class CostBasisCalculator {
   private method: CostBasisMethod;
   private lots: TaxLot[] = [];
@@ -87,6 +106,20 @@ export class CostBasisCalculator {
   private consumeOnly: TaxableEvent[] = [];
   private consumeOnlyDone = 0;
   private lotsByAsset = new Map<string, TaxLot[]>();
+  /**
+   * Assets whose lots were added in non-decreasing acquisition order. For
+   * those the lots a disposal may use are a prefix of the asset's list, found
+   * by binary search instead of a scan.
+   */
+  private chronologicalAssets = new Set<string>();
+  /**
+   * Per asset, the lots that still have units (built lazily from lotsByAsset,
+   * added to by addLots, rebuilt every SCOPED_REBUILD_EVERY calculations so
+   * fully sold lots stop being scanned). The built-in methods skip empty
+   * lots anyway, so handing them this view changes no result.
+   */
+  private scopedLots = new Map<string, TaxLot[]>();
+  private scopedCalls = new Map<string, number>();
   /** Lots of one asset in one wallet, so a transfer does not scan every lot. */
   private lotsByWallet = new Map<string, TaxLot[]>();
   /** Order lots were added: breaks ties between lots acquired at the same time. */
@@ -141,8 +174,19 @@ export class CostBasisCalculator {
     for (const lot of lots) {
       this.lots.push(lot);
       const bucket = this.lotsByAsset.get(lot.asset);
-      if (bucket) bucket.push(lot);
-      else this.lotsByAsset.set(lot.asset, [lot]);
+      this.scopedLots.get(lot.asset)?.push(lot);
+      if (bucket) {
+        if (
+          this.chronologicalAssets.has(lot.asset) &&
+          lot.acquiredAt.getTime() <
+            bucket[bucket.length - 1].acquiredAt.getTime()
+        )
+          this.chronologicalAssets.delete(lot.asset);
+        bucket.push(lot);
+      } else {
+        this.lotsByAsset.set(lot.asset, [lot]);
+        this.chronologicalAssets.add(lot.asset);
+      }
       this.lotSeq.set(lot, this.nextSeq++);
       this.insertSorted(this.walletBucket(lot.asset, lot.sourceId), lot);
     }
@@ -164,7 +208,37 @@ export class CostBasisCalculator {
       );
     }
     const cutoff = event.date.getTime();
-    return this.lots.filter((lot) => lot.acquiredAt.getTime() <= cutoff);
+    // SPECIFIC_ID and custom strategies see every asset (they report or use
+    // lots of other assets themselves); the built-in methods only ever look
+    // at the disposed asset, so they get just that asset's lots.
+    if (!ASSET_SCOPED_METHODS.has(this.method)) {
+      return this.lots.filter((lot) => lot.acquiredAt.getTime() <= cutoff);
+    }
+    const all = this.lotsByAsset.get(event.asset);
+    if (!all) return [];
+    let bucket = this.scopedLots.get(event.asset);
+    const calls = (this.scopedCalls.get(event.asset) ?? 0) + 1;
+    if (!bucket || calls >= SCOPED_REBUILD_EVERY) {
+      // (Re)build from the full list so fully sold lots drop out. The order
+      // of lots, and so every tie-break inside a method, is unchanged.
+      bucket = (bucket ?? all).filter((lot) => !isEffectivelyZero(lot.amount));
+      this.scopedLots.set(event.asset, bucket);
+      this.scopedCalls.set(event.asset, 0);
+    } else {
+      this.scopedCalls.set(event.asset, calls);
+    }
+    if (!this.chronologicalAssets.has(event.asset)) {
+      return bucket.filter((lot) => lot.acquiredAt.getTime() <= cutoff);
+    }
+    // Chronological: eligible lots are a prefix. Same order as before.
+    let lo = 0;
+    let hi = bucket.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (bucket[mid].acquiredAt.getTime() <= cutoff) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo === bucket.length ? bucket : bucket.slice(0, lo);
   }
 
   /**
@@ -399,7 +473,12 @@ export class CostBasisCalculator {
     const lots = this.eligibleLots(event);
     switch (this.method) {
       case "FIFO":
-        return calculateFIFO(lots, event, strictSilo);
+        return calculateFIFO(
+          lots,
+          event,
+          strictSilo,
+          this.chronologicalAssets.has(event.asset),
+        );
       case "LIFO":
         return calculateLIFO(lots, event, strictSilo);
       case "HIFO":
