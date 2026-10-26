@@ -195,12 +195,12 @@ function calculate(files: string[], flags: Record<string, string>): void {
     const lot = toTaxLot(tx, i);
     if (lot) lots.push(lot);
 
-    const event = toTaxableEvent(tx, i, yearFilter);
+    const event = toTaxableEvent(tx, i);
     if (event) events.push(event);
   }
 
   console.log(
-    `${lots.length} acquisition lots, ${events.length} dispositions${yearFilter ? ` (year ${yearFilter})` : ""}`,
+    `${lots.length} acquisition lots, ${events.length} dispositions${yearFilter ? ` (reporting year ${yearFilter})` : ""}`,
   );
   console.log(`Method: ${method}`);
   console.log("");
@@ -215,8 +215,16 @@ function calculate(files: string[], flags: Record<string, string>): void {
     longTermLosses = 0;
   const results = [];
 
+  // Dispositions of other years still consume lots, so every disposal is
+  // calculated in chronological order and only the report year is reported.
+  events.sort((a, b) => a.date.getTime() - b.date.getTime());
+  calculator.registerEvents(events);
+  const reportEvents = yearFilter
+    ? events.filter((e) => e.date.getFullYear() === yearFilter)
+    : events;
   for (const event of events) {
     const result = calculator.calculate(event);
+    if (yearFilter && event.date.getFullYear() !== yearFilter) continue;
     results.push(result);
 
     if (result.holdingPeriod === "SHORT_TERM") {
@@ -278,13 +286,13 @@ function calculate(files: string[], flags: Record<string, string>): void {
   let comparisonResults: Record<string, unknown>[] | undefined;
   let comparisonLines: string[] | undefined;
 
-  if (showCompare && events.length > 0) {
+  if (showCompare && reportEvents.length > 0) {
     // Aggregate dispositions by asset to run comparison per asset
     const assetEvents = new Map<
       string,
       { totalAmount: number; totalProceeds: number }
     >();
-    for (const evt of events) {
+    for (const evt of reportEvents) {
       const existing = assetEvents.get(evt.asset) || {
         totalAmount: 0,
         totalProceeds: 0,
@@ -333,7 +341,7 @@ function calculate(files: string[], flags: Record<string, string>): void {
       longTermGains: longTermGains * rate,
       longTermLosses: longTermLosses * rate,
       netGainLoss: netGainLoss * rate,
-      totalDispositions: events.length,
+      totalDispositions: reportEvents.length,
       results,
     };
     if (washSaleSummary) output.washSales = washSaleSummary;
@@ -372,7 +380,7 @@ function calculate(files: string[], flags: Record<string, string>): void {
     console.log("");
     console.log("-".repeat(39));
     console.log(`  NET GAIN/LOSS:      ${fmt(netGainLoss)}`);
-    console.log(`  Total Dispositions: ${events.length}`);
+    console.log(`  Total Dispositions: ${reportEvents.length}`);
     console.log("=".repeat(39));
 
     if (washSaleSummary && washSaleSummary.adjustmentCount > 0) {
