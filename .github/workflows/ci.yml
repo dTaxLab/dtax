@@ -50,6 +50,9 @@ jobs:
       - name: Test (tax-engine)
         run: pnpm --filter @dtax/tax-engine run test
 
+      - name: Build cli
+        run: pnpm --filter @dtax/cli run build
+
       - name: Test (cli)
         run: pnpm --filter @dtax/cli run test
 
