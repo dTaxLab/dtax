@@ -120,6 +120,14 @@ export class CostBasisCalculator {
    */
   private scopedLots = new Map<string, TaxLot[]>();
   private scopedCalls = new Map<string, number>();
+  /**
+   * FIFO only: per asset, the lots with units left ordered by (acquisition
+   * time, order added) — exactly the order FIFO takes them in — kept sorted as
+   * lots arrive, so a lot added later but dated earlier (a lot moved between
+   * wallets keeps its date) does not force a full sort on every sale.
+   */
+  private fifoView = new Map<string, TaxLot[]>();
+  private fifoCalls = new Map<string, number>();
   /** Lots of one asset in one wallet, so a transfer does not scan every lot. */
   private lotsByWallet = new Map<string, TaxLot[]>();
   /** Order lots were added: breaks ties between lots acquired at the same time. */
@@ -189,6 +197,8 @@ export class CostBasisCalculator {
       }
       this.lotSeq.set(lot, this.nextSeq++);
       this.insertSorted(this.walletBucket(lot.asset, lot.sourceId), lot);
+      const fifo = this.fifoView.get(lot.asset);
+      if (fifo) this.insertSorted(fifo, lot);
     }
   }
 
@@ -216,6 +226,8 @@ export class CostBasisCalculator {
     }
     const all = this.lotsByAsset.get(event.asset);
     if (!all) return [];
+    if (this.method === "FIFO")
+      return this.fifoEligible(event.asset, all, cutoff);
     let bucket = this.scopedLots.get(event.asset);
     const calls = (this.scopedCalls.get(event.asset) ?? 0) + 1;
     if (!bucket || calls >= SCOPED_REBUILD_EVERY) {
@@ -239,6 +251,34 @@ export class CostBasisCalculator {
       else hi = mid;
     }
     return lo === bucket.length ? bucket : bucket.slice(0, lo);
+  }
+
+  /** FIFO's lots for an asset, in FIFO order, cut at the disposal time. */
+  private fifoEligible(asset: string, all: TaxLot[], cutoff: number): TaxLot[] {
+    let view = this.fifoView.get(asset);
+    const calls = (this.fifoCalls.get(asset) ?? 0) + 1;
+    if (!view) {
+      // stable sort of the insertion-ordered list = (acquiredAt, order added)
+      view = all
+        .filter((lot) => !isEffectivelyZero(lot.amount))
+        .sort((a, b) => a.acquiredAt.getTime() - b.acquiredAt.getTime());
+      this.fifoView.set(asset, view);
+      this.fifoCalls.set(asset, 0);
+    } else if (calls >= SCOPED_REBUILD_EVERY) {
+      view = view.filter((lot) => !isEffectivelyZero(lot.amount));
+      this.fifoView.set(asset, view);
+      this.fifoCalls.set(asset, 0);
+    } else {
+      this.fifoCalls.set(asset, calls);
+    }
+    let lo = 0;
+    let hi = view.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (view[mid].acquiredAt.getTime() <= cutoff) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo === view.length ? view : view.slice(0, lo);
   }
 
   /**
@@ -473,12 +513,8 @@ export class CostBasisCalculator {
     const lots = this.eligibleLots(event);
     switch (this.method) {
       case "FIFO":
-        return calculateFIFO(
-          lots,
-          event,
-          strictSilo,
-          this.chronologicalAssets.has(event.asset),
-        );
+        // eligibleLots hands FIFO its lots already in FIFO order
+        return calculateFIFO(lots, event, strictSilo, true);
       case "LIFO":
         return calculateLIFO(lots, event, strictSilo);
       case "HIFO":

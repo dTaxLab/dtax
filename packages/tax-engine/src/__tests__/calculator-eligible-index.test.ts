@@ -202,3 +202,56 @@ describe("eligible-lot index equals the full-scan result", () => {
     });
   }
 });
+
+// FIFO keeps its own always-sorted view, so partial wallet transfers (which add
+// older-dated lots later) do not push it onto a slow path. KR_VIRTUAL_ASSET is
+// FIFO sorting for itself on the plain asset list, so the two must agree.
+describe("FIFO sorted view equals FIFO with transfers (wallet-by-wallet)", () => {
+  it("120 random scenarios with partial transfers, fees and ties", () => {
+    for (let seed = 1; seed <= 120; seed++) {
+      const r = rng(seed * 7919);
+      const lots: TaxLot[] = Array.from(
+        { length: 5 + Math.floor(r() * 12) },
+        (_, i) => ({
+          id: `t${i}`,
+          asset: r() < 0.8 ? "BTC" : "ETH",
+          amount: 1 + Math.floor(r() * 4),
+          costBasisUsd: 100 * (1 + Math.floor(r() * 5)),
+          acquiredAt: new Date(T0 + Math.floor(r() * 30) * DAY),
+          sourceId: `w${Math.floor(r() * 3)}`,
+        }),
+      );
+      const transfers = Array.from({ length: 4 }, (_, i) => ({
+        id: `tr${i}`,
+        asset: "BTC",
+        amount: 0.5 + Math.floor(r() * 3),
+        feeAmount: r() < 0.5 ? 0.01 : undefined,
+        date: new Date(T0 + (35 + i * 3) * DAY),
+        fromSourceId: `w${Math.floor(r() * 3)}`,
+        toSourceId: `w${Math.floor(r() * 3)}`,
+      })).filter((t) => t.fromSourceId !== t.toSourceId);
+      const sales: TaxableEvent[] = Array.from({ length: 12 }, (_, i) => ({
+        id: `s${i}`,
+        asset: r() < 0.8 ? "BTC" : "ETH",
+        amount: 0.5 + Math.floor(r() * 3),
+        proceedsUsd: 300,
+        date: new Date(T0 + (32 + i * 2) * DAY),
+        sourceId: `w${Math.floor(r() * 3)}`,
+      }));
+      const run = (method: CostBasisMethod) => {
+        const c = new CostBasisCalculator(method);
+        c.addLots(clone(lots));
+        c.registerTransfers(transfers);
+        return sales.map((e) => {
+          const res = c.calculate(e, true);
+          return {
+            gainLoss: res.gainLoss,
+            unmatched: res.unmatchedAmount ?? 0,
+            matched: res.matchedLots.map((m) => [m.lotId, m.amountConsumed]),
+          };
+        });
+      };
+      expect(run("FIFO"), `seed ${seed}`).toEqual(run("KR_VIRTUAL_ASSET"));
+    }
+  });
+});
