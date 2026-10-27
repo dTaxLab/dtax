@@ -12,6 +12,7 @@ concurrency:
 
 jobs:
   test:
+    if: github.repository == 'dTaxLab/dtax'
     name: Test & Build
     runs-on: ubuntu-latest
     strategy:
@@ -37,6 +38,9 @@ jobs:
       - name: Build shared-types
         run: pnpm --filter @dtax/shared-types run build
 
+      - name: Build tax-engine
+        run: pnpm --filter @dtax/tax-engine run build
+
       - name: Type check (tax-engine)
         run: pnpm --filter @dtax/tax-engine exec tsc --noEmit
 
@@ -53,6 +57,7 @@ jobs:
         run: pnpm run build
 
   lint:
+    if: github.repository == 'dTaxLab/dtax'
     name: Lint & Format
     runs-on: ubuntu-latest
 
@@ -76,6 +81,7 @@ jobs:
         run: npx prettier --check "**/*.{ts,tsx,js,jsx,json,md}"
 
   dependency-audit:
+    if: github.repository == 'dTaxLab/dtax'
     name: Dependency Audit
     runs-on: ubuntu-latest
 
