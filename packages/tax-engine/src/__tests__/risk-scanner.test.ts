@@ -74,6 +74,79 @@ describe("Risk Scanner", () => {
     expect(risk!.affectedTransactionIds).toEqual(["no-acquisition"]);
   });
 
+  it("没有价格的处置单独成项 unpriced_disposal,不会因为不算缺失成本基础而变得不可见", () => {
+    const txs: RiskScanTransaction[] = [
+      makeTx({
+        id: "unpriced",
+        type: "SELL",
+        sentAsset: "BTC",
+        sentAmount: 1,
+        unpriced: true,
+      }),
+    ];
+    const items = scanRisks(txs, 2025).items;
+    const risk = items.find((i) => i.category === "unpriced_disposal");
+    expect(risk).toBeDefined();
+    expect(risk!.affectedTransactionIds).toEqual(["unpriced"]);
+    expect(
+      items.find((i) => i.category === "missing_cost_basis"),
+    ).toBeUndefined();
+  });
+
+  it("洗售窗口跨年:12 月底亏损、次年 1 月初回购,也会被标记", () => {
+    const txs: RiskScanTransaction[] = [
+      makeTx({
+        id: "dec-loss",
+        type: "SELL",
+        sentAsset: "BTC",
+        sentAmount: 1,
+        sentValueUsd: 20000,
+        gainLoss: -5000,
+        costBasis: 25000,
+        timestamp: new Date("2025-12-20T10:00:00Z"),
+      }),
+      makeTx({
+        id: "jan-rebuy",
+        type: "BUY",
+        receivedAsset: "BTC",
+        receivedAmount: 1,
+        receivedValueUsd: 21000,
+        timestamp: new Date("2026-01-05T10:00:00Z"),
+      }),
+    ];
+    const risk = scanRisks(txs, 2025).items.find(
+      (i) => i.category === "wash_sale_risk",
+    );
+    expect(risk).toBeDefined();
+    expect(risk!.affectedTransactionIds).toEqual(["dec-loss"]);
+  });
+
+  it("洗售窗口之外(超过 30 天)的次年回购不标记", () => {
+    const txs: RiskScanTransaction[] = [
+      makeTx({
+        id: "dec-loss",
+        type: "SELL",
+        sentAsset: "BTC",
+        sentAmount: 1,
+        sentValueUsd: 20000,
+        gainLoss: -5000,
+        costBasis: 25000,
+        timestamp: new Date("2025-12-01T10:00:00Z"),
+      }),
+      makeTx({
+        id: "late-rebuy",
+        type: "BUY",
+        receivedAsset: "BTC",
+        receivedAmount: 1,
+        receivedValueUsd: 21000,
+        timestamp: new Date("2026-02-15T10:00:00Z"),
+      }),
+    ];
+    expect(
+      scanRisks(txs, 2025).items.find((i) => i.category === "wash_sale_risk"),
+    ).toBeUndefined();
+  });
+
   it("检测洗售风险", () => {
     const txs: RiskScanTransaction[] = [
       makeTx({

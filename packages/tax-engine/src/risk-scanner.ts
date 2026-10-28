@@ -6,6 +6,7 @@
  *
  * Risk categories:
  * - missing_cost_basis: SELL/TRADE without corresponding acquisition lot
+ * - unpriced_disposal: SELL/TRADE without a USD price (not reported, uses up lots)
  * - wash_sale_risk: repurchase within 30 days of a loss
  * - unreported_income: staking/airdrop/mining without USD value
  * - high_value_unverified: large transactions with low AI confidence
@@ -19,6 +20,7 @@ import type { TxType } from "@dtax/shared-types";
 
 export type RiskCategory =
   | "missing_cost_basis"
+  | "unpriced_disposal"
   | "wash_sale_risk"
   | "unreported_income"
   | "high_value_unverified"
@@ -124,6 +126,23 @@ export function scanRisks(
     });
   }
 
+  // 1b. Unpriced disposals: no USD price, so they are left out of the report
+  // (no zero-proceeds gain is invented) while still using up lots.
+  const unpriced = yearTxs.filter(
+    (tx) => DISPOSAL_TYPES.includes(tx.type) && tx.unpriced === true,
+  );
+  if (unpriced.length > 0) {
+    items.push({
+      category: "unpriced_disposal",
+      severity: "medium",
+      description: `${unpriced.length} disposal(s) have no USD price and are left out of the report.`,
+      affectedTransactionIds: unpriced.map((tx) => tx.id),
+      suggestedAction:
+        "Run price backfill, or enter the USD value at the time of sale, so these disposals are reported.",
+      potentialTaxImpact: 0,
+    });
+  }
+
   // 2. Wash sale risk: loss followed by same-asset buy within 30 days
   const losses = yearTxs.filter(
     (tx) =>
@@ -138,8 +157,10 @@ export function scanRisks(
     const lossTime = loss.timestamp.getTime();
     const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
 
-    // IRS wash sale: 30 days BEFORE or AFTER the loss sale
-    const repurchase = yearTxs.find(
+    // IRS wash sale: 30 days BEFORE or AFTER the loss sale. The window crosses
+    // the year boundary, so every transaction handed in is searched, not only
+    // those of the scanned year.
+    const repurchase = transactions.find(
       (tx) =>
         tx.id !== loss.id &&
         tx.receivedAsset === lossAsset &&
