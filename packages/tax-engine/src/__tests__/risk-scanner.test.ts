@@ -51,6 +51,29 @@ describe("Risk Scanner", () => {
     expect(risk!.potentialTaxImpact).toBe(30000);
   });
 
+  it("没有价格的处置不算缺失成本基础(那是另一个问题);有价格但没有买入记录的仍然算", () => {
+    const txs: RiskScanTransaction[] = [
+      makeTx({
+        id: "unpriced",
+        type: "SELL",
+        sentAsset: "BTC",
+        sentAmount: 1,
+        unpriced: true,
+      }),
+      makeTx({
+        id: "no-acquisition",
+        type: "SELL",
+        sentAsset: "BTC",
+        sentAmount: 1,
+        sentValueUsd: 30000,
+      }),
+    ];
+    const risk = scanRisks(txs, 2025).items.find(
+      (i) => i.category === "missing_cost_basis",
+    );
+    expect(risk!.affectedTransactionIds).toEqual(["no-acquisition"]);
+  });
+
   it("检测洗售风险", () => {
     const txs: RiskScanTransaction[] = [
       makeTx({

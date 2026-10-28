@@ -63,6 +63,12 @@ export interface RiskScanTransaction {
   costBasis?: number;
   aiClassified?: boolean;
   aiConfidence?: number;
+  /**
+   * A disposal without a USD price. It has no cost basis to report either,
+   * but "no price" is a different problem from "no acquisition on record",
+   * so it is not counted as missing cost basis.
+   */
+  unpriced?: boolean;
 }
 
 const INCOME_TYPES: TxType[] = [
@@ -99,6 +105,7 @@ export function scanRisks(
   const missingBasis = yearTxs.filter(
     (tx) =>
       DISPOSAL_TYPES.includes(tx.type) &&
+      !tx.unpriced &&
       (tx.costBasis === undefined || tx.costBasis === null),
   );
   if (missingBasis.length > 0) {
