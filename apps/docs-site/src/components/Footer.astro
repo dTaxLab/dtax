@@ -1,5 +1,8 @@
 ---
 const year = new Date().getFullYear();
+// undefined for the root (English) locale, e.g. "zh-cn" for /zh-cn/ pages
+const { locale } = Astro.locals.starlightRoute;
+const prefix = locale ? `/${locale}` : "";
 ---
 
 <footer class="dtax-footer">
@@ -18,14 +21,14 @@ const year = new Date().getFullYear();
       </div>
       <div class="dtax-footer__group">
         <span class="dtax-footer__group-label">Developers</span>
-        <a href="/introduction/">Introduction</a>
-        <a href="/quickstart/">Quick Start</a>
-        <a href="/api/overview/">REST API</a>
+        <a href={`${prefix}/introduction/`}>Introduction</a>
+        <a href={`${prefix}/quickstart/`}>Quick Start</a>
+        <a href={`${prefix}/api/overview/`}>REST API</a>
         <a href="https://github.com/dTaxLab/dtax">GitHub</a>
       </div>
       <div class="dtax-footer__group">
         <span class="dtax-footer__group-label">Legal</span>
-        <a href="/resources/license/">License</a>
+        <a href={`${prefix}/resources/license/`}>License</a>
         <a href="https://getdtax.com/legal/privacy">Privacy Policy</a>
         <a href="https://getdtax.com/legal/terms">Terms of Service</a>
       </div>
