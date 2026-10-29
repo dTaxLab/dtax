@@ -43,6 +43,16 @@
   --sl-color-white:       #0f172a;
 }
 
+/* Search dialog, light theme.
+   Starlight 0.4x paints the search input with --sl-color-black and its text with
+   --sl-color-white. The light theme above sets both to #0f172a, so the typed text is
+   the same colour as the input and cannot be read. Inside the dialog only, give
+   --sl-color-black Starlight's own light-theme meaning (white); the rest of the page,
+   including the dark header search button, is left as it was. */
+[data-theme='light'] site-search dialog {
+  --sl-color-black: #ffffff;
+}
+
 /* ── Global typography ──────────────────────────────── */
 body {
   font-family: var(--sl-font);
