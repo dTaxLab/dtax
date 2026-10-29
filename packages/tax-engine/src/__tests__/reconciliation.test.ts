@@ -321,11 +321,10 @@ describe("Reconciliation Engine", () => {
   });
 
   it("should assign riskLevel HIGH for missing_in_dtax and both_mismatch", () => {
-    const missingInDtax = reconcile(
-      [makeBrokerEntry()],
-      [],
-      { taxYear: 2025, brokerName: "Coinbase" },
-    );
+    const missingInDtax = reconcile([makeBrokerEntry()], [], {
+      taxYear: 2025,
+      brokerName: "Coinbase",
+    });
     expect(missingInDtax.items[0].riskLevel).toBe("HIGH");
 
     const bothMismatch = reconcile(
@@ -337,11 +336,10 @@ describe("Reconciliation Engine", () => {
   });
 
   it("should assign riskLevel LOW for missing_in_1099da", () => {
-    const report = reconcile(
-      [],
-      [makeDtaxEntry()],
-      { taxYear: 2025, brokerName: "Coinbase" },
-    );
+    const report = reconcile([], [makeDtaxEntry()], {
+      taxYear: 2025,
+      brokerName: "Coinbase",
+    });
     expect(report.items[0].riskLevel).toBe("LOW");
   });
 });

@@ -12,14 +12,14 @@ import type { ParsedTransaction, CsvParseResult, CsvParseError } from "./types";
 
 function mapZebPayType(raw: string): ParsedTransaction["type"] {
   const map: Record<string, ParsedTransaction["type"]> = {
-    buy:                "BUY",
-    sell:               "SELL",
-    deposit:            "TRANSFER_IN",
-    withdrawal:         "TRANSFER_OUT",
-    "crypto deposit":   "TRANSFER_IN",
-    "crypto withdrawal":"TRANSFER_OUT",
-    "inr deposit":      "TRANSFER_IN",
-    "inr withdrawal":   "TRANSFER_OUT",
+    buy: "BUY",
+    sell: "SELL",
+    deposit: "TRANSFER_IN",
+    withdrawal: "TRANSFER_OUT",
+    "crypto deposit": "TRANSFER_IN",
+    "crypto withdrawal": "TRANSFER_OUT",
+    "inr deposit": "TRANSFER_IN",
+    "inr withdrawal": "TRANSFER_OUT",
   };
   return map[raw.toLowerCase().trim()] ?? "UNKNOWN";
 }
@@ -36,15 +36,19 @@ export function isZebPayCsv(csv: string): boolean {
 export function parseZebPayCsv(csv: string): CsvParseResult {
   const rows = parseCsvRows(csv);
   if (rows.length < 2) {
-    return { transactions: [], errors: [], summary: { totalRows: 0, parsed: 0, failed: 0, format: "zebpay" } };
+    return {
+      transactions: [],
+      errors: [],
+      summary: { totalRows: 0, parsed: 0, failed: 0, format: "zebpay" },
+    };
   }
 
   const header = rows[0].map((h) => h.toLowerCase().trim());
   const idx = {
-    date:      header.indexOf("date"),
-    type:      header.indexOf("type"),
-    currency:  header.indexOf("currency"),
-    amount:    header.indexOf("amount"),
+    date: header.indexOf("date"),
+    type: header.indexOf("type"),
+    currency: header.indexOf("currency"),
+    amount: header.indexOf("amount"),
     inrAmount: header.indexOf("inr amount"),
   };
 
@@ -57,30 +61,44 @@ export function parseZebPayCsv(csv: string): CsvParseResult {
     try {
       const rawType = idx.type >= 0 ? (row[idx.type] ?? "") : "";
       const txType = mapZebPayType(rawType);
-      const currency = idx.currency >= 0 ? (row[idx.currency] ?? "").trim().toUpperCase() : "UNKNOWN";
-      const amount = idx.amount >= 0 ? safeParseNumber(row[idx.amount]) : undefined;
-      const inrAmount = idx.inrAmount >= 0 ? safeParseNumber(row[idx.inrAmount]) : undefined;
+      const currency =
+        idx.currency >= 0
+          ? (row[idx.currency] ?? "").trim().toUpperCase()
+          : "UNKNOWN";
+      const amount =
+        idx.amount >= 0 ? safeParseNumber(row[idx.amount]) : undefined;
+      const inrAmount =
+        idx.inrAmount >= 0 ? safeParseNumber(row[idx.inrAmount]) : undefined;
 
       const isBuy = txType === "BUY";
       const isTransferIn = txType === "TRANSFER_IN";
 
       transactions.push({
-        timestamp: idx.date >= 0 ? (safeParseDateToIso(row[idx.date] ?? "") ?? "") : "",
+        timestamp:
+          idx.date >= 0 ? (safeParseDateToIso(row[idx.date] ?? "") ?? "") : "",
         type: txType,
-        receivedAsset: (isBuy || isTransferIn) ? currency : undefined,
-        receivedAmount: (isBuy || isTransferIn) ? amount : undefined,
-        sentAsset: isBuy ? "INR" : (!isTransferIn ? currency : undefined),
-        sentAmount: isBuy ? inrAmount : (!isTransferIn ? amount : undefined),
+        receivedAsset: isBuy || isTransferIn ? currency : undefined,
+        receivedAmount: isBuy || isTransferIn ? amount : undefined,
+        sentAsset: isBuy ? "INR" : !isTransferIn ? currency : undefined,
+        sentAmount: isBuy ? inrAmount : !isTransferIn ? amount : undefined,
         notes: inrAmount != null ? `INR amount: ${inrAmount}` : undefined,
       });
     } catch (e) {
-      errors.push({ row: i + 2, message: e instanceof Error ? e.message : String(e) });
+      errors.push({
+        row: i + 2,
+        message: e instanceof Error ? e.message : String(e),
+      });
     }
   }
 
   return {
     transactions,
     errors,
-    summary: { totalRows: dataRows.length, parsed: transactions.length, failed: errors.length, format: "zebpay" },
+    summary: {
+      totalRows: dataRows.length,
+      parsed: transactions.length,
+      failed: errors.length,
+      format: "zebpay",
+    },
   };
 }

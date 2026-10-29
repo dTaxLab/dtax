@@ -12,9 +12,9 @@ import type { ParsedTransaction, CsvParseResult, CsvParseError } from "./types";
 
 function mapCoinDCXType(raw: string): ParsedTransaction["type"] {
   const map: Record<string, ParsedTransaction["type"]> = {
-    buy:        "BUY",
-    sell:       "SELL",
-    deposit:    "TRANSFER_IN",
+    buy: "BUY",
+    sell: "SELL",
+    deposit: "TRANSFER_IN",
     withdrawal: "TRANSFER_OUT",
   };
   return map[raw.toLowerCase().trim()] ?? "UNKNOWN";
@@ -22,24 +22,32 @@ function mapCoinDCXType(raw: string): ParsedTransaction["type"] {
 
 export function isCoinDCXCsv(csv: string): boolean {
   const first = csv.split("\n")[0]?.toLowerCase() ?? "";
-  return first.includes("order id") && first.includes("market") && first.includes("price (inr)");
+  return (
+    first.includes("order id") &&
+    first.includes("market") &&
+    first.includes("price (inr)")
+  );
 }
 
 export function parseCoinDCXCsv(csv: string): CsvParseResult {
   const rows = parseCsvRows(csv);
   if (rows.length < 2) {
-    return { transactions: [], errors: [], summary: { totalRows: 0, parsed: 0, failed: 0, format: "coindcx" } };
+    return {
+      transactions: [],
+      errors: [],
+      summary: { totalRows: 0, parsed: 0, failed: 0, format: "coindcx" },
+    };
   }
 
   const header = rows[0].map((h) => h.toLowerCase().trim());
   const idx = {
-    date:    header.indexOf("date"),
-    market:  header.indexOf("market"),
-    type:    header.indexOf("type"),
-    price:   header.findIndex((h) => h.includes("price")),
-    amount:  header.indexOf("amount"),
-    total:   header.findIndex((h) => h.includes("total")),
-    fee:     header.indexOf("fee"),
+    date: header.indexOf("date"),
+    market: header.indexOf("market"),
+    type: header.indexOf("type"),
+    price: header.findIndex((h) => h.includes("price")),
+    amount: header.indexOf("amount"),
+    total: header.findIndex((h) => h.includes("total")),
+    fee: header.indexOf("fee"),
     feeCurr: header.indexOf("fee currency"),
   };
 
@@ -58,14 +66,21 @@ export function parseCoinDCXCsv(csv: string): CsvParseResult {
       const baseAsset = market.replace(/[\/]?INR$/i, "").trim();
 
       const isBuy = txType === "BUY";
-      const amount = idx.amount >= 0 ? safeParseNumber(row[idx.amount]) : undefined;
-      const totalInr = idx.total >= 0 ? safeParseNumber(row[idx.total]) : undefined;
+      const amount =
+        idx.amount >= 0 ? safeParseNumber(row[idx.amount]) : undefined;
+      const totalInr =
+        idx.total >= 0 ? safeParseNumber(row[idx.total]) : undefined;
 
-      const feeAmount = idx.fee >= 0 ? safeParseNumber(row[idx.fee]) : undefined;
-      const feeAsset = idx.feeCurr >= 0 ? (row[idx.feeCurr] ?? "").trim() || undefined : undefined;
+      const feeAmount =
+        idx.fee >= 0 ? safeParseNumber(row[idx.fee]) : undefined;
+      const feeAsset =
+        idx.feeCurr >= 0
+          ? (row[idx.feeCurr] ?? "").trim() || undefined
+          : undefined;
 
       transactions.push({
-        timestamp: idx.date >= 0 ? (safeParseDateToIso(row[idx.date] ?? "") ?? "") : "",
+        timestamp:
+          idx.date >= 0 ? (safeParseDateToIso(row[idx.date] ?? "") ?? "") : "",
         type: txType,
         receivedAsset: isBuy ? baseAsset : "INR",
         receivedAmount: isBuy ? amount : totalInr,
@@ -76,13 +91,21 @@ export function parseCoinDCXCsv(csv: string): CsvParseResult {
         notes: totalInr != null ? `INR total: ${totalInr}` : undefined,
       });
     } catch (e) {
-      errors.push({ row: i + 2, message: e instanceof Error ? e.message : String(e) });
+      errors.push({
+        row: i + 2,
+        message: e instanceof Error ? e.message : String(e),
+      });
     }
   }
 
   return {
     transactions,
     errors,
-    summary: { totalRows: dataRows.length, parsed: transactions.length, failed: errors.length, format: "coindcx" },
+    summary: {
+      totalRows: dataRows.length,
+      parsed: transactions.length,
+      failed: errors.length,
+      format: "coindcx",
+    },
   };
 }

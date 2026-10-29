@@ -54,9 +54,18 @@ describe("calculateSpainCGT", () => {
   // ── Test 1: Method tag is ES_CGT ──────────────────
   it("should return ES_CGT method tag", () => {
     const lots = [
-      createLot({ id: "lot-1", asset: "BTC", amount: 1.0, costBasisUsd: 30000 }),
+      createLot({
+        id: "lot-1",
+        asset: "BTC",
+        amount: 1.0,
+        costBasisUsd: 30000,
+      }),
     ];
-    const event = createEvent({ asset: "BTC", amount: 1.0, proceedsUsd: 45000 });
+    const event = createEvent({
+      asset: "BTC",
+      amount: 1.0,
+      proceedsUsd: 45000,
+    });
 
     const result = calculateSpainCGT(lots, event);
 
@@ -66,13 +75,31 @@ describe("calculateSpainCGT", () => {
   // ── Test 2: Gain — identical to FIFO ─────────────
   it("should produce the same gainLoss as FIFO", () => {
     const lotsES = [
-      createLot({ id: "lot-1", asset: "BTC", amount: 1.0, costBasisUsd: 30000 }),
+      createLot({
+        id: "lot-1",
+        asset: "BTC",
+        amount: 1.0,
+        costBasisUsd: 30000,
+      }),
     ];
     const lotsFIFO = [
-      createLot({ id: "lot-1", asset: "BTC", amount: 1.0, costBasisUsd: 30000 }),
+      createLot({
+        id: "lot-1",
+        asset: "BTC",
+        amount: 1.0,
+        costBasisUsd: 30000,
+      }),
     ];
-    const eventES = createEvent({ asset: "BTC", amount: 1.0, proceedsUsd: 45000 });
-    const eventFIFO = createEvent({ asset: "BTC", amount: 1.0, proceedsUsd: 45000 });
+    const eventES = createEvent({
+      asset: "BTC",
+      amount: 1.0,
+      proceedsUsd: 45000,
+    });
+    const eventFIFO = createEvent({
+      asset: "BTC",
+      amount: 1.0,
+      proceedsUsd: 45000,
+    });
 
     const esResult = calculateSpainCGT(lotsES, eventES);
     const fifoResult = calculateFIFO(lotsFIFO, eventFIFO);
@@ -128,7 +155,12 @@ describe("calculateSpainCGT", () => {
   // ── Test 5: Fee handling ───────────────────────────
   it("should deduct fees from gain", () => {
     const lots = [
-      createLot({ id: "lot-1", asset: "BTC", amount: 1.0, costBasisUsd: 30000 }),
+      createLot({
+        id: "lot-1",
+        asset: "BTC",
+        amount: 1.0,
+        costBasisUsd: 30000,
+      }),
     ];
     const event = createEvent({
       asset: "BTC",

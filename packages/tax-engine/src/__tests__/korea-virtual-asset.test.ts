@@ -53,9 +53,18 @@ describe("calculateKoreaVirtualAsset", () => {
   // ── Test 1: Method tag is KR_VIRTUAL_ASSET ────────
   it("should return KR_VIRTUAL_ASSET method tag", () => {
     const lots = [
-      createLot({ id: "lot-1", asset: "BTC", amount: 1.0, costBasisUsd: 30000 }),
+      createLot({
+        id: "lot-1",
+        asset: "BTC",
+        amount: 1.0,
+        costBasisUsd: 30000,
+      }),
     ];
-    const event = createEvent({ asset: "BTC", amount: 1.0, proceedsUsd: 45000 });
+    const event = createEvent({
+      asset: "BTC",
+      amount: 1.0,
+      proceedsUsd: 45000,
+    });
 
     const result = calculateKoreaVirtualAsset(lots, event);
 
@@ -65,13 +74,31 @@ describe("calculateKoreaVirtualAsset", () => {
   // ── Test 2: Basic gain — identical to FIFO ────────
   it("should produce the same gainLoss as FIFO", () => {
     const lotsForKR = [
-      createLot({ id: "lot-1", asset: "BTC", amount: 1.0, costBasisUsd: 30000 }),
+      createLot({
+        id: "lot-1",
+        asset: "BTC",
+        amount: 1.0,
+        costBasisUsd: 30000,
+      }),
     ];
     const lotsForFIFO = [
-      createLot({ id: "lot-1", asset: "BTC", amount: 1.0, costBasisUsd: 30000 }),
+      createLot({
+        id: "lot-1",
+        asset: "BTC",
+        amount: 1.0,
+        costBasisUsd: 30000,
+      }),
     ];
-    const eventKR = createEvent({ asset: "BTC", amount: 1.0, proceedsUsd: 45000 });
-    const eventFIFO = createEvent({ asset: "BTC", amount: 1.0, proceedsUsd: 45000 });
+    const eventKR = createEvent({
+      asset: "BTC",
+      amount: 1.0,
+      proceedsUsd: 45000,
+    });
+    const eventFIFO = createEvent({
+      asset: "BTC",
+      amount: 1.0,
+      proceedsUsd: 45000,
+    });
 
     const krResult = calculateKoreaVirtualAsset(lotsForKR, eventKR);
     const fifoResult = calculateFIFO(lotsForFIFO, eventFIFO);
@@ -132,7 +159,12 @@ describe("calculateKoreaVirtualAsset", () => {
   // ── Test 5: Fee handling ───────────────────────────
   it("should deduct fees from gain", () => {
     const lots = [
-      createLot({ id: "lot-1", asset: "BTC", amount: 1.0, costBasisUsd: 30000 }),
+      createLot({
+        id: "lot-1",
+        asset: "BTC",
+        amount: 1.0,
+        costBasisUsd: 30000,
+      }),
     ];
     const event = createEvent({
       asset: "BTC",

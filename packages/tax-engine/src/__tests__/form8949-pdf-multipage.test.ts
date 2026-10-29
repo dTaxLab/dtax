@@ -3,7 +3,10 @@ import { generateForm8949Pdf } from "../reports/form8949-pdf";
 import { generateForm8949 } from "../reports/form8949";
 import type { CalculationResult } from "../types";
 
-function makeResults(count: number, holdingPeriod: "SHORT_TERM" | "LONG_TERM" = "SHORT_TERM"): { results: CalculationResult[], lotDates: Map<string, Date> } {
+function makeResults(
+  count: number,
+  holdingPeriod: "SHORT_TERM" | "LONG_TERM" = "SHORT_TERM",
+): { results: CalculationResult[]; lotDates: Map<string, Date> } {
   const results: CalculationResult[] = [];
   const lotDates = new Map<string, Date>();
   for (let i = 0; i < count; i++) {
@@ -18,7 +21,9 @@ function makeResults(count: number, holdingPeriod: "SHORT_TERM" | "LONG_TERM" = 
         date: new Date("2025-06-15"),
         sourceId: "s1",
       },
-      matchedLots: [{ lotId, amount: 0.1 + i * 0.01, costBasisUsd: 150 + i * 3 }],
+      matchedLots: [
+        { lotId, amount: 0.1 + i * 0.01, costBasisUsd: 150 + i * 3 },
+      ],
       gainLoss: 50 + i * 2,
       holdingPeriod,
       method: "FIFO",
@@ -36,7 +41,11 @@ function countPdfPages(pdf: Buffer): number {
 describe("Form 8949 PDF multi-page layout", () => {
   it("100 lines produce ~3 pages (not 100+)", async () => {
     const { results, lotDates } = makeResults(100);
-    const report = generateForm8949(results, { taxYear: 2025, lotDates, reportingBasis: "none" });
+    const report = generateForm8949(results, {
+      taxYear: 2025,
+      lotDates,
+      reportingBasis: "none",
+    });
     const pdf = await generateForm8949Pdf(report, { taxpayerName: "John Doe" });
     const pages = countPdfPages(pdf);
     console.log(`100 lines → ${pages} pages`);
@@ -47,7 +56,11 @@ describe("Form 8949 PDF multi-page layout", () => {
 
   it("50 lines produce ~2 pages", async () => {
     const { results, lotDates } = makeResults(50);
-    const report = generateForm8949(results, { taxYear: 2025, lotDates, reportingBasis: "none" });
+    const report = generateForm8949(results, {
+      taxYear: 2025,
+      lotDates,
+      reportingBasis: "none",
+    });
     const pdf = await generateForm8949Pdf(report);
     const pages = countPdfPages(pdf);
     console.log(`50 lines → ${pages} pages`);

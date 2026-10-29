@@ -281,7 +281,12 @@ describe("calculateCanadaACB", () => {
     const lots = [
       createLot({ id: "lot-1", asset: "ETH", amount: 2.0, costBasisUsd: 4000 }), // $2000/ETH
       createLot({ id: "lot-2", asset: "ETH", amount: 3.0, costBasisUsd: 9000 }), // $3000/ETH
-      createLot({ id: "lot-3", asset: "ETH", amount: 5.0, costBasisUsd: 20000 }), // $4000/ETH
+      createLot({
+        id: "lot-3",
+        asset: "ETH",
+        amount: 5.0,
+        costBasisUsd: 20000,
+      }), // $4000/ETH
     ];
 
     // Total: 10 ETH, $33000 → ACB/unit = $3300/ETH

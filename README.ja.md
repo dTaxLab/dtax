@@ -73,7 +73,7 @@ dtax calculate trades.csv --schedule-d --include-wash-sales
 | 主要           | Coinbase, Binance, Binance US, Kraken, Gemini                                       |
 | グローバル     | KuCoin, OKX, Bybit, Gate.io, Bitget, MEXC, HTX (Huobi)                              |
 | その他         | Crypto.com, Bitfinex, Poloniex, Bitstamp, Upbit, Robinhood                          |
-| インド     | WazirX, CoinDCX, ZebPay                                                             |
+| インド         | WazirX, CoinDCX, ZebPay                                                             |
 | オンチェーン   | Etherscan (ETH + ERC-20 + BSC/Polygon/Avalanche/Fantom), Solscan (SOL + SPL + DeFi) |
 | 移行           | Koinly, CoinTracker, Cryptact（競合サービスからのインポート）                       |
 | フォールバック | Generic CSV（独自のカラムをマッピング）                                             |

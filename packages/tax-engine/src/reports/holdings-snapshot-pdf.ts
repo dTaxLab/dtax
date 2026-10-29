@@ -156,12 +156,10 @@ export async function generateHoldingsSnapshotPdf(
     doc.fontSize(8.5).font("Helvetica");
     let summaryItemY = summaryY + 26;
     for (const [label, value] of summaryItems) {
-      doc
-        .fillColor("#6b7280")
-        .text(label + ":", MARGIN + 12, summaryItemY, {
-          continued: true,
-          width: 220,
-        });
+      doc.fillColor("#6b7280").text(label + ":", MARGIN + 12, summaryItemY, {
+        continued: true,
+        width: 220,
+      });
       doc.fillColor("#111827").font("Helvetica-Bold").text(value);
       doc.font("Helvetica");
       summaryItemY += 13;

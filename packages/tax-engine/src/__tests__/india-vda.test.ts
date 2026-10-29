@@ -49,9 +49,18 @@ describe("calculateIndiaVDA", () => {
   // ── Test 1: Gain — tagged IN_VDA ──────────────────
   it("should return IN_VDA method tag and correct gain", () => {
     const lots = [
-      createLot({ id: "lot-1", asset: "BTC", amount: 1.0, costBasisUsd: 30000 }),
+      createLot({
+        id: "lot-1",
+        asset: "BTC",
+        amount: 1.0,
+        costBasisUsd: 30000,
+      }),
     ];
-    const event = createEvent({ asset: "BTC", amount: 1.0, proceedsUsd: 45000 });
+    const event = createEvent({
+      asset: "BTC",
+      amount: 1.0,
+      proceedsUsd: 45000,
+    });
 
     const result = calculateIndiaVDA(lots, event);
 
@@ -62,9 +71,18 @@ describe("calculateIndiaVDA", () => {
   // ── Test 2: Loss → zeroed to 0 ────────────────────
   it("should zero out losses (s.115BBH: losses not deductible)", () => {
     const lots = [
-      createLot({ id: "lot-1", asset: "BTC", amount: 1.0, costBasisUsd: 50000 }),
+      createLot({
+        id: "lot-1",
+        asset: "BTC",
+        amount: 1.0,
+        costBasisUsd: 50000,
+      }),
     ];
-    const event = createEvent({ asset: "BTC", amount: 1.0, proceedsUsd: 40000 });
+    const event = createEvent({
+      asset: "BTC",
+      amount: 1.0,
+      proceedsUsd: 40000,
+    });
 
     const result = calculateIndiaVDA(lots, event);
 
@@ -87,13 +105,18 @@ describe("calculateIndiaVDA", () => {
   // ── Test 4: Fee causes net loss → zeroed ──────────
   it("should zero out gain when fees push it negative", () => {
     const lots = [
-      createLot({ id: "lot-1", asset: "BTC", amount: 1.0, costBasisUsd: 40000 }),
+      createLot({
+        id: "lot-1",
+        asset: "BTC",
+        amount: 1.0,
+        costBasisUsd: 40000,
+      }),
     ];
     const event = createEvent({
       asset: "BTC",
       amount: 1.0,
       proceedsUsd: 40100, // tiny gain before fee
-      feeUsd: 200,        // fee creates net loss
+      feeUsd: 200, // fee creates net loss
     });
 
     const result = calculateIndiaVDA(lots, event);
@@ -105,7 +128,12 @@ describe("calculateIndiaVDA", () => {
   // ── Test 5: Positive gain with fee — not zeroed ───
   it("should deduct fees from positive gains normally", () => {
     const lots = [
-      createLot({ id: "lot-1", asset: "BTC", amount: 1.0, costBasisUsd: 30000 }),
+      createLot({
+        id: "lot-1",
+        asset: "BTC",
+        amount: 1.0,
+        costBasisUsd: 30000,
+      }),
     ];
     const event = createEvent({
       asset: "BTC",
