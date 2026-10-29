@@ -39,18 +39,13 @@
   --sl-color-gray-4:      #cbd5e1;
   --sl-color-gray-5:      #e2e8f0;
   --sl-color-gray-6:      #f8fafc;
-  --sl-color-black:       #0f172a;
+  /* Starlight's convention: --sl-color-white is the strongest text colour and
+     --sl-color-black is the base surface (cards, search box, header search button).
+     In a light theme that means dark text on a white surface. Both used to be #0f172a,
+     which gave dark surfaces: card titles and search text were the same colour as
+     their background and could not be read. */
+  --sl-color-black:       #ffffff;
   --sl-color-white:       #0f172a;
-}
-
-/* Search dialog, light theme.
-   Starlight 0.4x paints the search input with --sl-color-black and its text with
-   --sl-color-white. The light theme above sets both to #0f172a, so the typed text is
-   the same colour as the input and cannot be read. Inside the dialog only, give
-   --sl-color-black Starlight's own light-theme meaning (white); the rest of the page,
-   including the dark header search button, is left as it was. */
-[data-theme='light'] site-search dialog {
-  --sl-color-black: #ffffff;
 }
 
 /* ── Global typography ──────────────────────────────── */
