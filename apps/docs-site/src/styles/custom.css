@@ -26,7 +26,7 @@
 
 [data-theme='light'] {
   --sl-color-accent-low:  #eef2ff;
-  --sl-color-accent:      #6366f1;
+  --sl-color-accent:      #4f46e5;
   --sl-color-accent-high: #4338ca;
 
   --sl-color-bg:          #f8fafc;
@@ -35,7 +35,7 @@
   --sl-color-hairline:    #e2e8f0;
   --sl-color-gray-1:      #0f172a;
   --sl-color-gray-2:      #475569;
-  --sl-color-gray-3:      #94a3b8;
+  --sl-color-gray-3:      #64748b;
   --sl-color-gray-4:      #cbd5e1;
   --sl-color-gray-5:      #e2e8f0;
   --sl-color-gray-6:      #f8fafc;
