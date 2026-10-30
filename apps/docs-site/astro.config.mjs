@@ -6,7 +6,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'dTax Developer Hub',
-      description: 'Open-source crypto tax engine. 23 exchange parsers, FIFO/LIFO/HIFO, Form 8949.',
+      description: 'Open-source crypto tax engine — 29 exchange parsers, 13 cost-basis methods, Form 8949 / TXF export.',
       defaultLocale: 'root',
       locales: {
         root: { label: 'English', lang: 'en' },
