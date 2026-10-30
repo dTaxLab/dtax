@@ -17,7 +17,7 @@ Do not put the token on a command line or in a file under version control.
 
 **Known limitation:** the web image bakes `NEXT_PUBLIC_*` values (including `NEXT_PUBLIC_API_URL`) into its JavaScript at build time. Until a runtime-configurable web image is published, a customer-specific domain requires a web image built for that domain; tell us your domain when you request access.
 
-Plans and prices are the same as the cloud service (Free / Pro / CPA); there is no separate self-hosting fee. The open-source tax engine (`packages/tax-engine`) and CLI can be used on their own without any of the above.
+Self-hosting the full application is arranged per installation: email support@getdtax.com for scope and pricing. The same plan tiers (Free / Pro / CPA) apply. The open-source tax engine (`packages/tax-engine`) and CLI can be used on their own without any of the above.
 
 ## Prerequisites
 
