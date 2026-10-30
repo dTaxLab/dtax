@@ -1,6 +1,6 @@
 ---
 title: セルフホスティング
-description: Docker Compose を使用して自分のサーバーに dTax をデプロイ — PostgreSQL、Redis、API、Web の完全スタック
+description: Docker Compose を使用して自分のサーバーに dTax をデプロイ — PostgreSQL、API、Web の完全スタック
 draft: false
 ---
 
@@ -63,7 +63,11 @@ APIとWebアプリケーションは独自(プロプライエタリ)のため、
    docker compose up -d
    ```
 
-   PostgreSQL、Redis、API、Web、nginx が起動します。`migrate` サービスがデータベースマイグレーションを自動実行します。
+   PostgreSQL、API、Web、nginx、certbot が起動します。データベースマイグレーションは自動では実行されません。初回起動後に、次のマイグレーションコマンドを一度実行してください。
+
+   ```bash
+   docker compose exec api ./node_modules/.bin/prisma migrate deploy
+   ```
 
    動作確認：
 
@@ -87,9 +91,9 @@ APIとWebアプリケーションは独自(プロプライエタリ)のため、
      │  API   │              │   Web    │
      │ :3001  │              │  :3000   │
      └────┬───┘              └──────────┘
-     ┌────┴───┐  ┌───────┐
-     │Postgres│  │ Redis │
-     └────────┘  └───────┘
+     ┌────┴───┐
+     │Postgres│
+     └────────┘
 ```
 
 **Sync Worker** は API プロセス内で動作し、5 秒ごとに PostgreSQL をポーリングして保留中のジョブを処理します。2 種類のジョブタイプを処理します：
@@ -161,6 +165,7 @@ docker compose exec postgres psql -U dtax -c \
 git pull
 docker compose build
 docker compose up -d
+docker compose exec api ./node_modules/.bin/prisma migrate deploy
 ```
 
 ## バックアップ
@@ -213,4 +218,5 @@ API ログで `FATAL: ENCRYPTION_KEY` を確認してください。`ENCRYPTION_
 ```bash
 docker compose down -v
 docker compose up -d
+docker compose exec api ./node_modules/.bin/prisma migrate deploy
 ```

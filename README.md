@@ -17,7 +17,7 @@
 
 ---
 
-**29 exchange parsers** | **8 cost basis methods** — FIFO / LIFO / HIFO / UK Share Pooling / +4 more | **Form 8949 + Schedule D** | **Wash sale detection** | **What-if simulator**
+**29 exchange parsers** | **13 cost basis methods** — FIFO / LIFO / HIFO / Specific ID / UK Share Pooling / +8 more | **Form 8949 + Schedule D** | **Wash sale detection** | **What-if simulator**
 
 ## Install
 
@@ -80,7 +80,7 @@ All parsers auto-detect the CSV format. No configuration required.
 
 ## Features
 
-- **8 cost basis methods** -- FIFO, LIFO, HIFO, Specific ID, UK Share Pooling, Germany FIFO, PMPA, Total Average (US + international)
+- **13 cost basis methods** -- FIFO, LIFO, HIFO, Specific ID, UK Share Pooling, Germany FIFO, PMPA, Total Average, plus Australia, Canada, Korea, India and Spain (US + international)
 - **Form 8949** -- CSV, PDF, and TXF (TurboTax) export with Box A-F classification
 - **Schedule D** -- Part I/II aggregation, $3,000 loss limit, carryover calculation
 - **Wash sale detection** -- 30-day window, partial disallowance, Form 8949 code W
@@ -99,7 +99,7 @@ All parsers auto-detect the CSV format. No configuration required.
 | Language               | TypeScript | Python  |  Python  |
 | npm installable        |    Yes     |   No    |    No    |
 | Exchange parsers       |     29     |   15    |    8     |
-| Cost basis methods     |     8      |    3    |    3     |
+| Cost basis methods     |     13     |    3    |    3     |
 | Form 8949 PDF          |    Yes     |   No    |    No    |
 | TurboTax TXF export    |    Yes     |   No    |    No    |
 | Schedule D generation  |    Yes     |   No    |    No    |

@@ -1,6 +1,6 @@
 ---
 title: 自托管部署
-description: 使用 Docker Compose 在自有服务器上部署 dTax — 包含 PostgreSQL、Redis、API 和 Web 完整栈
+description: 使用 Docker Compose 在自有服务器上部署 dTax — 包含 PostgreSQL、API 和 Web 完整栈
 draft: false
 ---
 
@@ -68,7 +68,11 @@ API 和网页应用是专有软件,容器镜像不公开,按安排提供。请�
    ```
    </Aside>
 
-   此命令会启动 PostgreSQL、Redis、API、Web 和 nginx。`migrate` 服务会自动执行数据库迁移。
+   此命令会启动 PostgreSQL、API、Web、nginx 和 certbot。数据库迁移不会自动执行：首次启动后请运行一次下面的迁移命令。
+
+   ```bash
+   docker compose exec api ./node_modules/.bin/prisma migrate deploy
+   ```
 
    验证运行状态：
 
@@ -92,9 +96,9 @@ API 和网页应用是专有软件,容器镜像不公开,按安排提供。请�
      │  API   │            │   Web    │
      │ :3001  │            │  :3000   │
      └────┬───┘            └──────────┘
-     ┌────┴───┐  ┌───────┐
-     │Postgres│  │ Redis │
-     └────────┘  └───────┘
+     ┌────┴───┐
+     │Postgres│
+     └────────┘
 ```
 
 **Sync Worker** 在 API 进程内运行，每 5 秒轮询 PostgreSQL 处理待执行的任务。它处理两种任务类型：
@@ -198,7 +202,11 @@ docker compose build
 docker compose up -d
 ```
 
-`migrate` 服务会自动应用新的数据库迁移。
+然后应用新的数据库迁移：
+
+```bash
+docker compose exec api ./node_modules/.bin/prisma migrate deploy
+```
 
 ## 数据备份
 
@@ -271,4 +279,5 @@ docker system prune -f     # 清理未使用的镜像和容器
 ```bash
 docker compose down -v
 docker compose up -d
+docker compose exec api ./node_modules/.bin/prisma migrate deploy
 ```

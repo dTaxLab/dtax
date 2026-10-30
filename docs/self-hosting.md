@@ -66,7 +66,11 @@ openssl rand -base64 24  # Use output for POSTGRES_PASSWORD
 docker compose up -d
 ```
 
-This starts PostgreSQL, Redis, API, Web, and nginx. The `migrate` service runs database migrations automatically on first start.
+This starts PostgreSQL, the API, the web app, nginx and certbot. Database migrations are not applied automatically: run the migration command below once after the first start.
+
+```bash
+docker compose exec api ./node_modules/.bin/prisma migrate deploy
+```
 
 Verify everything is running:
 
@@ -88,9 +92,9 @@ curl http://localhost/api/health
          │  API   │            │   Web    │
          │ :3001  │            │  :3000   │
          └────┬───┘            └──────────┘
-         ┌────┴───┐  ┌───────┐
-         │Postgres│  │ Redis │
-         └────────┘  └───────┘
+         ┌────┴───┐
+         │Postgres│
+         └────────┘
 ```
 
 ## TLS Setup with Let's Encrypt
@@ -183,7 +187,11 @@ docker compose pull
 docker compose up -d
 ```
 
-The `migrate` service runs automatically to apply any new database migrations.
+Then apply any new database migrations:
+
+```bash
+docker compose exec api ./node_modules/.bin/prisma migrate deploy
+```
 
 ## Backups
 
@@ -254,4 +262,5 @@ docker system prune -f     # Remove unused images/containers
 ```bash
 docker compose down -v     # WARNING: Destroys all data including database
 docker compose up -d
+docker compose exec api ./node_modules/.bin/prisma migrate deploy
 ```

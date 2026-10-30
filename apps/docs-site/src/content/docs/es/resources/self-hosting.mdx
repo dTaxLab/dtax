@@ -1,6 +1,6 @@
 ---
 title: Auto-alojamiento
-description: Despliega dTax en tu propio servidor con Docker Compose — stack completo con PostgreSQL, Redis, API y Web
+description: Despliega dTax en tu propio servidor con Docker Compose — stack completo con PostgreSQL, API y Web
 draft: false
 ---
 
@@ -63,7 +63,11 @@ La API y la aplicación web son propietarias, por lo que las imágenes de conten
    docker compose up -d
    ```
 
-   Inicia PostgreSQL, Redis, API, Web y nginx. El servicio `migrate` ejecuta las migraciones de base de datos automáticamente.
+   Inicia PostgreSQL, API, Web, nginx y certbot. Las migraciones de base de datos no se aplican automáticamente: ejecuta una vez, tras el primer arranque, el siguiente comando de migración.
+
+   ```bash
+   docker compose exec api ./node_modules/.bin/prisma migrate deploy
+   ```
 
    Verificar funcionamiento:
 
@@ -87,9 +91,9 @@ La API y la aplicación web son propietarias, por lo que las imágenes de conten
      │  API   │            │   Web    │
      │ :3001  │            │  :3000   │
      └────┬───┘            └──────────┘
-     ┌────┴───┐  ┌───────┐
-     │Postgres│  │ Redis │
-     └────────┘  └───────┘
+     ┌────┴───┐
+     │Postgres│
+     └────────┘
 ```
 
 El **Sync Worker** se ejecuta dentro del proceso de la API y consulta PostgreSQL cada 5 segundos en busca de trabajos pendientes. Gestiona dos tipos de trabajos:
@@ -159,6 +163,7 @@ docker compose exec postgres psql -U dtax -c \
 git pull
 docker compose build
 docker compose up -d
+docker compose exec api ./node_modules/.bin/prisma migrate deploy
 ```
 
 ## Copias de seguridad
@@ -210,4 +215,5 @@ Elimina todos los datos incluyendo la base de datos. Haz una copia de seguridad 
 ```bash
 docker compose down -v
 docker compose up -d
+docker compose exec api ./node_modules/.bin/prisma migrate deploy
 ```
