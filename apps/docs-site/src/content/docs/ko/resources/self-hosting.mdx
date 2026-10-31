@@ -30,6 +30,8 @@ API와 웹 애플리케이션은 독점 소프트웨어이므로 컨테이너 �
    cd dtax
    ```
 
+   공개 저장소에는 배포 파일(`docker-compose.yml`, `.env.production.example`, `docker/`)과 오픈소스 엔진이 포함되어 있지만, 독점 소프트웨어인 `apps/api`와 `apps/web` 소스는 포함되어 있지 않습니다. 3단계에는 support@getdtax.com이 계약에 따라 제공하는 비공개 이미지 또는 애플리케이션 소스가 필요합니다(위의 '제공 방식' 참고). 이것이 없으면 `docker compose build`를 실행할 수 없습니다.
+
 2. **환경 변수 설정**
 
    ```bash

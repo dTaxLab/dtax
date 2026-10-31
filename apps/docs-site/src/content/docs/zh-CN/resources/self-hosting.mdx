@@ -30,6 +30,8 @@ API 和网页应用是专有软件,容器镜像不公开,按安排提供。请�
    cd dtax
    ```
 
+   公开仓库包含部署文件(`docker-compose.yml`、`.env.production.example`、`docker/`)和开源引擎,但不包含专有的 `apps/api` 与 `apps/web` 源码。第 3 步需要 support@getdtax.com 按约定提供的私有镜像或应用源码(见上方“提供方式”说明);没有它们,`docker compose build` 无法运行。
+
 2. **配置环境变量**
 
    ```bash

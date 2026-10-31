@@ -30,6 +30,8 @@ APIとWebアプリケーションは独自(プロプライエタリ)のため、
    cd dtax
    ```
 
+   公開リポジトリにはデプロイ用ファイル(`docker-compose.yml`、`.env.production.example`、`docker/`)とオープンソースのエンジンが含まれますが、プロプライエタリな `apps/api` と `apps/web` のソースは含まれません。手順 3 には、support@getdtax.com が個別契約で提供するプライベートイメージまたはアプリケーションのソースが必要です(上記の「提供について」を参照)。それらがない場合、`docker compose build` は実行できません。
+
 2. **環境変数を設定**
 
    ```bash

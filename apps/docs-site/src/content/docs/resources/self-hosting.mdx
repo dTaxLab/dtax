@@ -30,6 +30,8 @@ The API and web application are proprietary, so the container images are private
    cd dtax
    ```
 
+   The public repository holds the deployment files (`docker-compose.yml`, `.env.production.example`, `docker/`) and the open-source engine, but not the proprietary `apps/api` and `apps/web` sources. Step 3 needs the private images or application source that support@getdtax.com provides by arrangement (see Availability above); without them `docker compose build` cannot run.
+
 2. **Configure environment**
 
    ```bash

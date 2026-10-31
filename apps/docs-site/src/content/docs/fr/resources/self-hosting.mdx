@@ -30,6 +30,8 @@ L'API et l'application web sont propriétaires : les images de conteneur sont pr
    cd dtax
    ```
 
+   Le dépôt public contient les fichiers de déploiement (`docker-compose.yml`, `.env.production.example`, `docker/`) et le moteur open source, mais pas les sources propriétaires `apps/api` et `apps/web`. L'étape 3 nécessite les images privées ou le code source de l'application fournis par support@getdtax.com sur accord (voir l'encadré Disponibilité ci-dessus) ; sans eux, `docker compose build` ne peut pas s'exécuter.
+
 2. **Configurer les variables d'environnement**
 
    ```bash
