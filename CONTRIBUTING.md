@@ -113,9 +113,16 @@ describe("FIFO Calculator", () => {
 
 ## Contributor License Agreement (CLA)
 
-By submitting a pull request, you agree that your contribution is licensed
-under the AGPL-3.0 license, and you grant DTax the right to use your
-contribution in both the open-source and commercial versions of the software.
+By submitting a pull request, you agree that:
+
+1. Your contribution is licensed to the public under the AGPL-3.0 license.
+2. You also grant dTax Inc. a perpetual, worldwide, non-exclusive, royalty-free,
+   irrevocable licence to use, modify, sublicense and distribute your
+   contribution under any terms, including proprietary and commercial licences
+   and future changes to the project's licence.
+3. You have the right to make the contribution. If your employer has rights in
+   it, you have obtained their permission.
+4. You retain the copyright in your contribution.
 
 ## Need Help?
 
