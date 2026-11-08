@@ -246,6 +246,99 @@ describe("matchInternalTransfers — time window", () => {
   });
 });
 
+// ─── Date-only rows (CSV exports without a time) ─────────
+
+describe("matchInternalTransfers — date-only rows (stored at 12:00 UTC)", () => {
+  const out = (id: string, day: string, amount = 20) =>
+    makeTransfer({
+      id,
+      type: "TRANSFER_OUT",
+      sourceId: "robinhood",
+      asset: "USDC",
+      amount,
+      timestamp: new Date(`${day}T12:00:00.000Z`),
+    });
+  const inn = (id: string, iso: string, amount = 19.953818) =>
+    makeTransfer({
+      id,
+      type: "TRANSFER_IN",
+      sourceId: "binance",
+      asset: "USDC",
+      amount,
+      timestamp: new Date(iso),
+    });
+
+  it("matches an arrival earlier the same day as a date-only withdrawal (real case: out 06-25, in 07:24)", () => {
+    const r = matchInternalTransfers([
+      out("o", "2026-06-25"),
+      inn("i", "2026-06-25T07:24:00Z"),
+    ]);
+    expect(r.matched).toHaveLength(1);
+  });
+
+  it("still matches an arrival later the same day", () => {
+    const r = matchInternalTransfers([
+      out("o", "2026-06-20", 100),
+      inn("i", "2026-06-20T13:08:00Z", 99.970075),
+    ]);
+    expect(r.matched).toHaveLength(1);
+  });
+
+  it("does not match an arrival on the previous day (negative control)", () => {
+    const r = matchInternalTransfers([
+      out("o", "2026-06-25"),
+      inn("i", "2026-06-24T23:30:00Z"),
+    ]);
+    expect(r.matched).toHaveLength(0);
+  });
+
+  it("two real timestamps keep the old rule (a 5 minute early arrival is rejected)", () => {
+    const r = matchInternalTransfers([
+      makeTransfer({
+        id: "o",
+        type: "TRANSFER_OUT",
+        sourceId: "robinhood",
+        asset: "USDC",
+        amount: 20,
+        timestamp: new Date("2026-06-25T10:05:00Z"),
+      }),
+      inn("i", "2026-06-25T10:00:00Z"),
+    ]);
+    expect(r.matched).toHaveLength(0);
+  });
+
+  it("a date-only arrival matches a real withdrawal later the same day", () => {
+    const r = matchInternalTransfers([
+      makeTransfer({
+        id: "o",
+        type: "TRANSFER_OUT",
+        sourceId: "binance",
+        asset: "USDC",
+        amount: 20,
+        timestamp: new Date("2026-06-25T15:00:00Z"),
+      }),
+      makeTransfer({
+        id: "i",
+        type: "TRANSFER_IN",
+        sourceId: "robinhood",
+        asset: "USDC",
+        amount: 19.9,
+        timestamp: new Date("2026-06-25T12:00:00.000Z"),
+      }),
+    ]);
+    expect(r.matched).toHaveLength(1);
+  });
+
+  it("prefers the nearer of two candidates when the date-only out has one before and one after", () => {
+    const r = matchInternalTransfers([
+      out("o", "2026-06-25"),
+      inn("early", "2026-06-25T02:00:00Z"),
+      inn("late", "2026-06-25T13:00:00Z"),
+    ]);
+    expect(r.matched[0].inTx.id).toBe("late");
+  });
+});
+
 // ─── Best Match Selection ────────────────────────
 
 describe("matchInternalTransfers — best match selection", () => {

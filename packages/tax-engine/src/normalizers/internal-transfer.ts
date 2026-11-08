@@ -33,6 +33,23 @@ export interface MatchResult {
   unmatchedIn: TransferRecord[];
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const NOON_MS = 12 * 60 * 60 * 1000;
+
+/**
+ * A CSV row that only carries a calendar date is stored at exactly 12:00:00.000
+ * UTC, so its real time of day is unknown. A real exchange timestamp landing on
+ * that exact millisecond is negligible, and the only consequence of mistaking
+ * one is a looser same-day match.
+ */
+function isDateOnly(t: TransferRecord): boolean {
+  return t.timestamp.getTime() % DAY_MS === NOON_MS;
+}
+
+function utcDay(t: TransferRecord): number {
+  return Math.floor(t.timestamp.getTime() / DAY_MS);
+}
+
 /**
  * Match transfers between wallets/exchanges to avoid treating them as taxable events.
  *
@@ -70,7 +87,12 @@ export function matchInternalTransfers(
     let smallestTimeDiff = Infinity;
 
     const bucket = insByAsset.get(outTx.asset) ?? [];
-    const earliest = outTx.timestamp.getTime() - CLOCK_SKEW_MS;
+    // A date-only row may really have happened earlier that day, so the search
+    // starts at the beginning of the out's UTC day; the loop applies the exact rule.
+    const earliest = Math.min(
+      outTx.timestamp.getTime() - CLOCK_SKEW_MS,
+      utcDay(outTx) * DAY_MS,
+    );
     let lo = 0;
     let hi = bucket.length;
     while (lo < hi) {
@@ -94,8 +116,17 @@ export function matchInternalTransfers(
 
       // Check time bounds: 'IN' usually happens after or very close to 'OUT'
       const timeDiff = inTx.timestamp.getTime() - outTx.timestamp.getTime();
-      if (timeDiff < -60000) continue; // Allow up to 1m clock skew backwards
+      // Allow up to 1m clock skew backwards. Exception: when either side only
+      // has a date (stored at 12:00 UTC), an arrival earlier the same UTC day
+      // is the same transfer, not a different one.
+      const sameDayDateOnly =
+        (isDateOnly(outTx) || isDateOnly(inTx)) &&
+        utcDay(inTx) === utcDay(outTx);
+      if (timeDiff < -CLOCK_SKEW_MS && !sameDayDateOnly) continue;
       if (timeDiff > maxTimeWindowMs) continue; // Too far in the future
+      // Closer is better; a same-day arrival before the out ranks by distance.
+      const timeRank =
+        timeDiff < -CLOCK_SKEW_MS ? Math.abs(timeDiff) : timeDiff;
 
       // The IN amount should not be strictly greater than OUT amount
       // (Unless it's an error. We allow tiny floating point tolerance)
@@ -107,10 +138,10 @@ export function matchInternalTransfers(
         if (
           amountDiff < smallestAmountDiff ||
           (Math.abs(amountDiff - smallestAmountDiff) < 0.00000001 &&
-            timeDiff < smallestTimeDiff)
+            timeRank < smallestTimeDiff)
         ) {
           smallestAmountDiff = amountDiff;
-          smallestTimeDiff = timeDiff;
+          smallestTimeDiff = timeRank;
           bestMatch = inTx;
         }
       }
