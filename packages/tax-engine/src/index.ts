@@ -153,7 +153,10 @@ export type {
   PortfolioAnalysis,
 } from "./portfolio";
 
-export { matchInternalTransfers } from "./normalizers/internal-transfer";
+export {
+  matchInternalTransfers,
+  isDateOnlyTimestamp,
+} from "./normalizers/internal-transfer";
 export type {
   TransferRecord,
   InternalTransferMatch,

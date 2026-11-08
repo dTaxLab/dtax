@@ -48,8 +48,15 @@ export interface TaxLot {
   amount: number;
   /** Total cost basis in USD */
   costBasisUsd: number;
-  /** Date the asset was acquired */
+  /** Date the asset was acquired: decides the holding period and the date reported */
   acquiredAt: Date;
+  /**
+   * When the lot can first be matched, if earlier than `acquiredAt`. Set on a
+   * lot moved by a transfer that arrived before the lot's recorded date (the
+   * sending record only had a date). Ordering and eligibility use it; the
+   * holding period and reports do not. Defaults to `acquiredAt`.
+   */
+  availableFrom?: Date;
   /** Identifier of the exchange or wallet holding this asset */
   sourceId: string;
   /** Human-readable source type */
@@ -121,7 +128,21 @@ export interface TransferEvent {
    * from the sending wallet; their cost is not claimed.
    */
   feeAmount?: number;
+  /** When the move takes effect: the units are in the receiving wallet from here on. */
   date: Date;
+  /**
+   * Latest acquisition time of a lot that may move, when it is later than
+   * `date`. Set only when the sending record has just a date (its time of day
+   * is a placeholder) and the arrival is earlier than that placeholder: the
+   * units cannot have arrived before they were bought, so lots up to the
+   * sending record's time move, available from `date` (see
+   * TaxLot.availableFrom). Defaults to `date`.
+   * Known limit: a sale from the sending wallet between the arrival and the
+   * sending record's time finds the lots already moved, and a transfer that
+   * feeds this wallet later the same day is applied after this one; both need
+   * timestamps that disagree with each other, not just a missing time of day.
+   */
+  lotCutoff?: Date;
   fromSourceId: string;
   toSourceId: string;
 }

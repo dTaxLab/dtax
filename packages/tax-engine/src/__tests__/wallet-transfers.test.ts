@@ -465,3 +465,231 @@ describe("review round 5 (engine)", () => {
     ).toBeCloseTo(1000, 6);
   });
 });
+
+describe("a transfer that arrives before its date-only sending record", () => {
+  const t = (s: string) => new Date(s);
+  const usdc = (id: string, amount: number, at: string, src: string) =>
+    ({
+      id,
+      asset: "USDC",
+      amount,
+      costBasisUsd: amount,
+      acquiredAt: t(at),
+      sourceId: src,
+    }) satisfies TaxLot;
+  const sold = (id: string, amount: number, at: string): TaxableEvent => ({
+    id,
+    asset: "USDC",
+    amount,
+    proceedsUsd: amount,
+    date: t(at),
+    sourceId: "bn",
+  });
+  // The sending CSV only has a date, stored at 12:00 UTC; the exchange reports
+  // the arrival at 07:24:07 the same day. Production case: 2026-06-25.
+  const transfer = (extra: Partial<TransferEvent> = {}): TransferEvent => ({
+    id: "T",
+    asset: "USDC",
+    amount: 19.953818,
+    feeAmount: 0.046182,
+    date: t("2026-06-25T07:24:07Z"),
+    lotCutoff: t("2026-06-25T12:00:00Z"),
+    fromSourceId: "rh",
+    toSourceId: "bn",
+    ...extra,
+  });
+
+  it("a sale after the arrival uses the units, although the lot is dated later that day", () => {
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([usdc("L", 20, "2026-06-25T12:00:00Z", "rh")]);
+    c.registerTransfers([transfer()]);
+    const r = c.calculate(sold("S", 20.875741, "2026-06-25T07:24:26Z"), true);
+    expect(r.matchedLots.reduce((n, m) => n + m.amountConsumed, 0)).toBeCloseTo(
+      19.953818,
+      9,
+    );
+    expect(r.unmatchedAmount).toBeCloseTo(20.875741 - 19.953818, 9);
+  });
+
+  it("the same holds when the whole lot moves", () => {
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([usdc("L", 19.953818, "2026-06-25T12:00:00Z", "rh")]);
+    c.registerTransfers([transfer({ feeAmount: 0 })]);
+    const r = c.calculate(sold("S", 19.953818, "2026-06-25T07:24:26Z"), true);
+    expect(r.unmatchedAmount ?? 0).toBe(0);
+    expect(r.gainLoss).toBeCloseTo(0, 9);
+  });
+
+  it("a lot bought after the sending record's time is not moved", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([usdc("L", 20, "2026-06-26T12:00:00Z", "rh")]);
+    c.registerTransfers([transfer()]);
+    const r = c.calculate(sold("S", 5, "2026-06-25T07:24:26Z"), true);
+    expect(r.unmatchedAmount).toBeCloseTo(5, 9);
+  });
+
+  // Negative control: without lotCutoff the move waits for the placeholder
+  // time and the lot cannot be used by the earlier sale (the old behaviour).
+  it("without the cutoff the earlier sale finds no lot", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([usdc("L", 20, "2026-06-25T12:00:00Z", "rh")]);
+    c.registerTransfers([transfer({ lotCutoff: undefined })]);
+    const r = c.calculate(sold("S", 20.875741, "2026-06-25T07:24:26Z"), true);
+    expect(r.unmatchedAmount).toBeCloseTo(20.875741, 9);
+  });
+
+  it("an ordinary transfer (arrival after the lot) is unchanged: the lot keeps its date", () => {
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([usdc("L", 20, "2026-06-20T12:00:00Z", "rh")]);
+    c.registerTransfers([
+      transfer({ lotCutoff: undefined, date: t("2026-06-25T07:24:07Z") }),
+    ]);
+    const r = c.calculate(sold("S", 10, "2026-06-25T08:00:00Z"), true);
+    expect(r.unmatchedAmount ?? 0).toBe(0);
+    expect(r.holdingPeriod).toBe("SHORT_TERM");
+  });
+});
+
+describe("a lot that arrives before its recorded date keeps that date for the holding period", () => {
+  const t = (s: string) => new Date(s);
+  // Placeholder date 2025-06-26 00:00 UTC; the exchange reports the arrival the
+  // evening before. The lot is matched from the arrival, but it was acquired on
+  // 2025-06-26: a sale at 2026-06-26 23:45 is still short-term.
+  it("is not shortened or lengthened by the earlier arrival", () => {
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([
+      {
+        id: "L",
+        asset: "USDC",
+        amount: 10,
+        costBasisUsd: 10,
+        acquiredAt: t("2025-06-26T00:00:00Z"),
+        sourceId: "rh",
+      },
+    ]);
+    c.registerTransfers([
+      {
+        id: "T",
+        asset: "USDC",
+        amount: 10,
+        date: t("2025-06-25T23:30:00Z"),
+        lotCutoff: t("2025-06-26T00:00:00Z"),
+        fromSourceId: "rh",
+        toSourceId: "bn",
+      },
+    ]);
+    const early = c.calculate(
+      {
+        id: "S0",
+        asset: "USDC",
+        amount: 4,
+        proceedsUsd: 4,
+        date: t("2025-06-25T23:45:00Z"),
+        sourceId: "bn",
+      },
+      true,
+    );
+    expect(early.unmatchedAmount ?? 0).toBe(0); // usable from the arrival
+    const r = c.calculate(
+      {
+        id: "S",
+        asset: "USDC",
+        amount: 6,
+        proceedsUsd: 6,
+        date: t("2026-06-26T23:45:00Z"),
+        sourceId: "bn",
+      },
+      true,
+    );
+    expect(r.unmatchedAmount ?? 0).toBe(0);
+    expect(r.holdingPeriod).toBe("SHORT_TERM");
+  });
+});
+
+describe("arrival before the date-only sending record: methods, fees and units", () => {
+  const t = (s: string) => new Date(s);
+  const usdc = (id: string, amount: number, at: string, src = "rh") =>
+    ({
+      id,
+      asset: "USDC",
+      amount,
+      costBasisUsd: amount,
+      acquiredAt: t(at),
+      sourceId: src,
+    }) satisfies TaxLot;
+  const sold = (
+    id: string,
+    amount: number,
+    at: string,
+    src = "bn",
+  ): TaxableEvent => ({
+    id,
+    asset: "USDC",
+    amount,
+    proceedsUsd: amount,
+    date: t(at),
+    sourceId: src,
+  });
+  const early = (extra: Partial<TransferEvent> = {}): TransferEvent => ({
+    id: "T",
+    asset: "USDC",
+    amount: 10,
+    date: t("2026-06-25T07:24:07Z"),
+    lotCutoff: t("2026-06-25T12:00:00Z"),
+    fromSourceId: "rh",
+    toSourceId: "bn",
+    ...extra,
+  });
+
+  it.each(["FIFO", "LIFO", "HIFO"] as const)(
+    "%s: the sale after the arrival uses the units",
+    (method) => {
+      const c = new CostBasisCalculator(method);
+      c.addLots([usdc("L", 10, "2026-06-25T12:00:00Z")]);
+      c.registerTransfers([early()]);
+      const r = c.calculate(sold("S", 10, "2026-06-25T07:24:26Z"), true);
+      expect(r.unmatchedAmount ?? 0).toBe(0);
+      expect(r.matchedLots[0].lotId).toBe("L~tT");
+    },
+  );
+
+  it("a partly moved lot with a fee: moved part is usable, the fee units are not claimed", () => {
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([usdc("L", 12, "2026-06-25T12:00:00Z")]);
+    c.registerTransfers([early({ amount: 10, feeAmount: 0.5 })]);
+    const r = c.calculate(sold("S", 10, "2026-06-25T07:24:26Z"), true);
+    expect(r.unmatchedAmount ?? 0).toBe(0);
+    expect(r.matchedLots[0].costBasisUsd).toBeCloseTo(10, 9);
+    // 12 - 10 moved - 0.5 fee: 1.5 stay in the sending wallet
+    const rest = c.calculate(sold("S2", 3, "2026-06-25T13:00:00Z", "rh"), true);
+    expect(rest.unmatchedAmount).toBeCloseTo(1.5, 9);
+  });
+
+  it("units are conserved: a lot that moved whole cannot be sold again from the sender", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const c = new CostBasisCalculator("FIFO");
+    c.addLots([usdc("L", 10, "2026-06-25T12:00:00Z")]);
+    c.registerTransfers([early()]);
+    c.calculate(sold("S", 10, "2026-06-25T07:24:26Z"), true);
+    const again = c.calculate(
+      sold("S2", 4, "2026-06-25T13:00:00Z", "rh"),
+      true,
+    );
+    expect(again.unmatchedAmount).toBeCloseTo(4, 9);
+  });
+
+  it("without wallet-by-wallet mode (pooled lots) the new field changes nothing", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const run = (extra: Partial<TransferEvent>) => {
+      const c = new CostBasisCalculator("FIFO");
+      c.addLots([usdc("L", 10, "2026-06-25T12:00:00Z")]);
+      c.registerTransfers([early(extra)]);
+      return c.calculate(sold("S", 10, "2026-06-25T07:24:26Z"), false);
+    };
+    expect(run({}).unmatchedAmount).toBe(
+      run({ lotCutoff: undefined }).unmatchedAmount,
+    );
+  });
+});

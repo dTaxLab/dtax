@@ -74,6 +74,15 @@ export function getRegisteredStrategies(): string[] {
 /** Calculations between rebuilds of an asset's list of lots with units left. */
 const SCOPED_REBUILD_EVERY = 256;
 
+/**
+ * When a lot can first be matched, in ms: its availableFrom, else its
+ * acquisition time. Lots are ordered and cut off by this, never by acquiredAt
+ * alone, so a lot that reached a wallet before its recorded date can be used.
+ */
+function availableAt(lot: TaxLot): number {
+  return (lot.availableFrom ?? lot.acquiredAt).getTime();
+}
+
 /** Built-in methods that only use lots of the disposed asset. */
 const ASSET_SCOPED_METHODS = new Set<CostBasisMethod>([
   "FIFO",
@@ -157,7 +166,7 @@ export class CostBasisCalculator {
   /** Order of lots inside a wallet: acquisition time, then the order added. */
   private lotOrder(a: TaxLot, b: TaxLot): number {
     return (
-      a.acquiredAt.getTime() - b.acquiredAt.getTime() ||
+      availableAt(a) - availableAt(b) ||
       (this.lotSeq.get(a) ?? 0) - (this.lotSeq.get(b) ?? 0)
     );
   }
@@ -175,8 +184,8 @@ export class CostBasisCalculator {
   }
 
   /**
-   * Add tax lots (acquisitions). A lot's acquiredAt must not change after it
-   * is added: the per-wallet lists are kept sorted by it.
+   * Add tax lots (acquisitions). A lot's acquiredAt and availableFrom must
+   * not change after it is added: the per-wallet lists are kept sorted by them.
    */
   addLots(lots: TaxLot[]): void {
     for (const lot of lots) {
@@ -186,8 +195,7 @@ export class CostBasisCalculator {
       if (bucket) {
         if (
           this.chronologicalAssets.has(lot.asset) &&
-          lot.acquiredAt.getTime() <
-            bucket[bucket.length - 1].acquiredAt.getTime()
+          availableAt(lot) < availableAt(bucket[bucket.length - 1])
         )
           this.chronologicalAssets.delete(lot.asset);
         bucket.push(lot);
@@ -222,7 +230,7 @@ export class CostBasisCalculator {
     // lots of other assets themselves); the built-in methods only ever look
     // at the disposed asset, so they get just that asset's lots.
     if (!ASSET_SCOPED_METHODS.has(this.method)) {
-      return this.lots.filter((lot) => lot.acquiredAt.getTime() <= cutoff);
+      return this.lots.filter((lot) => availableAt(lot) <= cutoff);
     }
     const all = this.lotsByAsset.get(event.asset);
     if (!all) return [];
@@ -240,14 +248,14 @@ export class CostBasisCalculator {
       this.scopedCalls.set(event.asset, calls);
     }
     if (!this.chronologicalAssets.has(event.asset)) {
-      return bucket.filter((lot) => lot.acquiredAt.getTime() <= cutoff);
+      return bucket.filter((lot) => availableAt(lot) <= cutoff);
     }
     // Chronological: eligible lots are a prefix. Same order as before.
     let lo = 0;
     let hi = bucket.length;
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
-      if (bucket[mid].acquiredAt.getTime() <= cutoff) lo = mid + 1;
+      if (availableAt(bucket[mid]) <= cutoff) lo = mid + 1;
       else hi = mid;
     }
     return lo === bucket.length ? bucket : bucket.slice(0, lo);
@@ -258,10 +266,10 @@ export class CostBasisCalculator {
     let view = this.fifoView.get(asset);
     const calls = (this.fifoCalls.get(asset) ?? 0) + 1;
     if (!view) {
-      // stable sort of the insertion-ordered list = (acquiredAt, order added)
+      // stable sort of the insertion-ordered list = (availableAt, order added)
       view = all
         .filter((lot) => !isEffectivelyZero(lot.amount))
-        .sort((a, b) => a.acquiredAt.getTime() - b.acquiredAt.getTime());
+        .sort((a, b) => availableAt(a) - availableAt(b));
       this.fifoView.set(asset, view);
       this.fifoCalls.set(asset, 0);
     } else if (calls >= SCOPED_REBUILD_EVERY) {
@@ -275,7 +283,7 @@ export class CostBasisCalculator {
     let hi = view.length;
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
-      if (view[mid].acquiredAt.getTime() <= cutoff) lo = mid + 1;
+      if (availableAt(view[mid]) <= cutoff) lo = mid + 1;
       else hi = mid;
     }
     return lo === view.length ? view : view.slice(0, lo);
@@ -344,6 +352,9 @@ export class CostBasisCalculator {
    * mode (strictSilo) each one moves lots, with their acquisition date and
    * cost, from the sending to the receiving wallet just before the first
    * calculated disposal that happens after it. Call before any calculate().
+   * Moving a lot updates the lot objects passed to addLots in place (a lot that
+   * moves whole and early is zeroed and replaced by a copy): do not share one
+   * lots array between two calculators that have transfers.
    */
   registerTransfers(transfers: TransferEvent[]): void {
     const fresh = transfers.filter((t) => !this.seenTransferIds.has(t.id));
@@ -398,7 +409,8 @@ export class CostBasisCalculator {
     let toMove = t.amount;
     let toDrop = t.feeAmount ?? 0;
     const fromList = this.walletBucket(t.asset, t.fromSourceId);
-    const limit = t.date.getTime();
+    const arrivedAt = t.date.getTime();
+    const limit = (t.lotCutoff ?? t.date).getTime();
     // The list is ordered, so the lots to move are at the front: walk it until
     // everything is placed or the lots become too recent.
     let i = 0;
@@ -408,28 +420,43 @@ export class CostBasisCalculator {
         fromList.splice(i, 1); // used up: drop it from the index
         continue;
       }
-      if (lot.acquiredAt.getTime() > limit) break;
+      if (availableAt(lot) > limit) break;
       if (toMove > 1e-12) {
-        if (lot.amount <= toMove + 1e-12) {
+        const wholeLot = lot.amount <= toMove + 1e-12;
+        // Only when the sending record has just a date (see lotCutoff) can a
+        // lot be dated after the arrival; it then moves as a copy that is
+        // available from the arrival. Its acquiredAt, which decides the
+        // holding period and the date reported, stays as recorded.
+        const arrivesEarlier = availableAt(lot) > arrivedAt;
+        if (wholeLot && !arrivesEarlier) {
           toMove -= lot.amount;
           lot.sourceId = t.toSourceId; // the whole lot moves
           fromList.splice(i, 1);
           this.insertSorted(this.walletBucket(t.asset, t.toSourceId), lot);
           continue;
         }
-        const share = toMove / lot.amount;
-        const cost = lot.costBasisUsd * share;
+        // A lot's position in the sorted lists cannot change in place, so a
+        // part of a lot, or a lot that becomes available earlier, is a copy.
+        const amount = wholeLot ? lot.amount : toMove;
+        const cost = wholeLot
+          ? lot.costBasisUsd
+          : lot.costBasisUsd * (toMove / lot.amount);
         const moved: TaxLot = {
           ...lot,
           id: transferredLotId(lot.id, t.id),
-          amount: toMove,
+          amount,
           costBasisUsd: cost,
           sourceId: t.toSourceId,
+          ...(arrivesEarlier ? { availableFrom: t.date } : {}),
         };
-        lot.amount -= toMove;
+        lot.amount -= amount;
         lot.costBasisUsd -= cost;
         this.addLots([moved]);
-        toMove = 0;
+        toMove -= amount;
+        if (wholeLot) {
+          fromList.splice(i, 1);
+          continue;
+        }
       }
       if (toDrop > 1e-12 && lot.amount > 1e-12) {
         const take = Math.min(lot.amount, toDrop);

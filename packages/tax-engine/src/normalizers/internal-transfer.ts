@@ -10,6 +10,8 @@
  * @license AGPL-3.0
  */
 
+import { DAY_MS } from "../methods/shared";
+
 export interface TransferRecord {
   id: string;
   sourceId: string;
@@ -33,7 +35,6 @@ export interface MatchResult {
   unmatchedIn: TransferRecord[];
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 const NOON_MS = 12 * 60 * 60 * 1000;
 
 /**
@@ -45,9 +46,13 @@ const NOON_MS = 12 * 60 * 60 * 1000;
  * either millisecond is negligible, and the only consequence of mistaking one is
  * a looser same-day suggestion that still needs the user's confirmation.
  */
-function isDateOnly(t: TransferRecord): boolean {
-  const msOfDay = ((t.timestamp.getTime() % DAY_MS) + DAY_MS) % DAY_MS;
+export function isDateOnlyTimestamp(at: Date): boolean {
+  const msOfDay = ((at.getTime() % DAY_MS) + DAY_MS) % DAY_MS;
   return msOfDay === 0 || msOfDay === NOON_MS;
+}
+
+function isDateOnly(t: TransferRecord): boolean {
+  return isDateOnlyTimestamp(t.timestamp);
 }
 
 function utcDay(t: TransferRecord): number {
