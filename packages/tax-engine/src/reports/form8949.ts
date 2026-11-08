@@ -19,6 +19,7 @@
  */
 
 import type { CalculationResult } from "../types";
+import { roundCents } from "../math";
 import type { WashSaleAdjustment } from "../wash-sale";
 
 /**
@@ -132,9 +133,7 @@ function formatDate(date: Date): string {
   return `${m}/${d}/${y}`;
 }
 
-function round2(n: number): number {
-  return Math.round(n * 100) / 100;
-}
+const round2 = roundCents;
 
 function determineBox(
   holdingPeriod: "SHORT_TERM" | "LONG_TERM",

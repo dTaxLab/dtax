@@ -203,3 +203,7 @@ export type {
 
 // Price Provider Interface
 export type { PriceProvider, PricePoint } from "./price-provider";
+
+// Cent rounding shared by Form 8949 and the report summary totals
+export { roundCents, summarizeGains } from "./math";
+export type { GainTotals } from "./math";
