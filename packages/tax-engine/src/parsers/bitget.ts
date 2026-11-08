@@ -11,6 +11,7 @@
  * @license AGPL-3.0
  */
 
+import { cleanPair } from "./pair-validation";
 import {
   parseCsvToObjects,
   safeParseNumber,
@@ -174,16 +175,18 @@ function splitSymbol(symbol: string): [string, string] | null {
   if (suffixIdx > 0) {
     s = s.slice(0, suffixIdx);
   }
-  // Try known quote currencies
-  for (const quote of KNOWN_QUOTES) {
-    if (s.endsWith(quote) && s.length > quote.length) {
-      return [s.slice(0, -quote.length), quote];
-    }
-  }
-  // Try separator fallback
+  // Separators first: "BTC/USDT" must not fall to the suffix match below,
+  // which would keep the slash in the base asset ("BTC/") and cut it off from
+  // every real BTC lot.
   const parts = s.split(/[-\/]/);
   if (parts.length === 2 && parts[0] && parts[1]) {
-    return [parts[0], parts[1]];
+    return cleanPair(parts[0], parts[1]);
+  }
+  // Concatenated ("BTCUSDT"): try the known quote currencies
+  for (const quote of KNOWN_QUOTES) {
+    if (s.endsWith(quote) && s.length > quote.length) {
+      return cleanPair(s.slice(0, -quote.length), quote);
+    }
   }
   return null;
 }

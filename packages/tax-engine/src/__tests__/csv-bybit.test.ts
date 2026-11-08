@@ -38,6 +38,33 @@ describe("parseBybitCsv", () => {
   const HEADER =
     "Order No,Symbol,Side,Avg. Filled Price,Filled Qty,Total,Fee,Fee Currency,Order Time,Order Type";
 
+  it("splits a slash pair without leaving the slash on the base asset", () => {
+    const csv = `${HEADER}\n1003,BTC/USDT,Sell,119455,40,4778200,0,USDT,2025-07-27 11:50:09,Market\n1004,ETH-USDC,Buy,3000,1,3000,0,USDC,2025-07-28 11:50:09,Limit`;
+    const result = parseBybitCsv(csv);
+    expect(result.errors).toHaveLength(0);
+    expect(result.transactions).toHaveLength(2);
+    expect(result.transactions[0].sentAsset).toBe("BTC");
+    expect(result.transactions[0].receivedAsset).toBe("USDT");
+    expect(result.transactions[1].receivedAsset).toBe("ETH");
+    expect(result.transactions[1].sentAsset).toBe("USDC");
+  });
+
+  it("rejects symbols that would leave junk in the asset name", () => {
+    for (const sym of ["=CMD|X/USDT", "/USDT", "USDT/USDT", "BTC-27DEC24"]) {
+      const csv = `${HEADER}\n9,${sym},Buy,10,1,10,0,USDT,2025-03-01 10:00:00,Limit`;
+      const result = parseBybitCsv(csv);
+      expect(result.transactions, sym).toHaveLength(0);
+      expect(result.errors.length, sym).toBeGreaterThan(0);
+    }
+  });
+
+  it("accepts a spaced pair and trims it", () => {
+    const csv = `${HEADER}\n9,BTC / USDT,Buy,10,1,10,0,USDT,2025-03-01 10:00:00,Limit`;
+    const { transactions } = parseBybitCsv(csv);
+    expect(transactions).toHaveLength(1);
+    expect(transactions[0].receivedAsset).toBe("BTC");
+  });
+
   it("parses a buy trade", () => {
     const csv = `${HEADER}\n1001,BTCUSDT,Buy,50000,1.0,50000,50,USDT,2025-01-15 10:30:00,Limit`;
     const result = parseBybitCsv(csv);
