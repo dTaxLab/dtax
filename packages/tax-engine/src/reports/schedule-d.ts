@@ -19,6 +19,7 @@
  */
 
 import type { Form8949Report, Form8949BoxSummary } from "./form8949";
+import { roundCents } from "../math";
 
 /** A single line on Schedule D */
 export interface ScheduleDLine {
@@ -53,10 +54,6 @@ export interface ScheduleDReport {
   capitalLossDeduction: number;
   /** Carryover loss (excess beyond $3,000 limit, carries to next year) */
   carryoverLoss: number;
-}
-
-function round2(n: number): number {
-  return Math.round(n * 100) / 100;
 }
 
 function getBoxSummary(
@@ -118,7 +115,9 @@ export function generateScheduleD(
     },
   ];
 
-  const netShortTerm = round2(boxA.gainLoss + boxB.gainLoss + boxC.gainLoss);
+  const netShortTerm = roundCents(
+    boxA.gainLoss + boxB.gainLoss + boxC.gainLoss,
+  );
 
   // Part II: Long-term (Boxes D, E, F)
   const boxD = getBoxSummary(form8949.boxSummaries, "D");
@@ -144,10 +143,10 @@ export function generateScheduleD(
     },
   ];
 
-  const netLongTerm = round2(boxD.gainLoss + boxE.gainLoss + boxF.gainLoss);
+  const netLongTerm = roundCents(boxD.gainLoss + boxE.gainLoss + boxF.gainLoss);
 
   // Line 16: Combined
-  const combinedNetGainLoss = round2(netShortTerm + netLongTerm);
+  const combinedNetGainLoss = roundCents(netShortTerm + netLongTerm);
 
   // Line 21: Capital loss deduction (max $3,000 for individuals, $1,500 MFS)
   let capitalLossDeduction = 0;
@@ -155,7 +154,7 @@ export function generateScheduleD(
 
   if (combinedNetGainLoss < 0) {
     capitalLossDeduction = Math.min(Math.abs(combinedNetGainLoss), lossLimit);
-    carryoverLoss = round2(
+    carryoverLoss = roundCents(
       Math.abs(combinedNetGainLoss) - capitalLossDeduction,
     );
   }

@@ -12,7 +12,7 @@
 
 import type { CalculationResult } from "../types";
 import { ukDateString } from "../methods/shared";
-import { dadd, dsub, dmul, ddiv } from "../math";
+import { dadd, dsub, dmul, ddiv, roundCents } from "../math";
 
 export interface UkDisposalRow {
   disposalId: string;
@@ -142,7 +142,7 @@ export function generateUkDisposalSchedule(
 export function roundUkDisposalSchedule(
   schedule: UkDisposalSchedule,
 ): UkDisposalSchedule {
-  const pence = (n: number): number => Math.round(n * 100) / 100;
+  const pence = roundCents;
   const rows = schedule.rows.map((r) => ({
     ...r,
     proceeds: pence(r.proceeds),
