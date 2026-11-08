@@ -60,6 +60,17 @@ describe("summarizeGains", () => {
     ).toBeGreaterThanOrEqual(0.01);
   });
 
+  it("every total is a whole number of cents, with no float noise", () => {
+    for (const v of Object.values(sums)) expect(v).toBe(roundCents(v));
+  });
+
+  // Negative control: the plain float sum of the same cent values is not clean.
+  it("negative control: adding cent values as floats leaves noise", () => {
+    const cents = results.map((r) => roundCents(r.gainLoss));
+    const naive = cents.filter((c) => c > 0).reduce((s, c) => s + c, 0);
+    expect(naive).not.toBe(roundCents(naive));
+  });
+
   it("losses are reported as positive numbers", () => {
     const s = summarizeGains([
       { gainLoss: -10.004, holdingPeriod: "SHORT_TERM" },

@@ -18,6 +18,7 @@ import {
   generateScheduleD,
   detectWashSales,
   compareAllMethods,
+  summarizeGains,
 } from "@dtax/tax-engine";
 import type {
   TaxLot,
@@ -209,10 +210,6 @@ function calculate(files: string[], flags: Record<string, string>): void {
   const calculator = new CostBasisCalculator(method);
   calculator.addLots(lots);
 
-  let shortTermGains = 0,
-    shortTermLosses = 0;
-  let longTermGains = 0,
-    longTermLosses = 0;
   const results = [];
 
   // Dispositions of other years still consume lots, so every disposal is
@@ -226,15 +223,10 @@ function calculate(files: string[], flags: Record<string, string>): void {
     const result = calculator.calculate(event);
     if (yearFilter && event.date.getUTCFullYear() !== yearFilter) continue;
     results.push(result);
-
-    if (result.holdingPeriod === "SHORT_TERM") {
-      if (result.gainLoss >= 0) shortTermGains += result.gainLoss;
-      else shortTermLosses += Math.abs(result.gainLoss);
-    } else {
-      if (result.gainLoss >= 0) longTermGains += result.gainLoss;
-      else longTermLosses += Math.abs(result.gainLoss);
-    }
   }
+  // Rounded per disposal like the Form 8949 line, so the totals match it.
+  const { shortTermGains, shortTermLosses, longTermGains, longTermLosses } =
+    summarizeGains(results);
 
   const netGainLoss =
     shortTermGains - shortTermLosses + (longTermGains - longTermLosses);

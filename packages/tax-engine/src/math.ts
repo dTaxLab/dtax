@@ -54,7 +54,13 @@ export function summarizeGains(
     } else if (gl >= 0) t.longTermGains += gl;
     else t.longTermLosses += Math.abs(gl);
   }
-  return t;
+  // Adding cent values as floats leaves noise such as 1335.7799999999997.
+  return {
+    shortTermGains: roundCents(t.shortTermGains),
+    shortTermLosses: roundCents(t.shortTermLosses),
+    longTermGains: roundCents(t.longTermGains),
+    longTermLosses: roundCents(t.longTermLosses),
+  };
 }
 
 /** Add two financial values without floating-point drift. */

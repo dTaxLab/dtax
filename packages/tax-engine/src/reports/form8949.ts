@@ -133,8 +133,6 @@ function formatDate(date: Date): string {
   return `${m}/${d}/${y}`;
 }
 
-const round2 = roundCents;
-
 function determineBox(
   holdingPeriod: "SHORT_TERM" | "LONG_TERM",
   reportingStatus: "reported_correct" | "reported_incorrect" | "not_reported",
@@ -220,19 +218,19 @@ export function generateForm8949(
     let adjAmount = 0;
     if (washSale) {
       adjCode = "W";
-      adjAmount = round2(washSale.disallowedLoss);
+      adjAmount = roundCents(washSale.disallowedLoss);
     }
 
     const adjustedGainLoss = washSale
-      ? round2(gainLoss + washSale.disallowedLoss)
-      : round2(gainLoss);
+      ? roundCents(gainLoss + washSale.disallowedLoss)
+      : roundCents(gainLoss);
 
     lines.push({
       description: `${event.amount} ${event.asset}${ukRuleSuffix(matchedLots)}`,
       dateAcquired,
       dateSold: formatDate(event.date),
-      proceeds: round2(event.proceedsUsd),
-      costBasis: round2(totalCostBasis),
+      proceeds: roundCents(event.proceedsUsd),
+      costBasis: roundCents(totalCostBasis),
       adjustmentCode: adjCode,
       adjustmentAmount: adjAmount,
       gainLoss: adjustedGainLoss,
@@ -256,12 +254,12 @@ export function generateForm8949(
     if (!boxLines || boxLines.length === 0) continue;
     boxSummaries.push({
       box,
-      totalProceeds: round2(boxLines.reduce((s, l) => s + l.proceeds, 0)),
-      totalCostBasis: round2(boxLines.reduce((s, l) => s + l.costBasis, 0)),
-      totalAdjustments: round2(
+      totalProceeds: roundCents(boxLines.reduce((s, l) => s + l.proceeds, 0)),
+      totalCostBasis: roundCents(boxLines.reduce((s, l) => s + l.costBasis, 0)),
+      totalAdjustments: roundCents(
         boxLines.reduce((s, l) => s + l.adjustmentAmount, 0),
       ),
-      totalGainLoss: round2(boxLines.reduce((s, l) => s + l.gainLoss, 0)),
+      totalGainLoss: roundCents(boxLines.reduce((s, l) => s + l.gainLoss, 0)),
       lineCount: boxLines.length,
     });
   }
@@ -275,15 +273,15 @@ export function generateForm8949(
     lines,
     boxSummaries,
     totals: {
-      shortTermGainLoss: round2(
+      shortTermGainLoss: roundCents(
         shortTermLines.reduce((s, l) => s + l.gainLoss, 0),
       ),
-      longTermGainLoss: round2(
+      longTermGainLoss: roundCents(
         longTermLines.reduce((s, l) => s + l.gainLoss, 0),
       ),
-      totalGainLoss: round2(lines.reduce((s, l) => s + l.gainLoss, 0)),
-      totalProceeds: round2(lines.reduce((s, l) => s + l.proceeds, 0)),
-      totalCostBasis: round2(lines.reduce((s, l) => s + l.costBasis, 0)),
+      totalGainLoss: roundCents(lines.reduce((s, l) => s + l.gainLoss, 0)),
+      totalProceeds: roundCents(lines.reduce((s, l) => s + l.proceeds, 0)),
+      totalCostBasis: roundCents(lines.reduce((s, l) => s + l.costBasis, 0)),
       lineCount: lines.length,
     },
   };

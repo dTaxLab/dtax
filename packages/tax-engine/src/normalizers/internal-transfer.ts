@@ -37,13 +37,17 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const NOON_MS = 12 * 60 * 60 * 1000;
 
 /**
- * A CSV row that only carries a calendar date is stored at exactly 12:00:00.000
- * UTC, so its real time of day is unknown. A real exchange timestamp landing on
- * that exact millisecond is negligible, and the only consequence of mistaking
- * one is a looser same-day match.
+ * A CSV row that only carries a calendar date has no real time of day. Date-only
+ * rows are recognised by sitting exactly on 00:00:00.000 UTC (what the CSV
+ * parsers produce on a UTC host) or exactly on 12:00:00.000 UTC (seen on stored
+ * Robinhood rows in production; the code path that wrote them is not located,
+ * so this marker is observed, not derived). A real exchange timestamp landing on
+ * either millisecond is negligible, and the only consequence of mistaking one is
+ * a looser same-day suggestion that still needs the user's confirmation.
  */
 function isDateOnly(t: TransferRecord): boolean {
-  return t.timestamp.getTime() % DAY_MS === NOON_MS;
+  const msOfDay = ((t.timestamp.getTime() % DAY_MS) + DAY_MS) % DAY_MS;
+  return msOfDay === 0 || msOfDay === NOON_MS;
 }
 
 function utcDay(t: TransferRecord): number {
@@ -117,7 +121,7 @@ export function matchInternalTransfers(
       // Check time bounds: 'IN' usually happens after or very close to 'OUT'
       const timeDiff = inTx.timestamp.getTime() - outTx.timestamp.getTime();
       // Allow up to 1m clock skew backwards. Exception: when either side only
-      // has a date (stored at 12:00 UTC), an arrival earlier the same UTC day
+      // has a date (00:00 or 12:00 UTC), an arrival earlier the same UTC day
       // is the same transfer, not a different one.
       const sameDayDateOnly =
         (isDateOnly(outTx) || isDateOnly(inTx)) &&

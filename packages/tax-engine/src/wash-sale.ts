@@ -19,7 +19,7 @@
  */
 
 import type { CalculationResult } from "./types";
-import { ddiv, dmul } from "./math";
+import { ddiv, dmul, roundCents } from "./math";
 import { baseLotId } from "./methods/shared";
 
 /** Return the number of UTC calendar days between two dates (signed) */
@@ -175,7 +175,7 @@ export function detectWashSales(
   return {
     adjustments,
     adjustedResults,
-    totalDisallowed: Math.round(totalDisallowed * 100) / 100,
+    totalDisallowed: roundCents(totalDisallowed),
   };
 }
 

@@ -17,6 +17,7 @@
  */
 
 import type { TxType } from "@dtax/shared-types";
+import { roundCents } from "./math";
 
 export type RiskCategory =
   | "missing_cost_basis"
@@ -294,7 +295,7 @@ export function scanRisks(
       high,
       medium,
       low,
-      totalPotentialImpact: Math.round(totalImpact * 100) / 100,
+      totalPotentialImpact: roundCents(totalImpact),
     },
   };
 }

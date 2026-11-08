@@ -248,7 +248,7 @@ describe("matchInternalTransfers — time window", () => {
 
 // ─── Date-only rows (CSV exports without a time) ─────────
 
-describe("matchInternalTransfers — date-only rows (stored at 12:00 UTC)", () => {
+describe("matchInternalTransfers — date-only rows (00:00 or 12:00 UTC)", () => {
   const out = (id: string, day: string, amount = 20) =>
     makeTransfer({
       id,
@@ -274,6 +274,51 @@ describe("matchInternalTransfers — date-only rows (stored at 12:00 UTC)", () =
       inn("i", "2026-06-25T07:24:00Z"),
     ]);
     expect(r.matched).toHaveLength(1);
+  });
+
+  it("a date-only arrival stamped at UTC midnight matches a real withdrawal earlier that day", () => {
+    const r = matchInternalTransfers([
+      makeTransfer({
+        id: "o",
+        type: "TRANSFER_OUT",
+        sourceId: "binance",
+        asset: "USDC",
+        amount: 20,
+        timestamp: new Date("2026-06-25T07:24:00Z"),
+      }),
+      makeTransfer({
+        id: "i",
+        type: "TRANSFER_IN",
+        sourceId: "robinhood",
+        asset: "USDC",
+        amount: 19.95,
+        timestamp: new Date("2026-06-25T00:00:00.000Z"),
+      }),
+    ]);
+    expect(r.matched).toHaveLength(1);
+  });
+
+  // Negative control: the same shape with real timestamps (not on 00:00/12:00).
+  it("two real timestamps, arrival earlier than the withdrawal, do not match", () => {
+    const r = matchInternalTransfers([
+      makeTransfer({
+        id: "o",
+        type: "TRANSFER_OUT",
+        sourceId: "binance",
+        asset: "USDC",
+        amount: 20,
+        timestamp: new Date("2026-06-25T07:24:00Z"),
+      }),
+      makeTransfer({
+        id: "i",
+        type: "TRANSFER_IN",
+        sourceId: "robinhood",
+        asset: "USDC",
+        amount: 19.95,
+        timestamp: new Date("2026-06-25T03:10:00Z"),
+      }),
+    ]);
+    expect(r.matched).toHaveLength(0);
   });
 
   it("still matches an arrival later the same day", () => {
