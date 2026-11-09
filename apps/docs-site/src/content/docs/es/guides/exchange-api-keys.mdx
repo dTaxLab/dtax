@@ -180,7 +180,9 @@ Las claves API de KuCoin tienen tres campos: API Key, Secret y **Passphrase**. U
 ## Coinbase
 
 <Aside type="note" title="Coinbase Advanced Trade">
-dTax se conecta a Coinbase Advanced Trade (antes Coinbase Pro). Si solo usa una cuenta básica de Coinbase sin historial de trading, una exportación CSV puede ser más sencilla —— consulte la guía de importación CSV.
+dTax lee tus **ejecuciones de operaciones** de Coinbase y tu **historial de cuenta**: compras y ventas hechas en las pantallas simples de Comprar/Vender, conversiones, envíos y recepciones, y recompensas. La clave API necesita el permiso **Ver (View)** sobre cuentas y transacciones.
+
+Un archivo que importaste desde la exportación CSV de Coinbase se reconoce por su formato: dTax no añade la misma compra dos veces, y una conversión que el archivo registra solo a medias se completa con la moneda recibida. Si el archivo se renombró o no es una exportación propia de Coinbase, la sincronización te indica qué entradas pueden aparecer dos veces. Tras una sincronización completa, dTax compara el saldo de cada activo con Coinbase y enumera los que no puede explicar (las entradas cubiertas por un archivo importado no forman parte de esa comprobación).
 </Aside>
 
 <Steps>

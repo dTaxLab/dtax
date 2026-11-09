@@ -180,7 +180,9 @@ KuCoin API 密钥有三个字段：API Key、Secret 和 **Passphrase**。Passphr
 ## Coinbase
 
 <Aside type="note" title="Coinbase Advanced Trade">
-dTax 连接的是 Coinbase Advanced Trade（前身为 Coinbase Pro）。如果您只使用没有交易历史的基础 Coinbase 账户，CSV 导出可能更方便 —— 请参阅 CSV 导入指南。
+dTax 会读取你的 Coinbase **成交记录**和**账户历史**：在简易“买入/卖出”界面完成的买卖、兑换、转出与转入，以及奖励。API 密钥需要对账户和交易具有**查看（View）**权限。
+
+从 Coinbase CSV 导出文件导入的文件会按格式被识别：dTax 不会把同一笔买入加两次，文件里只记录了一半的兑换，会用收到的币补全。如果文件被改过名，或不是 Coinbase 自己的导出，同步结果会告诉你哪些记录可能出现两次。完整同步之后，dTax 会把每种资产的余额与 Coinbase 对比，并列出无法解释的差异（被导入文件覆盖的记录不在这次核对范围内）。
 </Aside>
 
 <Steps>

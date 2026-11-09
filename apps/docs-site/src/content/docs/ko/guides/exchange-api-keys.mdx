@@ -180,7 +180,9 @@ KuCoin API 키에는 세 가지 필드가 있습니다: API Key, Secret, **Passp
 ## Coinbase
 
 <Aside type="note" title="Coinbase Advanced Trade">
-dTax는 Coinbase Advanced Trade(구 Coinbase Pro)에 연결됩니다. 거래 내역이 없는 기본 Coinbase 계정만 사용하는 경우 CSV 내보내기가 더 쉬울 수 있습니다 —— CSV 가져오기 가이드를 참고하세요.
+dTax는 Coinbase의 **체결 내역**과 **계정 내역**을 읽습니다. 간편 구매/판매 화면에서 한 구매와 판매, 전환, 송금과 수령, 보상이 포함됩니다. API 키에는 계정과 거래에 대한 **보기(View)** 권한이 필요합니다.
+
+Coinbase CSV 내보내기에서 가져온 파일은 형식으로 인식됩니다. dTax는 같은 구매를 두 번 추가하지 않으며, 파일이 절반만 기록한 전환은 받은 코인으로 보완됩니다. 파일 이름을 바꿨거나 Coinbase 자체 내보내기가 아니면, 두 번 나타날 수 있는 항목을 동기화 결과에서 알려 줍니다. 전체 동기화 후 dTax는 모든 자산의 잔액을 Coinbase와 비교해 설명할 수 없는 항목을 나열합니다(가져온 파일이 다루는 항목은 이 확인에서 제외됩니다).
 </Aside>
 
 <Steps>
