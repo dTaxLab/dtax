@@ -1,0 +1,55 @@
+{
+  "name": "@dtax/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "dTax MCP server: lets your AI assistant estimate crypto capital gains from CSV files on your computer. The server runs locally and makes no network calls.",
+  "license": "AGPL-3.0",
+  "homepage": "https://getdtax.com",
+  "bugs": "https://github.com/dTaxLab/dtax/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dTaxLab/dtax.git",
+    "directory": "packages/mcp"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "crypto",
+    "tax",
+    "capital-gains",
+    "cost-basis",
+    "claude",
+    "open-source"
+  ],
+  "main": "dist/index.js",
+  "bin": {
+    "dtax-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@dtax/tax-engine": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^4.1.12"
+  }
+}
