@@ -5,12 +5,7 @@
  * @license AGPL-3.0
  */
 
-import type {
-  TaxLot,
-  TaxableEvent,
-  ParsedTransaction,
-  ComparisonResult,
-} from "@dtax/tax-engine";
+import type { ComparisonResult } from "@dtax/tax-engine";
 
 /** Parse CLI arguments into command, files, and flags */
 export function parseArgs(args: string[]): {
@@ -44,73 +39,11 @@ export function parseArgs(args: string[]): {
   return { command, file: files[0], files, flags };
 }
 
-/** Map a ParsedTransaction to a TaxLot if it's an acquisition */
-export function toTaxLot(tx: ParsedTransaction, index: number): TaxLot | null {
-  const t = tx.type;
-  const isAcquisition =
-    t === "BUY" ||
-    t === "AIRDROP" ||
-    t === "STAKING_REWARD" ||
-    t === "MINING_REWARD" ||
-    t === "INTEREST" ||
-    t === "GIFT_RECEIVED" ||
-    t === "TRANSFER_IN";
-
-  // TRADE has a received side (acquisition)
-  const isTradeBuy = t === "TRADE" && tx.receivedAsset && tx.receivedAmount;
-
-  if (!isAcquisition && !isTradeBuy) return null;
-
-  const asset = tx.receivedAsset;
-  const amount = tx.receivedAmount;
-  const costBasis = tx.receivedValueUsd ?? 0;
-
-  if (!asset || !amount || amount <= 0) return null;
-
-  return {
-    id: `lot-${index}`,
-    asset,
-    amount,
-    costBasisUsd: costBasis,
-    acquiredAt: new Date(tx.timestamp),
-    sourceId: "csv",
-  };
-}
-
-/** Map a ParsedTransaction to a TaxableEvent if it's a disposition */
-export function toTaxableEvent(
-  tx: ParsedTransaction,
-  index: number,
-  yearFilter?: number,
-): TaxableEvent | null {
-  const t = tx.type;
-  const isDisposition =
-    t === "SELL" || t === "GIFT_SENT" || t === "TRANSFER_OUT";
-
-  // TRADE has a sent side (disposition)
-  const isTradeSell = t === "TRADE" && tx.sentAsset && tx.sentAmount;
-
-  if (!isDisposition && !isTradeSell) return null;
-
-  const asset = tx.sentAsset;
-  const amount = tx.sentAmount;
-  const proceeds = tx.sentValueUsd ?? 0;
-
-  if (!asset || !amount || amount <= 0) return null;
-
-  const eventDate = new Date(tx.timestamp);
-  if (yearFilter && eventDate.getUTCFullYear() !== yearFilter) return null;
-
-  return {
-    id: `evt-${index}`,
-    asset,
-    amount,
-    proceedsUsd: proceeds,
-    date: eventDate,
-    feeUsd: tx.feeValueUsd ?? 0,
-    sourceId: "csv",
-  };
-}
+/** The mapping from parsed rows to lots and events lives in the engine (shared with the MCP server). */
+export {
+  parsedToLot as toTaxLot,
+  parsedToEvent as toTaxableEvent,
+} from "@dtax/tax-engine";
 
 /**
  * Format a ComparisonResult as a human-readable table for terminal output.
