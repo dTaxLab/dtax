@@ -159,11 +159,11 @@ pnpm build       # 建置所有套件
 
 ## 授權條款
 
-本儲存庫中的所有套件皆以 [AGPL-3.0](LICENSE) 授權。
+**開源部分（AGPL-3.0）。** 本儲存庫中的稅務引擎、命令列工具與共用型別（`packages/`）以 [AGPL-3.0](LICENSE) 授權。您可以免費使用，規模不限，包含用於商業專案。若您修改後散布，或讓他人透過網路使用您修改過的版本，必須以 AGPL-3.0 釋出您的修改內容。
 
-這代表您可以自由地在專案中使用 dTax。若您修改原始碼並加以散布（包含作為網路服務提供），您必須以 AGPL-3.0 釋出您的修改內容。
+**專有部分。** dTax 應用程式本身，即網頁應用與後端 API（`apps/web`、`apps/api`），並非開源軟體，也不可免費使用。它以 [getdtax.com](https://getdtax.com) 上的託管服務依方案提供，或透過商業授權自行部署：請見 [LICENSE-COMMERCIAL](LICENSE-COMMERCIAL) 與[自行部署](docs/self-hosting.md)。其原始碼不在本儲存庫中。
 
-商業授權洽詢：[getdtax.com](https://getdtax.com)
+**商業授權。** 若要在不受 AGPL 義務約束的情況下使用開源套件，或自行部署應用程式：[getdtax.com](https://getdtax.com)
 
 ## 連結
 

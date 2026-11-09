@@ -159,11 +159,11 @@ pnpm build       # build all packages
 
 ## Licença
 
-Todos os pacotes neste repositório são licenciados sob [AGPL-3.0](LICENSE).
+**Código aberto (AGPL-3.0).** O motor fiscal, a CLI e os tipos compartilhados deste repositório (`packages/`) são licenciados sob [AGPL-3.0](LICENSE). Você pode usá-los gratuitamente, em qualquer escala, inclusive em projetos comerciais. Se você os modificar e distribuir, ou permitir que outras pessoas usem sua versão modificada por meio de uma rede, deve disponibilizar suas modificações sob AGPL-3.0.
 
-Isso significa que você pode usar o dTax livremente em seus projetos. Se você modificar o código-fonte e distribuí-lo (incluindo como um serviço de rede), você deve disponibilizar suas modificações sob AGPL-3.0.
+**Proprietário.** O aplicativo dTax, ou seja, o app web e a API (`apps/web`, `apps/api`), não é de código aberto nem é gratuito. Ele está disponível como serviço hospedado em [getdtax.com](https://getdtax.com), conforme os planos, ou hospedado por você sob uma licença comercial: veja [LICENSE-COMMERCIAL](LICENSE-COMMERCIAL) e [Hospedagem própria](docs/self-hosting.md). O código-fonte dele não está neste repositório.
 
-Para consultas sobre licenciamento comercial: [getdtax.com](https://getdtax.com)
+**Licença comercial.** Para usar os pacotes de código aberto sem as obrigações da AGPL, ou para hospedar o aplicativo por conta própria: [getdtax.com](https://getdtax.com)
 
 ## Links
 

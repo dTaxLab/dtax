@@ -159,11 +159,11 @@ pnpm build       # build all packages
 
 ## 许可证
 
-本仓库中的所有包均采用 [AGPL-3.0](LICENSE) 许可证。
+**开源部分（AGPL-3.0）。** 本仓库中的税务引擎、命令行工具和共享类型（`packages/`）采用 [AGPL-3.0](LICENSE) 许可证。你可以免费使用，规模不限，包括用于商业项目。如果你修改后分发，或让他人通过网络使用你修改过的版本，必须在 AGPL-3.0 下公开你的修改。
 
-这意味着你可以在项目中自由使用 dTax。如果你修改源代码并分发（包括作为网络服务），你必须在 AGPL-3.0 下发布你的修改。
+**专有部分。** dTax 应用本身，即网页应用和后端接口（`apps/web`、`apps/api`），不是开源软件，也不可免费使用。它以 [getdtax.com](https://getdtax.com) 上的托管服务形式按套餐提供，或通过商业授权自行部署：见 [LICENSE-COMMERCIAL](LICENSE-COMMERCIAL) 和[自行部署](docs/self-hosting.md)。其源代码不在本仓库中。
 
-商业许可咨询：[getdtax.com](https://getdtax.com)
+**商业授权。** 如需在不受 AGPL 义务约束的前提下使用开源包，或自行部署应用：[getdtax.com](https://getdtax.com)
 
 ## 链接
 
