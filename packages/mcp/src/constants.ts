@@ -17,7 +17,7 @@ export const SERVER_VERSION = "0.1.0";
 
 /** Shown first in every result. */
 export const NOTICE =
-  "Informational estimate only; not tax advice. It may be incomplete or incorrect and reflects only your file and the stated rules and tax year. Confirm with a qualified tax professional before relying on it.";
+  "Informational estimate only; not tax advice. It may be incomplete or incorrect and reflects only your file and the stated rules and tax year. Confirm with a qualified tax professional before relying on it. Provided as is, without warranty.";
 
 /** The server's instructions to the assistant, and the README text. */
 export const INSTRUCTIONS =
