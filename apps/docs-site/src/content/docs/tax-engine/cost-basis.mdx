@@ -55,3 +55,16 @@ interface GainResult {
   unrealizedGain?: number;
 }
 ```
+
+## Sales with no purchase on record
+
+When a sale has no matching purchase, the unmatched units are reported with **no cost basis**, so the gain may be overstated. The report lists each coin and wallet with the units that are missing.
+
+If you know what those units cost (for example from the cost column of a 1099-B or an account statement), use **Add known cost basis** next to the coin on the Form 8949 section of the tax page. Enter only the units that have no purchase on record; units and cost already in your records are not counted again.
+
+- The entry is stored as an ordinary purchase tagged `opening-balance`. You can find and delete it in Transactions (search "Opening balance"); recalculate afterwards.
+- If you know only whether the coins were held for more than a year, the entry gets a **stand-in acquisition date**. It only decides short or long term; Form 8949 shows `VARIOUS` for it. If part of the sales were held over a year and part not, add one entry for each, matching your 1099-B.
+- A stand-in date is refused when the coin was sold or sent between that date and the first sale, because those sales would change. Enter the real purchase date in that case.
+- A declared lot is a holding you already had, not a new purchase: it is never a replacement purchase for a wash sale, and under UK share pooling it joins the section 104 pool instead of being matched by the same-day or 30-day rule.
+- If the coins came from another of your wallets, confirm that transfer first; otherwise the cost is counted twice.
+- The report says how many declared entries its sales used and their cost, so you can check them against your statement.
