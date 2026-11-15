@@ -20,6 +20,7 @@
 
 import type { CalculationResult } from "./types";
 import { ddiv, dmul, roundCents } from "./math";
+import { termLegId, termLegs } from "./term-legs";
 import { baseLotId } from "./methods/shared";
 
 /** Return the number of UTC calendar days between two dates (signed) */
@@ -28,6 +29,33 @@ function utcDaysDiff(a: Date, b: Date): number {
   const aDay = Math.floor(a.getTime() / msPerDay);
   const bDay = Math.floor(b.getTime() / msPerDay);
   return bDay - aDay;
+}
+
+/**
+ * The parts of every sale as separate sales. The wash-sale rule looks at the
+ * units that were sold at a loss, so a sale that spans the one-year line is
+ * judged part by part: a loss on the short-term part is disallowed even when
+ * the long-term part gained more, and only the loss part counts. An
+ * adjustment's `lossEventId` is the part's id (termLegId), the same id as its
+ * Form 8949 line. Every part keeps all the sale's lots as "sold", so a lot sold
+ * in the same sale is never another part's replacement.
+ */
+function lossParts(results: readonly CalculationResult[]): CalculationResult[] {
+  return results.flatMap((r) =>
+    termLegs(r).map((leg) => ({
+      ...r,
+      event: {
+        ...r.event,
+        id: termLegId(r.event.id, leg),
+        amount: leg.amount,
+        proceedsUsd: leg.proceedsUsd,
+        feeUsd: leg.feeUsd,
+      },
+      gainLoss: leg.gainLoss,
+      holdingPeriod: leg.holdingPeriod,
+      unmatchedAmount: leg.unmatchedAmount,
+    })),
+  );
 }
 
 /** A detected wash sale with adjustment details */
@@ -92,6 +120,7 @@ export function detectWashSales(
 ): WashSaleResult {
   const adjustments: WashSaleAdjustment[] = [];
   const usedReplacementLots = new Set<string>();
+  results = lossParts(results);
 
   // Find all loss events, sorted by date
   const lossEvents = results
@@ -253,7 +282,7 @@ export function computeWashSaleCarryover(
   }
   const dayOf = (d: Date) => Math.floor(d.getTime() / (24 * 60 * 60 * 1000));
 
-  const losses = results
+  const losses = lossParts(results)
     .filter((r) => r.gainLoss <= -0.005 && r.event.amount > 0)
     .sort((a, b) => a.event.date.getTime() - b.event.date.getTime());
 
@@ -313,7 +342,9 @@ export function washSaleAdjustmentsFromAllocations(
     if (list) list.push(a);
     else byLoss.set(a.lossEventId, [a]);
   }
-  const amountOf = new Map(results.map((r) => [r.event.id, r.event.amount]));
+  const amountOf = new Map(
+    lossParts(results).map((r) => [r.event.id, r.event.amount]),
+  );
   const out: WashSaleAdjustment[] = [];
   for (const [id, list] of byLoss) {
     const disallowed =

@@ -31,6 +31,12 @@ export interface TermLeg {
   split: boolean;
 }
 
+/** Identifier of a part of a sale: the sale's own id when it was not cut up. */
+export function termLegId(eventId: string, leg: TermLeg): string {
+  if (!leg.split) return eventId;
+  return `${eventId}~${leg.holdingPeriod === "LONG_TERM" ? "LT" : "ST"}`;
+}
+
 /**
  * The parts of a sale by holding period, short-term first. One part for a sale
  * that sits on one side of the line, two for one that spans it. Units with no
@@ -67,9 +73,13 @@ export function termLegs(result: CalculationResult): TermLeg[] {
   const longUnits = units(longLots);
   const total = dadd(shortUnits, longUnits);
 
-  // The long-term part takes the remainder so the parts add up to the sale.
-  const shortProceeds = dmul(event.proceedsUsd, ddiv(shortUnits, total));
-  const shortFee = dmul(feeUsd, ddiv(shortUnits, total));
+  // Each share is rounded to the cent, as it is printed on its Form 8949 line,
+  // and the long-term part takes the remainder so the parts add up to the sale
+  // to the cent (two halves of 100.01 are 50.01 and 50.00, not 50.01 and 50.01).
+  const shortProceeds = roundCents(
+    dmul(event.proceedsUsd, ddiv(shortUnits, total)),
+  );
+  const shortFee = roundCents(dmul(feeUsd, ddiv(shortUnits, total)));
   const part = (
     holdingPeriod: HoldingPeriod,
     lots: MatchedLot[],
@@ -77,17 +87,20 @@ export function termLegs(result: CalculationResult): TermLeg[] {
     proceedsUsd: number,
     fee: number,
     unmatchedAmount: number,
-  ): TermLeg => ({
-    holdingPeriod,
-    amount,
-    proceedsUsd,
-    feeUsd: fee,
-    costBasisUsd: cost(lots),
-    gainLoss: dsub(dsub(proceedsUsd, cost(lots)), fee),
-    matchedLots: lots,
-    unmatchedAmount,
-    split: true,
-  });
+  ): TermLeg => {
+    const lotsCost = cost(lots);
+    return {
+      holdingPeriod,
+      amount,
+      proceedsUsd,
+      feeUsd: fee,
+      costBasisUsd: lotsCost,
+      gainLoss: dsub(dsub(proceedsUsd, lotsCost), fee),
+      matchedLots: lots,
+      unmatchedAmount,
+      split: true,
+    };
+  };
   return [
     part(
       "SHORT_TERM",
@@ -129,7 +142,14 @@ export interface GainPart {
 export function summarizeGains(
   results: ReadonlyArray<CalculationResult>,
 ): GainTotals {
-  return summarizeGainParts(results.flatMap((r) => termLegs(r)));
+  // Only a sale that spans the one-year line needs cutting up.
+  return summarizeGainParts(
+    results.flatMap((r) =>
+      r.holdingPeriod === "MIXED"
+        ? termLegs(r)
+        : [{ gainLoss: r.gainLoss, holdingPeriod: r.holdingPeriod }],
+    ),
+  );
 }
 
 /**

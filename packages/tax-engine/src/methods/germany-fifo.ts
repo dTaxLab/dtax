@@ -14,7 +14,6 @@ import type {
   CalculationResult,
   MatchedLot,
 } from "../types";
-import { getHoldingPeriod } from "./shared";
 import { dadd, dsub, dmul, ddiv, isEffectivelyZero } from "../math";
 
 /**
@@ -119,9 +118,11 @@ export function calculateGermanyFIFO(
     : ddiv(taxableAmount, event.amount);
   const taxableFee = dmul(feeUsd, taxableFraction);
   const gainLoss = dsub(dsub(taxableProceeds, taxableCostBasis), taxableFee);
-  const holdingPeriod = earliestLotDate
-    ? getHoldingPeriod(earliestLotDate, event.date)
-    : "SHORT_TERM";
+  // The gain reported here is only the part from lots held 12 months or less,
+  // so any taxable gain is short-term; a sale whose lots are all past the
+  // exemption reports nothing taxable and is labelled long-term.
+  const holdingPeriod =
+    taxableAmount > 0 || !earliestLotDate ? "SHORT_TERM" : "LONG_TERM";
 
   return {
     event,

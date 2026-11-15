@@ -8,6 +8,7 @@
  */
 
 import type { TaxLot } from "../types";
+import { getHoldingPeriod } from "../methods/shared";
 import type {
   PriceMap,
   LotHolding,
@@ -15,8 +16,6 @@ import type {
   TlhOpportunity,
   PortfolioAnalysis,
 } from "./types";
-
-const ONE_YEAR_MS = 365.25 * 24 * 60 * 60 * 1000;
 
 /**
  * Analyze portfolio holdings from remaining tax lots.
@@ -37,7 +36,7 @@ export function analyzeHoldings(
   const lotHoldings: LotHolding[] = activeLots.map((lot) => {
     const costPerUnit = lot.amount > 0 ? lot.costBasisUsd / lot.amount : 0;
     const isLongTerm =
-      asOfDate.getTime() - lot.acquiredAt.getTime() > ONE_YEAR_MS;
+      getHoldingPeriod(lot.acquiredAt, asOfDate) === "LONG_TERM";
     const price = currentPrices?.get(lot.asset);
 
     const holding: LotHolding = {

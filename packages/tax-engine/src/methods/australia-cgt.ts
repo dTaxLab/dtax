@@ -118,6 +118,8 @@ export function calculateAustraliaCGT(
     event,
     matchedLots,
     gainLoss: totalGainLoss,
+    // Informational only: the 12-month discount is already applied lot by lot in
+    // totalGainLoss, and Australian reports do not use the US short/long split.
     holdingPeriod: earliestLotDate
       ? getHoldingPeriod(earliestLotDate, event.date)
       : "SHORT_TERM",

@@ -19,7 +19,14 @@ export {
   calculateUKSharePooling,
   UK_THIRTY_DAY_WINDOW,
 } from "./methods/uk-share-pooling";
-export { DAY_MS, ukDayIndex, ukDateString, baseLotId } from "./methods/shared";
+export {
+  DAY_MS,
+  ukDayIndex,
+  ukDateString,
+  baseLotId,
+  getHoldingPeriod,
+  longTermStartDate,
+} from "./methods/shared";
 export {
   CostBasisCalculator,
   registerStrategy,
@@ -209,6 +216,11 @@ export type { PriceProvider, PricePoint } from "./price-provider";
 
 // Cent rounding shared by Form 8949 and the report summary totals
 export { roundCents } from "./math";
-export { summarizeGains, summarizeGainParts, termLegs } from "./term-legs";
+export {
+  summarizeGains,
+  summarizeGainParts,
+  termLegs,
+  termLegId,
+} from "./term-legs";
 export { parsedToLot, parsedToEvent } from "./csv-mapping";
 export type { GainTotals, TermLeg } from "./term-legs";

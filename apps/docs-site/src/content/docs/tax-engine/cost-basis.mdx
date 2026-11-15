@@ -62,7 +62,9 @@ Each lot is held for its own period. A sale that takes units from lots on both s
 
 - Applies to FIFO, LIFO, HIFO and Specific ID, where units come from individual lots. Pooled methods have no per-lot period.
 - Units with no purchase on record have no acquisition date and are reported short-term.
-- A wash-sale loss is disallowed on the part that lost money, never on the part that gained.
+- A wash-sale loss is judged part by part: the loss on the short-term part is disallowed even when the long-term part gained more, and only the loss part counts. The Form 8949 `W` amount and the cost added to the replacement lot in later years are the same figure.
+- The one-year line is a calendar-day rule: the holding period starts the day after acquisition, and the lot is long-term from the same calendar day one year later (bought 24 Mar 2025, long-term from a sale on 25 Mar 2026), whatever the time of day. The simulator, portfolio view and harvesting use the same definition.
+- Each part's proceeds are rounded to the cent and the long-term part takes the remainder, so the two lines add up to the sale. A broker that reports the whole sale on one line may differ from the two lines by a cent in the split.
 - In results, `holdingPeriod` is `MIXED` for such a sale; each matched lot carries its own `holdingPeriod`. `termLegs(result)` returns the parts.
 
 ## Sales with no purchase on record

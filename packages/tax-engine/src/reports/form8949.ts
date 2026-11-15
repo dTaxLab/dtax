@@ -20,8 +20,7 @@
 
 import type { CalculationResult } from "../types";
 import { roundCents } from "../math";
-import { termLegs } from "../term-legs";
-import type { TermLeg } from "../term-legs";
+import { termLegId, termLegs } from "../term-legs";
 import { baseLotId } from "../methods/shared";
 import type { WashSaleAdjustment } from "../wash-sale";
 
@@ -157,34 +156,6 @@ function determineBox(
 }
 
 /**
- * Share of a sale's disallowed wash-sale loss that belongs to each of its
- * parts. The loss is disallowed on the parts that lost money, in proportion to
- * what each lost and never beyond it; a part that gained takes none.
- */
-function allocateDisallowedLoss(
-  legs: readonly TermLeg[],
-  disallowed: number,
-): number[] {
-  if (legs.length === 1) return [disallowed];
-  const losses = legs.map((l) => Math.max(0, -l.gainLoss));
-  const totalLoss = losses.reduce((a, b) => a + b, 0);
-  if (!(disallowed > 0) || !(totalLoss > 0)) return legs.map(() => 0);
-  const capped = Math.min(disallowed, totalLoss);
-  let left = capped;
-  const out = legs.map(() => 0);
-  const lossIdx = losses.flatMap((l, i) => (l > 0 ? [i] : []));
-  lossIdx.forEach((i, n) => {
-    const share =
-      n === lossIdx.length - 1
-        ? left
-        : roundCents((capped * losses[i]) / totalLoss);
-    out[i] = share;
-    left -= share;
-  });
-  return out;
-}
-
-/**
  * Generate a Form 8949 report from calculation results.
  */
 export function generateForm8949(
@@ -221,13 +192,8 @@ export function generateForm8949(
     // A sale that took units from lots on both sides of the one-year line is
     // two lines, one short-term and one long-term, each in its own box.
     const legs = termLegs(result);
-    const washSale = washSaleAdjustments?.get(event.id);
-    const disallowedByLeg = allocateDisallowedLoss(
-      legs,
-      washSale?.disallowedLoss ?? 0,
-    );
 
-    legs.forEach((leg, i) => {
+    legs.forEach((leg) => {
       const { matchedLots, gainLoss, holdingPeriod } = leg;
       const box = determineBox(holdingPeriod, reportingStatus);
 
@@ -258,7 +224,9 @@ export function generateForm8949(
       // TAX-12: Fee is already deducted in gainLoss (proceeds - basis - fee).
       // Using adjCode "E" here would double-count the fee. IRS code "E" is
       // "Section 1202 exclusion", not a fee code.
-      const disallowed = disallowedByLeg[i];
+      // Wash sales are judged per part, keyed by the part's own id.
+      const eventId = termLegId(event.id, leg);
+      const disallowed = washSaleAdjustments?.get(eventId)?.disallowedLoss ?? 0;
       const adjCode = disallowed > 0 ? "W" : "";
       const adjAmount = disallowed > 0 ? roundCents(disallowed) : 0;
       const adjustedGainLoss =
@@ -277,9 +245,7 @@ export function generateForm8949(
         gainLoss: adjustedGainLoss,
         box,
         holdingPeriod,
-        eventId: leg.split
-          ? `${event.id}~${holdingPeriod === "LONG_TERM" ? "LT" : "ST"}`
-          : event.id,
+        eventId,
       });
     });
   }

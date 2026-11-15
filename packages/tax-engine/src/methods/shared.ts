@@ -7,18 +7,43 @@ import type { HoldingPeriod, MatchedLot, TaxLot } from "../types";
 import { dmul } from "../math";
 
 /**
- * Determine holding period using IRS calendar-based rule.
- * Long-term = held more than one year from the day after acquisition.
+ * The first calendar day (UTC midnight) on which a lot acquired at `acquiredAt`
+ * is long-term. The holding period starts the day after acquisition and the
+ * asset is long-term from the same calendar day one year later (bought 1 Jan
+ * 2025, long-term from 2 Jan 2026; bought 29 Feb 2024, from 1 Mar 2025). The
+ * time of day does not matter and the result does not depend on the server's
+ * time zone.
+ */
+export function longTermStartDate(acquiredAt: Date): Date {
+  const start = new Date(
+    Date.UTC(
+      acquiredAt.getUTCFullYear(),
+      acquiredAt.getUTCMonth(),
+      acquiredAt.getUTCDate() + 1,
+    ),
+  );
+  // a 29 February start rolls to 1 March of the next year
+  start.setUTCFullYear(start.getUTCFullYear() + 1);
+  return start;
+}
+
+/**
+ * Holding period of a lot at a date, by the IRS calendar rule (see
+ * longTermStartDate). The one definition of the one-year line: the engine, the
+ * simulator, the portfolio view and tax-loss harvesting all use it.
  */
 export function getHoldingPeriod(
   acquiredAt: Date,
   soldAt: Date,
 ): HoldingPeriod {
-  const dayAfter = new Date(acquiredAt);
-  dayAfter.setDate(dayAfter.getDate() + 1);
-  const oneYearLater = new Date(dayAfter);
-  oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
-  return soldAt >= oneYearLater ? "LONG_TERM" : "SHORT_TERM";
+  const soldDay = Date.UTC(
+    soldAt.getUTCFullYear(),
+    soldAt.getUTCMonth(),
+    soldAt.getUTCDate(),
+  );
+  return soldDay >= longTermStartDate(acquiredAt).getTime()
+    ? "LONG_TERM"
+    : "SHORT_TERM";
 }
 
 /**
@@ -35,6 +60,7 @@ export function termOfMatches(
   let short = unmatchedAmount > 0;
   let long = false;
   for (const m of matched) {
+    if (!(m.amountConsumed > 0)) continue;
     if (m.holdingPeriod === "LONG_TERM") long = true;
     else short = true;
   }

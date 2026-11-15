@@ -15,19 +15,13 @@ import type {
   TaxableEvent,
   CalculationResult,
 } from "./types";
+import { getHoldingPeriod } from "./methods/shared";
 import { detectWashSales } from "./wash-sale";
 import type { AcquisitionRecord } from "./wash-sale";
 
-/**
- * Returns true when the disposal date is strictly more than one calendar year
- * after acquisition (IRC §1222; Rev. Rul. 66-7).
- * Uses calendar year via setFullYear rather than 365.25 * MS_PER_DAY to avoid
- * leap-year rounding errors at the long-term boundary.
- */
+/** Long-term by the engine's one definition of the one-year line. */
 function isLongTermHolding(acquiredAt: Date, saleDate: Date): boolean {
-  const oneYearMark = new Date(acquiredAt);
-  oneYearMark.setFullYear(oneYearMark.getFullYear() + 1);
-  return saleDate > oneYearMark;
+  return getHoldingPeriod(acquiredAt, saleDate) === "LONG_TERM";
 }
 
 /** Input parameters for a simulated sale. */
