@@ -359,3 +359,38 @@ describe("one day's acquisitions are a single acquisition at their average cost"
     );
   });
 });
+
+describe("prior holdings (units owned before the first record)", () => {
+  it("are not matched by the 30-day rule: they join the section 104 pool", () => {
+    // a real purchase 40 days before the sale, and a declared prior holding
+    // dated 10 days after it (a stand-in date would land anywhere)
+    const real = lot("real", 1, 10, "2023-01-20");
+    const asReal = lot("p", 1, 100, "2023-03-10");
+    const asPrior: TaxLot = { ...asReal, priorHolding: true };
+    const event = sale("s", 1, 500, "2023-03-01");
+
+    const withoutFlag = uk([real, asReal]).calculate(event);
+    expect(withoutFlag.matchedLots[0].rule).toBe("THIRTY_DAY");
+
+    const withFlag = uk([lot("real", 1, 10, "2023-01-20"), asPrior]).calculate(
+      event,
+    );
+    expect(withFlag.matchedLots.every((m) => m.rule === "SECTION_104")).toBe(
+      true,
+    );
+    // pooled average of the two holdings, not the cost of the later lot alone
+    expect(
+      withFlag.matchedLots.reduce((s, m) => s + m.costBasisUsd, 0),
+    ).toBeCloseTo(55, 6);
+  });
+
+  it("are not matched by the same-day rule either", () => {
+    const prior: TaxLot = {
+      ...lot("p", 1, 100, "2023-03-01"),
+      priorHolding: true,
+    };
+    const real = lot("real", 1, 10, "2023-01-20");
+    const r = uk([real, prior]).calculate(sale("s", 1, 500, "2023-03-01"));
+    expect(r.matchedLots.every((m) => m.rule !== "SAME_DAY")).toBe(true);
+  });
+});

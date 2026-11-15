@@ -20,6 +20,7 @@
 
 import type { CalculationResult } from "../types";
 import { roundCents } from "../math";
+import { baseLotId } from "../methods/shared";
 import type { WashSaleAdjustment } from "../wash-sale";
 
 /**
@@ -112,6 +113,12 @@ export interface Form8949Options {
   /** Lot acquisition dates for dateAcquired column. If not provided, uses 'VARIOUS'. */
   lotDates?: LotDateMap;
   /**
+   * Lots whose acquisition date is a stand-in, not a real purchase date. A
+   * line that uses one of them shows "VARIOUS" in the date column instead of
+   * a date nobody can document.
+   */
+  variousLotIds?: ReadonlySet<string>;
+  /**
    * How to classify 1099-B reporting status.
    * 'none' = assume no 1099-B (Box C/F) — default for crypto
    * 'all_reported' = assume all reported (Box A/D)
@@ -157,6 +164,7 @@ export function generateForm8949(
   const {
     taxYear,
     lotDates,
+    variousLotIds,
     reportingBasis = "none",
     classifyFn,
     washSaleAdjustments,
@@ -184,7 +192,12 @@ export function generateForm8949(
 
     // Resolve acquisition date(s) from lot lookup
     let dateAcquired: string;
-    if (lotDates && matchedLots.length > 0) {
+    if (
+      variousLotIds &&
+      matchedLots.some((l) => variousLotIds.has(baseLotId(l.lotId)))
+    ) {
+      dateAcquired = "VARIOUS";
+    } else if (lotDates && matchedLots.length > 0) {
       const uniqueDates = new Set(
         matchedLots
           .map((l) => lotDates.get(l.lotId))
@@ -307,7 +320,7 @@ export function form8949ToCsv(report: Form8949Report): string {
   const rows = report.lines.map((line) =>
     [
       line.box,
-      `"${line.description}"`,
+      `"${line.description.replace(/"/g, '""')}"`,
       line.dateAcquired,
       line.dateSold,
       line.proceeds.toFixed(2),

@@ -69,11 +69,21 @@ export function calculateUKSharePooling(
 
   const eventDay = ukDayIndex(event.date);
   const dayOf = ukDayOfLot;
-  const sameDayLots = assetLots.filter((l) => dayOf(l) === eventDay);
-  const thirtyDayLots = assetLots.filter(
-    (l) => dayOf(l) > eventDay && dayOf(l) <= eventDay + UK_THIRTY_DAY_WINDOW,
+  // A prior holding (units owned before the first record) is not an acquisition:
+  // it joins the pool whatever its date and is never matched by the same-day or
+  // 30-day rule.
+  const sameDayLots = assetLots.filter(
+    (l) => !l.priorHolding && dayOf(l) === eventDay,
   );
-  const poolLots = assetLots.filter((l) => dayOf(l) < eventDay);
+  const thirtyDayLots = assetLots.filter(
+    (l) =>
+      !l.priorHolding &&
+      dayOf(l) > eventDay &&
+      dayOf(l) <= eventDay + UK_THIRTY_DAY_WINDOW,
+  );
+  const poolLots = assetLots.filter(
+    (l) => l.priorHolding || dayOf(l) < eventDay,
+  );
 
   let remainingAmount = event.amount;
   let totalCostBasis = 0;

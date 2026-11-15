@@ -59,6 +59,14 @@ export interface TaxLot {
   availableFrom?: Date;
   /** Identifier of the exchange or wallet holding this asset */
   sourceId: string;
+  /**
+   * Units the owner already held before the first record, declared with their
+   * known cost. The lot is not an acquisition: it never counts as a replacement
+   * purchase for a wash sale, and under UK share pooling it joins the section 104
+   * pool whatever its date instead of being matched by the same-day or 30-day
+   * rule. `acquiredAt` then only fixes the order and the holding period.
+   */
+  priorHolding?: boolean;
   /** Human-readable source type */
   source?: string;
   /** Whether this lot was acquired as an NFT (ERC-721/1155 mint or purchase). Wash-sale rules do not apply but noted for user awareness. */

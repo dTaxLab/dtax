@@ -395,3 +395,67 @@ describe("Form 8949 description for UK share pooling", () => {
     expect(fifo.lines[0].description).toBe("2 BTC");
   });
 });
+
+describe("lots with a stand-in acquisition date", () => {
+  const known: TaxLot = {
+    id: "known",
+    asset: "SOL",
+    amount: 1,
+    costBasisUsd: 10,
+    acquiredAt: new Date("2023-01-10"),
+    sourceId: "cb",
+  };
+  const standIn: TaxLot = {
+    id: "opening",
+    asset: "SOL",
+    amount: 1,
+    costBasisUsd: 20,
+    acquiredAt: new Date("2022-01-01"),
+    sourceId: "cb",
+  };
+  const sale = (amount: number): TaxableEvent => ({
+    id: "s",
+    asset: "SOL",
+    amount,
+    proceedsUsd: 100,
+    date: new Date("2024-03-01"),
+    sourceId: "cb",
+  });
+  const run = (amount: number, various?: Set<string>) => {
+    const calc = new CostBasisCalculator("FIFO");
+    calc.addLots([{ ...standIn }, { ...known }]);
+    const results: CalculationResult[] = [calc.calculate(sale(amount))];
+    const lotDates: LotDateMap = new Map([
+      ["known", known.acquiredAt],
+      ["opening", standIn.acquiredAt],
+    ]);
+    return generateForm8949(results, {
+      taxYear: 2024,
+      lotDates,
+      variousLotIds: various,
+    });
+  };
+
+  it("prints the date of a real lot", () => {
+    expect(run(1).lines[0].dateAcquired).not.toBe("VARIOUS");
+  });
+
+  it("prints VARIOUS instead of a stand-in date, also when real lots are mixed in", () => {
+    const only = run(1, new Set(["opening"]));
+    expect(only.lines[0].dateAcquired).toBe("VARIOUS");
+    const mixed = run(2, new Set(["opening"]));
+    expect(mixed.lines[0].dateAcquired).toBe("VARIOUS");
+  });
+
+  it("without stand-in lots the dates are unchanged", () => {
+    expect(run(1, new Set()).lines[0].dateAcquired).toBe(
+      run(1).lines[0].dateAcquired,
+    );
+  });
+
+  it("escapes a quote in the description of the CSV", () => {
+    const report = run(1);
+    report.lines[0].description = '1 S"OL';
+    expect(form8949ToCsv(report)).toContain('"1 S""OL"');
+  });
+});
