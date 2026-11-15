@@ -103,8 +103,13 @@ export interface CalculationResult {
   matchedLots: MatchedLot[];
   /** Total gain or loss in USD */
   gainLoss: number;
-  /** Holding period (based on earliest matched lot) */
-  holdingPeriod: HoldingPeriod;
+  /**
+   * Holding period of the sale. "MIXED" when the units taken came from lots
+   * on both sides of the one-year line (or part of the sale has no lot and so
+   * no acquisition date): the sale then reports as one short-term and one
+   * long-term part, see termLegs().
+   */
+  holdingPeriod: HoldingPeriod | "MIXED";
   /** Cost basis method used */
   method: CostBasisMethod;
   /**
@@ -167,6 +172,12 @@ export interface MatchedLot {
   costBasisUsd: number;
   /** Whether the lot was fully consumed */
   fullyConsumed: boolean;
+  /**
+   * Holding period of the units taken from this lot, counted from the lot's
+   * own acquisition date to the sale. Set by the methods that take units from
+   * individual lots; pooled methods leave it unset.
+   */
+  holdingPeriod?: HoldingPeriod;
   /**
    * UK share pooling only: which HMRC matching rule produced this match.
    * Same-day and 30-day matches use the actual acquisition cost of the lot;

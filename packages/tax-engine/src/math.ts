@@ -23,46 +23,6 @@ export function roundCents(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-export interface GainTotals {
-  shortTermGains: number;
-  shortTermLosses: number;
-  longTermGains: number;
-  longTermLosses: number;
-}
-
-/**
- * Split disposal results into gain and loss totals per holding period, each
- * disposal rounded to cents first (see roundCents). Losses are positive numbers.
- */
-export function summarizeGains(
-  results: ReadonlyArray<{
-    gainLoss: number;
-    holdingPeriod: "SHORT_TERM" | "LONG_TERM";
-  }>,
-): GainTotals {
-  const t: GainTotals = {
-    shortTermGains: 0,
-    shortTermLosses: 0,
-    longTermGains: 0,
-    longTermLosses: 0,
-  };
-  for (const r of results) {
-    const gl = roundCents(r.gainLoss);
-    if (r.holdingPeriod === "SHORT_TERM") {
-      if (gl >= 0) t.shortTermGains += gl;
-      else t.shortTermLosses += Math.abs(gl);
-    } else if (gl >= 0) t.longTermGains += gl;
-    else t.longTermLosses += Math.abs(gl);
-  }
-  // Adding cent values as floats leaves noise such as 1335.7799999999997.
-  return {
-    shortTermGains: roundCents(t.shortTermGains),
-    shortTermLosses: roundCents(t.shortTermLosses),
-    longTermGains: roundCents(t.longTermGains),
-    longTermLosses: roundCents(t.longTermLosses),
-  };
-}
-
 /** Add two financial values without floating-point drift. */
 export function dadd(a: number, b: number): number {
   return new Decimal(a).plus(new Decimal(b)).toNumber();

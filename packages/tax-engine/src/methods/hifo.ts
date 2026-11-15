@@ -17,7 +17,7 @@ import type {
   CalculationResult,
   MatchedLot,
 } from "../types";
-import { getHoldingPeriod } from "./shared";
+import { getHoldingPeriod, termOfMatches } from "./shared";
 import { dadd, dsub, dmul, ddiv, isEffectivelyZero } from "../math";
 
 /**
@@ -47,7 +47,6 @@ export function calculateHIFO(
   let remainingAmount = event.amount;
   let totalCostBasis = 0;
   const matchedLots: MatchedLot[] = [];
-  let earliestMatchedDate: Date | null = null;
 
   for (const lot of sortedLots) {
     if (isEffectivelyZero(remainingAmount) || remainingAmount < 0) break;
@@ -64,6 +63,7 @@ export function calculateHIFO(
       amountConsumed: consumeAmount,
       costBasisUsd: consumedCostBasis,
       fullyConsumed,
+      holdingPeriod: getHoldingPeriod(lot.acquiredAt, event.date),
     });
 
     // Mutate lot to track remaining balance across multiple calculations
@@ -71,11 +71,6 @@ export function calculateHIFO(
     lot.costBasisUsd = dsub(lot.costBasisUsd, consumedCostBasis);
     totalCostBasis = dadd(totalCostBasis, consumedCostBasis);
     remainingAmount = dsub(remainingAmount, consumeAmount);
-
-    // Track the earliest matched lot for holding period
-    if (!earliestMatchedDate || lot.acquiredAt < earliestMatchedDate) {
-      earliestMatchedDate = lot.acquiredAt;
-    }
   }
 
   const unmatchedAmount =
@@ -91,9 +86,7 @@ export function calculateHIFO(
 
   const feeUsd = event.feeUsd ?? 0;
   const gainLoss = dsub(dsub(event.proceedsUsd, totalCostBasis), feeUsd);
-  const holdingPeriod = earliestMatchedDate
-    ? getHoldingPeriod(earliestMatchedDate, event.date)
-    : "SHORT_TERM";
+  const holdingPeriod = termOfMatches(matchedLots, unmatchedAmount);
 
   return {
     event,

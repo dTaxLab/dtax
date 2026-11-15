@@ -3,7 +3,7 @@
  * @license AGPL-3.0
  */
 
-import type { HoldingPeriod, TaxLot } from "../types";
+import type { HoldingPeriod, MatchedLot, TaxLot } from "../types";
 import { dmul } from "../math";
 
 /**
@@ -19,6 +19,27 @@ export function getHoldingPeriod(
   const oneYearLater = new Date(dayAfter);
   oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
   return soldAt >= oneYearLater ? "LONG_TERM" : "SHORT_TERM";
+}
+
+/**
+ * The holding period of a sale from the lots it took units from. A sale that
+ * took units from lots on both sides of the one-year line is "MIXED"; so is one
+ * that has long-term units and also units with no lot (no acquisition date, so
+ * they cannot be long-term and are reported short-term, like a sale with no
+ * lot at all). A sale with no lot and no units is short-term.
+ */
+export function termOfMatches(
+  matched: readonly MatchedLot[],
+  unmatchedAmount: number,
+): HoldingPeriod | "MIXED" {
+  let short = unmatchedAmount > 0;
+  let long = false;
+  for (const m of matched) {
+    if (m.holdingPeriod === "LONG_TERM") long = true;
+    else short = true;
+  }
+  if (short && long) return "MIXED";
+  return long ? "LONG_TERM" : "SHORT_TERM";
 }
 
 /**

@@ -56,6 +56,15 @@ interface GainResult {
 }
 ```
 
+## Sales that span the one-year line
+
+Each lot is held for its own period. A sale that takes units from lots on both sides of the one-year line is therefore not one short-term or long-term disposal: it is reported as **two lines on Form 8949**, a short-term line (Box A–C) and a long-term line (Box D–F), with the sale's proceeds and fee shared by units. The summary totals and Schedule D use the same two parts, so they agree with the form to the cent.
+
+- Applies to FIFO, LIFO, HIFO and Specific ID, where units come from individual lots. Pooled methods have no per-lot period.
+- Units with no purchase on record have no acquisition date and are reported short-term.
+- A wash-sale loss is disallowed on the part that lost money, never on the part that gained.
+- In results, `holdingPeriod` is `MIXED` for such a sale; each matched lot carries its own `holdingPeriod`. `termLegs(result)` returns the parts.
+
 ## Sales with no purchase on record
 
 When a sale has no matching purchase, the unmatched units are reported with **no cost basis**, so the gain may be overstated. The report lists each coin and wallet with the units that are missing.

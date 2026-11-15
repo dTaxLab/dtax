@@ -295,8 +295,14 @@ export function describeDisposal(
     date: day(r.event.date),
     proceeds_usd: proceeds,
     estimated_gain_loss_usd: money(r.gainLoss),
+    // "mixed": the units came from lots on both sides of the one-year line,
+    // so the disposal reports as a short-term and a long-term part.
     holding_period:
-      r.holdingPeriod === "LONG_TERM" ? "long_term" : "short_term",
+      r.holdingPeriod === "MIXED"
+        ? "mixed"
+        : r.holdingPeriod === "LONG_TERM"
+          ? "long_term"
+          : "short_term",
     cost_basis_missing_for_units: r.unmatchedAmount ?? 0,
     matched_lots: r.matchedLots.map((m) => {
       const lot = lotById.get(m.lotId);

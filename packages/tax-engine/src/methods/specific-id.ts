@@ -15,7 +15,7 @@ import type {
   MatchedLot,
   LotSelection,
 } from "../types";
-import { getHoldingPeriod } from "./shared";
+import { getHoldingPeriod, termOfMatches } from "./shared";
 import { dadd, dsub, dmul, ddiv, isEffectivelyZero } from "../math";
 
 /**
@@ -35,7 +35,6 @@ export function calculateSpecificId(
   const matchedLots: MatchedLot[] = [];
   let totalCostBasis = 0;
   let totalSelected = 0;
-  let earliestLotDate: Date | null = null;
 
   for (const sel of selections) {
     const lot = lotMap.get(sel.lotId);
@@ -68,16 +67,13 @@ export function calculateSpecificId(
       amountConsumed: consumeAmount,
       costBasisUsd: consumedCostBasis,
       fullyConsumed,
+      holdingPeriod: getHoldingPeriod(lot.acquiredAt, event.date),
     });
 
     lot.amount = dsub(lot.amount, consumeAmount);
     lot.costBasisUsd = dsub(lot.costBasisUsd, consumedCostBasis);
     totalCostBasis = dadd(totalCostBasis, consumedCostBasis);
     totalSelected = dadd(totalSelected, consumeAmount);
-
-    if (!earliestLotDate || lot.acquiredAt < earliestLotDate) {
-      earliestLotDate = lot.acquiredAt;
-    }
   }
 
   if (!isEffectivelyZero(dsub(totalSelected, event.amount))) {
@@ -88,9 +84,7 @@ export function calculateSpecificId(
 
   const feeUsd = event.feeUsd ?? 0;
   const gainLoss = dsub(dsub(event.proceedsUsd, totalCostBasis), feeUsd);
-  const holdingPeriod = earliestLotDate
-    ? getHoldingPeriod(earliestLotDate, event.date)
-    : "SHORT_TERM";
+  const holdingPeriod = termOfMatches(matchedLots, 0);
 
   return {
     event,

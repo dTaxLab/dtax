@@ -5,7 +5,8 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { summarizeGains, roundCents } from "../math";
+import { roundCents } from "../math";
+import { summarizeGains } from "../term-legs";
 import { generateForm8949 } from "../reports/form8949";
 import type { CalculationResult } from "../types";
 
@@ -72,9 +73,10 @@ describe("summarizeGains", () => {
   });
 
   it("losses are reported as positive numbers", () => {
+    const base = makeResults(1)[0];
     const s = summarizeGains([
-      { gainLoss: -10.004, holdingPeriod: "SHORT_TERM" },
-      { gainLoss: 5.005, holdingPeriod: "LONG_TERM" },
+      { ...base, gainLoss: -10.004, holdingPeriod: "SHORT_TERM" },
+      { ...base, gainLoss: 5.005, holdingPeriod: "LONG_TERM" },
     ]);
     expect(s.shortTermLosses).toBe(10);
     expect(s.shortTermGains).toBe(0);
