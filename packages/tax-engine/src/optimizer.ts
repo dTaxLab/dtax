@@ -12,6 +12,7 @@ import type { TaxLot } from "./types";
 import type { SimulationInput, SimulationResult } from "./simulator";
 import { simulateSale } from "./simulator";
 import type { AcquisitionRecord } from "./wash-sale";
+import { WALLET_BY_WALLET_METHODS } from "./wallet-methods";
 
 /** Reason codes for the recommended method (for i18n on the frontend). */
 export type RecommendedReasonCode =
@@ -56,20 +57,35 @@ interface MethodEntry {
  *
  * Deep-clones lots for each simulation so the caller's data is never mutated.
  * SPECIFIC_ID is excluded because it requires explicit lot selection.
+ * `strictSilo` (with `sourceId`) restricts only FIFO, LIFO and HIFO to that
+ * wallet; the pooled methods of other countries use all lots.
  *
  * @param lots - Current tax lots (will NOT be mutated)
  * @param input - Simulation parameters (without method)
  * @param acquisitions - Optional acquisition records for wash sale detection
+ * @param pooledLots - Holdings worked out across all wallets, for the methods
+ *   that are not wallet by wallet; `lots` when omitted
  * @returns Comparison result with recommendation
  */
 export function compareAllMethods(
   lots: TaxLot[],
   input: Omit<SimulationInput, "method">,
   acquisitions?: AcquisitionRecord[],
+  pooledLots?: TaxLot[],
 ): ComparisonResult {
   const entries: MethodEntry[] = COMPARABLE_METHODS.map((m) => ({
     name: m,
-    result: simulateSale(lots, { ...input, method: m }, acquisitions),
+    result: simulateSale(
+      // the pooled methods start from the holdings worked out pooled
+      WALLET_BY_WALLET_METHODS.has(m) ? lots : (pooledLots ?? lots),
+      {
+        ...input,
+        method: m,
+        strictSilo:
+          (input.strictSilo ?? false) && WALLET_BY_WALLET_METHODS.has(m),
+      },
+      acquisitions,
+    ),
   }));
 
   const { recommended, recommendedReasonCode } = pickRecommendation(entries);

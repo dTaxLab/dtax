@@ -200,6 +200,7 @@ export type {
 
 // Method Comparison Engine
 export { compareAllMethods } from "./optimizer";
+export { WALLET_BY_WALLET_METHODS } from "./wallet-methods";
 export type { ComparisonResult } from "./optimizer";
 
 export { scanRisks } from "./risk-scanner";
