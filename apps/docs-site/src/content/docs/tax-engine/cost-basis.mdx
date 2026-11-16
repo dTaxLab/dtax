@@ -67,6 +67,17 @@ Each lot is held for its own period. A sale that takes units from lots on both s
 - Each part's proceeds are rounded to the cent and the long-term part takes the remainder, so the two lines add up to the sale. A broker that reports the whole sale on one line may differ from the two lines by a cent in the split.
 - In results, `holdingPeriod` is `MIXED` for such a sale; each matched lot carries its own `holdingPeriod`. `termLegs(result)` returns the parts.
 
+## What the simulator and the method comparison start from
+
+Both start from what you still hold, worked out the way the tax report works it out: every earlier sale and every confirmed transfer between your own wallets is replayed first, so units already sold are gone and units moved to another wallet sit in that wallet.
+
+- In wallet-by-wallet mode (the default for FIFO, LIFO and HIFO from 2025) a sale comes out of one wallet, and the network-fee units of a transfer are taken off the sending wallet. The simulator uses the wallet holding the most of the coin until you pick another one; the result lists every wallet with its name and how much it holds, and the method comparison follows the wallet you picked.
+- The wallet only limits FIFO, LIFO, HIFO and specific identification. The methods of other countries pool or average across all wallets, so they always see every wallet, in the simulator and in the comparison alike.
+- Earlier sales are replayed with FIFO. Cost carried over from a past wash sale onto a lot you still hold is not included.
+- A sale booked in a wallet that has no purchase on record (for example a transfer you have not confirmed yet) takes nothing from your other wallets, exactly as in the tax report, which lists such sales as missing a purchase. Confirm the transfer and the units move.
+
+The portfolio view, the holdings PDF and tax-loss harvesting answer a different question, how much you own, so they pool your wallets, as the pooled tax report does: a sale counts whichever wallet it was booked in, and transfers between your wallets are not applied. They count purchases of every type the tax report counts and take off the units sold.
+
 ## Sales with no purchase on record
 
 When a sale has no matching purchase, the unmatched units are reported with **no cost basis**, so the gain may be overstated. The report lists each coin and wallet with the units that are missing.
