@@ -224,6 +224,7 @@ gunzip -c backups/dtax_20260313_020000.sql.gz | \
 | Anthropic | `ANTHROPIC_API_KEY`                                                                        | AI transaction classification & chat                                             |
 | Etherscan | `ETHERSCAN_API_KEY`                                                                        | EVM blockchain indexing (Ethereum, Polygon, BSC, Arbitrum, Optimism)             |
 | Solscan   | `SOLSCAN_API_KEY`                                                                          | Solana blockchain indexing                                                       |
+| Alchemy   | `ALCHEMY_API_KEY`                                                                          | Base wallet sync (free plan is enough; enable the Base network on the app first) |
 | PostHog   | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`                                      | Product analytics                                                                |
 | Sentry    | `SENTRY_DSN`                                                                               | Error tracking                                                                   |
 

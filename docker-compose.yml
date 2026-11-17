@@ -68,7 +68,7 @@ services:
       # Blockchain indexers
       ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY:-}
       ROUTESCAN_API_KEY: ${ROUTESCAN_API_KEY:-}
-      MORALIS_API_KEY: ${MORALIS_API_KEY:-}
+      ALCHEMY_API_KEY: ${ALCHEMY_API_KEY:-}
       SOLSCAN_API_KEY: ${SOLSCAN_API_KEY:-}
       # Stripe redirect
       WEB_URL: ${APP_URL:-https://getdtax.com}
