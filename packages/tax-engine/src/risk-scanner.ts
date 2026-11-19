@@ -85,6 +85,32 @@ const INCOME_TYPES: TxType[] = [
 
 const DISPOSAL_TYPES: TxType[] = ["SELL", "TRADE", "DEX_SWAP", "NFT_SALE"];
 
+/**
+ * Transaction types that acquire units of their received asset: they create tax
+ * lots, and any of them can be the replacement purchase of a wash sale. The API's
+ * tax calculation (apps/api/src/lib/tax-data.ts) reads this same list, so a risk
+ * warning never names a purchase the calculation would not use. A transfer between
+ * the user's own wallets receives the asset without acquiring it and is not in it.
+ */
+export const ACQUISITION_TYPES = [
+  "BUY",
+  "TRADE",
+  "AIRDROP",
+  "STAKING_REWARD",
+  "MINING_REWARD",
+  "INTEREST",
+  "FORK",
+  "GIFT_RECEIVED",
+  "DEX_SWAP",
+  "LP_WITHDRAWAL",
+  "LP_REWARD",
+  "NFT_MINT",
+  "MARGIN_TRADE",
+  "LIQUIDATION",
+  "BRIDGE_IN", // receiving a bridged asset creates a new lot
+  "UNWRAP", // an unwrapped token (e.g. WETH to ETH) creates a new lot
+] as const satisfies readonly TxType[];
+
 const HIGH_VALUE_THRESHOLD = 10000; // $10,000
 const AI_LOW_CONFIDENCE_THRESHOLD = 0.7;
 const DUPLICATE_WINDOW_MS = 60 * 1000; // 60 seconds
@@ -164,6 +190,7 @@ export function scanRisks(
     const repurchase = transactions.find(
       (tx) =>
         tx.id !== loss.id &&
+        (ACQUISITION_TYPES as readonly TxType[]).includes(tx.type) &&
         tx.receivedAsset === lossAsset &&
         Math.abs(tx.timestamp.getTime() - lossTime) <= thirtyDaysMs &&
         tx.timestamp.getTime() !== lossTime,

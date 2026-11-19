@@ -173,6 +173,51 @@ describe("Risk Scanner", () => {
     expect(risk!.potentialTaxImpact).toBe(5000);
   });
 
+  describe("wash-sale repurchase: only a row that acquires the asset counts", () => {
+    const sellAtLoss = makeTx({
+      id: "sell",
+      type: "SELL",
+      sentAsset: "ETH",
+      sentAmount: 1,
+      gainLoss: -500,
+      costBasis: 3000,
+      timestamp: new Date("2025-06-01T12:00:00Z"),
+    });
+    const within = (type: RiskScanTransaction["type"]) =>
+      makeTx({
+        id: "other",
+        type,
+        receivedAsset: "ETH",
+        receivedAmount: 1,
+        timestamp: new Date("2025-06-10T12:00:00Z"),
+      });
+    const washRisk = (type: RiskScanTransaction["type"]) =>
+      scanRisks([sellAtLoss, within(type)], 2025).items.find(
+        (i) => i.category === "wash_sale_risk",
+      );
+
+    it.each(["TRANSFER_IN", "INTERNAL_TRANSFER", "GIFT_SENT", "WRAP"] as const)(
+      "a %s row is not a repurchase",
+      (type) => {
+        expect(washRisk(type)).toBeUndefined();
+      },
+    );
+
+    it.each([
+      "BUY",
+      "TRADE",
+      "DEX_SWAP",
+      "AIRDROP",
+      "STAKING_REWARD",
+      "GIFT_RECEIVED",
+      "NFT_MINT",
+      "BRIDGE_IN",
+      "UNWRAP",
+    ] as const)("a %s row is still a repurchase", (type) => {
+      expect(washRisk(type)).toBeDefined();
+    });
+  });
+
   it("未报告收入检测", () => {
     const txs: RiskScanTransaction[] = [
       makeTx({
