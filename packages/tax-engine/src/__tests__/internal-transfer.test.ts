@@ -10,6 +10,7 @@
 import { describe, it, expect } from "vitest";
 import {
   matchInternalTransfers,
+  MIN_RECEIVED_RATIO,
   type TransferRecord,
 } from "../normalizers/internal-transfer";
 
@@ -637,6 +638,80 @@ describe("matchInternalTransfers — edge cases", () => {
   });
 });
 
+describe("matchInternalTransfers — what arrived must be a plausible share of what left", () => {
+  const out = (amount: number) =>
+    makeTransfer({ id: "out-1", type: "TRANSFER_OUT", amount });
+  const incoming = (amount: number) =>
+    makeTransfer({
+      id: "in-1",
+      type: "TRANSFER_IN",
+      amount,
+      timestamp: new Date("2025-01-15T10:15:00Z"),
+    });
+
+  it("a dust arrival is not paired with a large withdrawal (the shortfall would be taken as a fee)", () => {
+    const result = matchInternalTransfers([out(10), incoming(1.001e-15)]);
+    expect(result.matched).toHaveLength(0);
+    expect(result.unmatchedOut.map((t) => t.id)).toEqual(["out-1"]);
+    expect(result.unmatchedIn.map((t) => t.id)).toEqual(["in-1"]);
+  });
+
+  it("an arrival below the floor share is not paired", () => {
+    const result = matchInternalTransfers([
+      out(10),
+      incoming(10 * MIN_RECEIVED_RATIO - 0.01),
+    ]);
+    expect(result.matched).toHaveLength(0);
+  });
+
+  it("an arrival exactly at the floor share is paired", () => {
+    const result = matchInternalTransfers([
+      out(10),
+      incoming(10 * MIN_RECEIVED_RATIO),
+    ]);
+    expect(result.matched).toHaveLength(1);
+  });
+
+  it("control: a fee of 1% and of 0.1% still pair", () => {
+    expect(
+      matchInternalTransfers([out(10), incoming(9.9)]).matched,
+    ).toHaveLength(1);
+    expect(
+      matchInternalTransfers([out(10), incoming(9.99)]).matched,
+    ).toHaveLength(1);
+  });
+
+  it("a dust arrival does not take the place of the real arrival", () => {
+    const real = makeTransfer({
+      id: "in-real",
+      sourceId: "exchange-3",
+      type: "TRANSFER_IN",
+      amount: 9.99,
+      timestamp: new Date("2025-01-15T11:00:00Z"),
+    });
+    const result = matchInternalTransfers([out(10), incoming(1.001e-15), real]);
+    expect(result.matched.map((m) => m.inTx.id)).toEqual(["in-real"]);
+    expect(result.unmatchedIn.map((t) => t.id)).toEqual(["in-1"]);
+  });
+
+  it("the floor holds for bridge types too", () => {
+    const bridgeOut = makeTransfer({
+      id: "b-out",
+      type: "BRIDGE_OUT",
+      amount: 5,
+    });
+    const bridgeIn = makeTransfer({
+      id: "b-in",
+      type: "BRIDGE_IN",
+      amount: 1e-9,
+      timestamp: new Date("2025-01-15T10:15:00Z"),
+    });
+    expect(matchInternalTransfers([bridgeOut, bridgeIn]).matched).toHaveLength(
+      0,
+    );
+  });
+});
+
 describe("matchInternalTransfers: bucketed search equals the full scan", () => {
   // Reference: the original all-pairs algorithm.
   function reference(
@@ -661,7 +736,7 @@ describe("matchInternalTransfers: bucketed search equals the full scan", () => {
         const td = i.timestamp.getTime() - o.timestamp.getTime();
         if (td < -60000 || td > windowMs) continue;
         const ad = o.amount - i.amount;
-        if (ad >= -0.00000001) {
+        if (ad >= -0.00000001 && i.amount >= o.amount * MIN_RECEIVED_RATIO) {
           if (ad < bd || (Math.abs(ad - bd) < 0.00000001 && td < bt)) {
             bd = ad;
             bt = td;

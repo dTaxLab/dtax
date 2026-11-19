@@ -38,6 +38,18 @@ export interface MatchResult {
 const NOON_MS = 12 * 60 * 60 * 1000;
 
 /**
+ * The least share of a withdrawal that must arrive for the two to be proposed as one
+ * transfer. A confirmed pair takes the shortfall for a network or bridge fee
+ * (`pairTransfers`), so a pair that leaves most of the coins unaccounted for is not a
+ * transfer with a fee: it is two unrelated rows, and confirming it would treat
+ * nearly the whole withdrawal as spent. Anyone can send a wallet a few thousand wei,
+ * and an arrival of that size would otherwise pair with any larger withdrawal of
+ * another wallet within the window. Half is far looser than any fee seen in the
+ * tests (1% and below) and far tighter than a dust arrival (1e-15 of the amount).
+ */
+export const MIN_RECEIVED_RATIO = 0.5;
+
+/**
  * A CSV row that only carries a calendar date has no real time of day. Date-only
  * rows are recognised by sitting exactly on 00:00:00.000 UTC (what the CSV
  * parsers produce on a UTC host) or exactly on 12:00:00.000 UTC (seen on stored
@@ -140,7 +152,10 @@ export function matchInternalTransfers(
       // The IN amount should not be strictly greater than OUT amount
       // (Unless it's an error. We allow tiny floating point tolerance)
       const amountDiff = outTx.amount - inTx.amount;
-      if (amountDiff >= -0.00000001) {
+      if (
+        amountDiff >= -0.00000001 &&
+        inTx.amount >= outTx.amount * MIN_RECEIVED_RATIO
+      ) {
         // We prefer exact matches (amountDiff == 0),
         // otherwise we prefer the smallest amount diff (deducted network fee)
         // If amount diff is equal (within tolerance), we prefer closer time jump.
